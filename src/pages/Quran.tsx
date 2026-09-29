@@ -17,7 +17,7 @@ import {
 } from '../api/quran';
 import { getSurah } from '../data/surahs';
 import { knownReciterRank, reciterMatches } from '../data/reciters';
-import { Artwork, EmptyState, ErrorState, Spinner, Tabs } from '../components/common';
+import { Artwork, EmptyState, ErrorState, NowPlaying, Spinner, Tabs } from '../components/common';
 import { DownloadButton } from '../components/EpisodeRow';
 import { usePlaylistDialog } from '../components/Playlists';
 import { useLibrary } from '../store/library';
@@ -255,7 +255,7 @@ function SurahRow({ reciter, moshaf, surah }: { reciter: Reciter; moshaf: Moshaf
   const playing = player.current?.id === episode.id && player.isPlaying;
   return (
     <li className={`surah-row ${player.current?.id === episode.id ? 'surah-row--current' : ''}`}>
-      <span className="surah-row__number">{s.number}</span>
+      <span className="surah-row__number">{player.current?.id === episode.id ? <NowPlaying paused={!playing} /> : s.number}</span>
       <Link to={`/coran/${reciter.id}/${s.number}?m=${moshaf.id}`} className="surah-row__text">
         <strong>{s.name}</strong>
         <span className="small muted">

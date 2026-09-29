@@ -177,6 +177,8 @@ brand/          logo fourni (branding.pdf) et script qui en tire favicon, icône
 
 Le logo (`brand/branding.pdf`) est un mot-symbole « Podsal » blanc cassé (`#f5f1ec`) sur vert-bleu (`#2f4f4f`). Il est repris dans la barre latérale, sur l'accueil mobile, dans le favicon (initiale « P »), les icônes de l'application web et des applications Android / iOS, et les écrans de démarrage. Les éléments interactifs utilisent une teinte claire du même vert-bleu (`#6cc4b4`).
 
+Interface : police Inter, surfaces sombres teintées de vert-bleu, barre de navigation et mini-lecteur en verre dépoli sur mobile, tuiles de catégories avec icône et reflet de leur couleur. Les animations restent courtes et ne dépendent jamais du défilement : apparition des pages et des cartes, retour visuel à l'appui, barres « en cours de lecture », pochette qui se réduit quand la lecture est en pause, progression vers la prochaine prière. Elles sont toutes désactivées si le système demande de réduire les animations.
+
 Pour régénérer les éléments après une modification du logo :
 
 ```bash

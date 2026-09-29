@@ -1,17 +1,20 @@
 /*
  * Podsal — thème sombre.
- * Règles : angles de 6 px (pas de boutons « pilule »), pas de violet ni de dégradés décoratifs,
- * animations limitées et désactivées si l'utilisateur préfère réduire les mouvements.
+ * Règles : angles arrondis mais jamais de boutons « pilule », pas de violet, reflets de couleur
+ * limités à la teinte de chaque élément, animations courtes (apparition, survol, appui) et
+ * aucune animation liée au défilement ; tout est désactivé si l'utilisateur préfère réduire les mouvements.
  */
 :root {
-  --bg: #121212;
-  --bg-elevated: #181818;
-  --bg-card: #1f1f1f;
-  --bg-hover: #2a2a2a;
-  --bg-sidebar: #000;
-  --text: #fff;
-  --text-muted: #b3b3b3;
-  --text-dim: #7a7a7a;
+  --bg: #0d1111;
+  --bg-elevated: #151b1b;
+  --bg-card: #1a2121;
+  --bg-hover: #212a2a;
+  --bg-sidebar: #090c0c;
+  --line: rgba(255, 255, 255, 0.07);
+  --glass: rgba(13, 17, 17, 0.72);
+  --text: #f4f7f6;
+  --text-muted: #a4b0ae;
+  --text-dim: #6f7c7a;
   /* Couleurs du logo (Branding.pdf) : vert-bleu #2f4f4f et blanc cassé #f5f1ec. */
   --brand: #2f4f4f;
   --brand-hover: #385d5d;
@@ -20,16 +23,19 @@
   --accent: #6cc4b4;
   --accent-hover: #8ad3c6;
   --chart-mark: #4fa696;
-  --chart-grid: #2e2e2e;
+  --chart-grid: #263030;
   --danger: #f15e6c;
   --ok: #8ad3c6;
-  --border: #2e2e2e;
-  --radius: 6px;
-  --radius-lg: 8px;
+  --border: #263030;
+  --radius: 8px;
+  --radius-lg: 14px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --sidebar-w: 280px;
   --player-h: 90px;
   --bottom-nav-h: 0px;
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
   color-scheme: dark;
 }
 
@@ -225,12 +231,8 @@ input[type='checkbox']:not(.switch) { accent-color: var(--accent); width: 16px; 
 .card__title { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
 .card__subtitle { color: var(--text-muted); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-.quick-genres { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-bottom: 36px; }
-.quick-genre { padding: 16px; border-radius: var(--radius); font-weight: 800; transition: filter 0.15s; }
-.quick-genre--main { display: flex; align-items: center; gap: 10px; background: var(--brand); }
-.quick-genre:hover, .genre-tile:hover { filter: brightness(1.12); }
-.genre-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
-.genre-tile { aspect-ratio: 16 / 10; border-radius: var(--radius-lg); padding: 16px; font-size: 20px; font-weight: 800; transition: filter 0.15s; overflow-wrap: anywhere; }
+.quick-genres { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 40px; }
+.genre-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 .genre-hero { border-radius: var(--radius-lg); padding: 40px 28px 24px; margin-bottom: 28px; }
 .genre-hero h1 { font-size: clamp(30px, 6vw, 60px); font-weight: 900; letter-spacing: -1px; margin-bottom: 6px; }
 .genre-hero p { margin: 0; font-size: 14px; }
@@ -546,10 +548,8 @@ input[type='checkbox']:not(.switch) { accent-color: var(--accent); width: 16px; 
   .row-scroll { grid-auto-columns: 140px; gap: 12px; }
   .card { padding: 0; background: none; }
   .card:hover { background: none; }
-  .quick-genres { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 28px; }
-  .quick-genre { padding: 14px 12px; font-size: 14px; }
+  .quick-genres { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 32px; }
   .genre-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .genre-tile { font-size: 16px; }
 
   .podcast-hero { flex-direction: column; align-items: flex-start; padding: 28px 16px 16px; }
   .podcast-hero__art { width: 180px; height: 180px; align-self: center; }
@@ -691,4 +691,246 @@ a.playlist-card:hover { background: var(--bg-hover); }
   .surah-head__arabic { font-size: 32px; }
   .ayah__arabic { font-size: 24px; }
   .prayer-card__list { justify-content: flex-start; }
+}
+
+/* ======================================================================
+ * Finitions : surfaces, reflets et mouvements
+ * ====================================================================== */
+
+/* Halo vert-bleu discret en haut de chaque page (il défile avec le contenu). */
+.main {
+  background:
+    radial-gradient(900px 360px at 12% -120px, rgba(47, 79, 79, 0.55), transparent 70%),
+    radial-gradient(700px 300px at 95% -160px, rgba(47, 79, 79, 0.3), transparent 70%),
+    var(--bg);
+  background-attachment: local;
+}
+.page__title, .section__header h2, .section-title, .podcast-hero__info h1, .episode-hero__info h1, .surah-head h1 { letter-spacing: -0.025em; }
+.page__title { font-weight: 850; }
+
+/* Apparition de chaque page. */
+.route-view { animation: page-in 0.35s var(--ease) backwards; }
+@keyframes page-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes rise { from { opacity: 0; transform: translateY(14px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes pop { 0% { transform: scale(0.6); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- Accueil ---------- */
+.home-head { margin-bottom: 22px; }
+.home-head__title { font-size: clamp(28px, 4vw, 42px); margin-bottom: 6px; }
+.home-head__date { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; color: var(--text-muted); font-size: 14px; }
+.home-head__date span:first-child::first-letter { text-transform: uppercase; }
+.home-head__hijri { color: var(--accent); font-weight: 600; }
+
+/* ---------- Tuiles de catégories ---------- */
+.tile-link {
+  position: relative; isolation: isolate; overflow: hidden; display: flex; align-items: flex-start;
+  min-height: 98px; padding: 16px; border-radius: var(--radius-lg); background: var(--tile); color: #fff;
+  font-weight: 800; font-size: 16px; letter-spacing: -0.01em;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 14px 28px -18px color-mix(in srgb, var(--tile) 85%, #000);
+  transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease);
+  animation: rise 0.45s var(--ease) backwards; animation-delay: calc(var(--i, 0) * 32ms);
+}
+/* Reflet : lumière douce de la même teinte, plus claire dans le coin de l'icône. */
+.tile-link::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(120% 110% at 100% 100%, color-mix(in srgb, var(--tile) 45%, #fff) 0%, transparent 55%),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.18) 0%, transparent 42%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.18), transparent 60%);
+  opacity: 0.6; transition: opacity 0.35s var(--ease);
+}
+/* Éclat qui traverse la tuile au survol. */
+.tile-link::after {
+  content: ''; position: absolute; top: -50%; bottom: -50%; left: -60%; width: 36%; z-index: -1; pointer-events: none;
+  transform: skewX(-18deg); background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  transition: left 0.8s var(--ease);
+}
+.tile-link__label { position: relative; max-width: 72%; line-height: 1.2; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
+.tile-link__icon {
+  position: absolute; right: -4px; bottom: -8px; width: 62px; height: 62px; color: rgba(255, 255, 255, 0.95);
+  transform: rotate(-14deg); filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.35));
+  transition: transform 0.5s var(--ease-spring);
+}
+.tile-link__pattern {
+  position: absolute; inset: 0; z-index: -1; opacity: 0.16; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44' fill='none' stroke='white' stroke-width='1.2'%3E%3Crect x='12' y='12' width='20' height='20'/%3E%3Crect x='12' y='12' width='20' height='20' transform='rotate(45 22 22)'/%3E%3C/svg%3E");
+  background-size: 44px 44px;
+  mask-image: linear-gradient(115deg, transparent 20%, #000 90%);
+}
+.tile-link:hover { transform: translateY(-3px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 20px 34px -16px color-mix(in srgb, var(--tile) 90%, #000); }
+.tile-link:hover::before { opacity: 0.85; }
+.tile-link:hover::after { left: 130%; }
+.tile-link:hover .tile-link__icon { transform: rotate(-4deg) translate(-4px, -6px) scale(1.08); }
+.tile-link:active { transform: scale(0.97); transition-duration: 0.12s; }
+.tile-link--large { min-height: 128px; font-size: 20px; }
+.tile-link--large .tile-link__icon { width: 86px; height: 86px; right: -6px; bottom: -12px; }
+
+/* ---------- Cartes & couvertures ---------- */
+.card {
+  border: 1px solid var(--line); transition: transform 0.3s var(--ease), background 0.3s, box-shadow 0.3s;
+  animation: rise 0.45s var(--ease) backwards; animation-delay: calc(var(--i, 0) * 30ms);
+}
+.card:hover { transform: translateY(-4px); box-shadow: 0 18px 30px -18px rgba(0, 0, 0, 0.8); }
+.card:active { transform: scale(0.98); }
+.card__art .artwork, .card__art .cover { border-radius: 12px; box-shadow: 0 10px 22px -12px rgba(0, 0, 0, 0.75); }
+.card__art .cover__pattern { transition: transform 0.6s var(--ease); }
+.card:hover .card__art .cover__pattern { transform: rotate(22.5deg) scale(1.06); }
+.cover { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07); }
+.cover::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(90% 70% at 20% 0%, rgba(255, 255, 255, 0.2), transparent 60%), linear-gradient(0deg, rgba(0, 0, 0, 0.22), transparent 55%);
+}
+.cover__letter { text-shadow: 0 4px 18px rgba(0, 0, 0, 0.3); }
+
+/* Chargement : formes qui scintillent à la place des cartes. */
+.card--skeleton { pointer-events: none; animation: none; }
+.skeleton {
+  background: linear-gradient(100deg, var(--bg-hover) 30%, #2b3535 50%, var(--bg-hover) 70%);
+  background-size: 200% 100%; animation: shimmer 1.4s linear infinite; border-radius: 12px;
+}
+.skeleton--line { height: 12px; margin-top: 10px; border-radius: 6px; }
+.skeleton--short { width: 60%; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* ---------- Surfaces ---------- */
+.panel, .tile, .recap, .sync-status, .account-link, .playlist-card, .surah-chip, .prayer-row, .studio-item, .share-toggle { border: 1px solid var(--line); }
+.panel, .tile, .recap { background: color-mix(in srgb, var(--bg-elevated) 88%, transparent); }
+.search-box { border: 1px solid var(--line); background: var(--bg-elevated); border-radius: 12px; transition: border-color 0.2s, box-shadow 0.2s; }
+.search-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(108, 196, 180, 0.14); }
+.account-link, .surah-chip, .playlist-card, .reciter-row, .import-row, .queue-item { transition: background 0.2s, transform 0.2s var(--ease); }
+.account-link:active, .surah-chip:active, .playlist-card:active, .reciter-row:active { transform: scale(0.98); }
+.menu { border: 1px solid var(--line); background: rgba(30, 38, 38, 0.92); backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%); border-radius: 12px; animation: menu-in 0.18s var(--ease); transform-origin: bottom right; }
+.menu--down { transform-origin: top right; }
+@keyframes menu-in { from { opacity: 0; transform: scale(0.96) translateY(4px); } to { opacity: 1; transform: none; } }
+.dialog-backdrop { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: fade-in 0.2s var(--ease); }
+.dialog { border: 1px solid var(--line); background: #172020; border-radius: 16px; animation: rise 0.3s var(--ease); }
+
+/* ---------- Boutons : retour tactile ---------- */
+.btn, .play-btn, .icon-btn, .ctrl-btn, .tab, .chapter, .ayah__number { transition: transform 0.16s var(--ease), background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s; }
+.btn:not(:disabled):active, .play-btn:active, .icon-btn:not(:disabled):active, .ctrl-btn:active { transform: scale(0.94); }
+.btn { border-radius: 10px; }
+.btn--primary { box-shadow: 0 6px 18px -8px rgba(255, 255, 255, 0.35); }
+.btn--outline { border-color: rgba(255, 255, 255, 0.22); }
+.play-btn { box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.6); }
+.play-btn:hover { transform: scale(1.06); }
+.play-btn--big { box-shadow: 0 10px 28px -8px rgba(108, 196, 180, 0.65); }
+.icon-btn--active svg { animation: pop 0.4s var(--ease-spring); }
+
+/* Onglets : trait qui se déploie sous l'onglet actif. */
+.tabs { border-bottom-color: var(--line); }
+.tab { position: relative; border-bottom: 0; }
+.tab--active::after {
+  content: ''; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0;
+  background: var(--accent); animation: grow 0.35s var(--ease);
+}
+@keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* ---------- Barre latérale ---------- */
+.sidebar { border-right: 1px solid var(--line); }
+.nav-link { position: relative; transition: color 0.2s, background 0.2s; }
+.nav-link.active { background: rgba(108, 196, 180, 0.1); color: var(--text); }
+.nav-link.active::before { content: ''; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); animation: grow-y 0.3s var(--ease); }
+.nav-link.active svg { color: var(--accent); }
+@keyframes grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.brand { transition: background 0.2s, transform 0.2s var(--ease); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+.brand:active { transform: scale(0.97); }
+
+/* ---------- En cours de lecture ---------- */
+.eq { display: inline-flex; align-items: flex-end; gap: 2px; width: 14px; height: 13px; margin-right: 8px; vertical-align: -1px; }
+.eq i { flex: 1; height: 100%; border-radius: 1px; background: var(--accent); transform-origin: bottom; animation: eq 0.9s ease-in-out infinite; }
+.eq i:nth-child(2) { animation-delay: -0.35s; animation-duration: 1.1s; }
+.eq i:nth-child(3) { animation-delay: -0.6s; animation-duration: 0.8s; }
+.eq--paused i { animation-play-state: paused; }
+@keyframes eq { 0%, 100% { transform: scaleY(0.25); } 50% { transform: scaleY(1); } }
+.surah-row__number .eq { margin: 0; }
+.surah-row--current .surah-row__number { border-color: var(--accent); }
+.episode--current { background: rgba(108, 196, 180, 0.06); }
+.ayah { transition: background 0.4s var(--ease); }
+.ayah--active { background: rgba(47, 79, 79, 0.55); box-shadow: inset 3px 0 0 var(--accent); }
+
+/* ---------- Lecteur ---------- */
+.player-bar { background: rgba(9, 12, 12, 0.86); backdrop-filter: blur(22px) saturate(150%); -webkit-backdrop-filter: blur(22px) saturate(150%); border-top: 1px solid var(--line); }
+.player-bar__art { position: relative; display: block; flex-shrink: 0; }
+.player-bar__art .artwork { border-radius: 8px; }
+.player-bar__art .eq { position: absolute; right: 4px; bottom: 4px; margin: 0; padding: 3px; box-sizing: content-box; border-radius: 5px; background: rgba(0, 0, 0, 0.55); }
+.slider { height: 5px; border-radius: 3px; }
+.full-player {
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(47, 79, 79, 0.85), transparent 70%),
+    var(--bg);
+  animation: sheet-up 0.45s var(--ease);
+}
+@keyframes sheet-up { from { transform: translateY(8%); opacity: 0; } to { transform: none; opacity: 1; } }
+.full-player__art { border-radius: 20px; transition: transform 0.6s var(--ease-spring), box-shadow 0.6s var(--ease); box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.8); }
+.full-player__art--paused { transform: scale(0.86); box-shadow: 0 16px 30px -18px rgba(0, 0, 0, 0.7); }
+.full-player .cover__letter { font-size: 120px; }
+
+/* ---------- Prière ---------- */
+.prayer-card {
+  position: relative; overflow: hidden; isolation: isolate; border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(135deg, #2f4f4f 0%, #1c3232 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 18px 36px -24px rgba(0, 0, 0, 0.9);
+  transition: transform 0.3s var(--ease), box-shadow 0.3s;
+}
+.prayer-card::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; opacity: 0.1; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44' fill='none' stroke='white' stroke-width='1.2'%3E%3Crect x='12' y='12' width='20' height='20'/%3E%3Crect x='12' y='12' width='20' height='20' transform='rotate(45 22 22)'/%3E%3C/svg%3E");
+  background-size: 44px 44px; mask-image: linear-gradient(90deg, transparent 30%, #000);
+}
+.prayer-card:hover { background: linear-gradient(135deg, #355959 0%, #1f3838 100%); transform: translateY(-2px); }
+.prayer-card--setup { background: var(--bg-elevated); }
+.prayer-card--setup::before { display: none; }
+.prayer-card--setup:hover { background: var(--bg-hover); }
+.prayer-card__label { display: inline-flex; align-items: center; gap: 8px; color: rgba(244, 247, 246, 0.75); }
+.prayer-card__next strong { font-size: 24px; letter-spacing: -0.02em; }
+.prayer-card__progress { display: block; width: 100%; max-width: 240px; height: 4px; margin-top: 8px; border-radius: 2px; background: rgba(255, 255, 255, 0.14); overflow: hidden; }
+.prayer-card__progress > span { display: block; height: 100%; border-radius: 2px; background: var(--accent); box-shadow: 0 0 12px rgba(108, 196, 180, 0.8); transition: width 1s var(--ease); animation: grow-x 1.1s var(--ease) both; transform-origin: left; }
+@keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.prayer-card__item--next { background: rgba(255, 255, 255, 0.14); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12); }
+.live-dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+.live-dot::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--accent); animation: ping 1.8s var(--ease) infinite; }
+@keyframes ping { 0% { transform: scale(1); opacity: 0.7; } 80%, 100% { transform: scale(2.6); opacity: 0; } }
+.prayer-row--next { background: linear-gradient(135deg, #2f4f4f, #1c3232); }
+.prayer-banner { animation: banner-in 0.5s var(--ease-spring); border: 1px solid rgba(255, 255, 255, 0.12); }
+@keyframes banner-in { from { opacity: 0; transform: translate(-50%, -20px); } to { opacity: 1; transform: translateX(-50%); } }
+
+/* ---------- Mobile : barres flottantes en verre dépoli ---------- */
+@media (max-width: 800px) {
+  .main { padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 12px); }
+  .app--with-player .main { padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + var(--player-h) + 20px); }
+
+  .bottom-nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    background: var(--glass); backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border-top: 1px solid var(--line);
+  }
+  .bottom-nav__link { position: relative; gap: 3px; font-weight: 600; transition: color 0.2s; }
+  .bottom-nav__link::before {
+    content: ''; position: absolute; top: 6px; width: 52px; height: 30px; border-radius: 10px;
+    background: rgba(108, 196, 180, 0.16); opacity: 0; transform: scale(0.6); transition: opacity 0.25s var(--ease), transform 0.35s var(--ease-spring);
+  }
+  .bottom-nav__link svg { position: relative; margin-top: 2px; transition: transform 0.35s var(--ease-spring); }
+  .bottom-nav__link.active { color: var(--text); }
+  .bottom-nav__link.active::before { opacity: 1; transform: scale(1); }
+  .bottom-nav__link.active svg { color: var(--accent); transform: translateY(-1px); }
+  .bottom-nav__link:active svg { transform: scale(0.88); }
+
+  .player-bar {
+    position: fixed; left: 8px; right: 8px; bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 8px); z-index: 41; margin: 0;
+    background: rgba(33, 42, 42, 0.78); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;
+    box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.75); animation: rise 0.45s var(--ease-spring) backwards;
+  }
+  .player-bar__line { height: 2px; left: 12px; bottom: 0; max-width: calc(100% - 24px); background: var(--accent); box-shadow: 0 0 10px rgba(108, 196, 180, 0.9); border-radius: 2px; }
+  .player-bar__art .artwork { width: 44px !important; height: 44px !important; }
+  .card { border: 0; }
+  .card:hover { transform: none; box-shadow: none; }
+  .tile-link { min-height: 86px; padding: 14px; font-size: 15px; }
+  .tile-link__icon { width: 54px; height: 54px; }
+  .tile-link--large { min-height: 104px; font-size: 17px; }
+  .tile-link--large .tile-link__icon { width: 70px; height: 70px; }
+  .prayer-card__progress { max-width: none; }
 }

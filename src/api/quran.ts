@@ -121,7 +121,7 @@ export function surahEpisode(reciter: Pick<Reciter, 'id' | 'name'>, moshaf: Mosh
     podcastId: quranPodcastId(reciter.id),
     podcastTitle: reciter.name,
     title: `${surah}. ${s.name} — ${s.meaning}`,
-    description: `${s.arabic} · ${s.ayahs} versets · ${moshaf.riwaya}`,
+    description: `\u2068${s.arabic}\u2069 · ${s.ayahs} versets · ${moshaf.riwaya}`,
     audioUrl: surahAudioUrl(moshaf, surah),
     duration: 0,
     releaseDate: '',

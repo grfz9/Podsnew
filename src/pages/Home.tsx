@@ -5,9 +5,10 @@ import { getTopPodcasts } from '../api/itunes';
 import { GENRES, getGenre } from '../api/genres';
 import { latestNativePodcasts } from '../api/native';
 import { EpisodeList } from '../components/EpisodeRow';
-import { PodcastRow } from '../components/PodcastCard';
+import { PodcastRow, SkeletonCards } from '../components/PodcastCard';
 import { ErrorState, Section, Spinner } from '../components/common';
 import { Wordmark } from '../components/Wordmark';
+import { GenreTile, Tile } from '../components/GenreTile';
 import { buildDailyMix, excludeKnown, recommendationSeeds, type Seed } from '../lib/recommend';
 import { useAuth } from '../store/auth';
 import { useModeration } from '../store/moderation';
@@ -16,6 +17,7 @@ import { useLibrary } from '../store/library';
 import { usePlayer } from '../store/player';
 import type { Episode } from '../types';
 import { useAsync } from '../utils/hooks';
+import { hijriDate } from '../utils/format';
 
 /** Catégories mises en avant sur l'accueil. */
 const FEATURED_GENRES = [1489, 1303, 1487];
@@ -25,7 +27,7 @@ function TopRow({ country, genreId, title }: { country: string; genreId?: number
   const { data, error, loading, reload } = useAsync((signal) => getTopPodcasts(country, genreId, 30, signal), [country, genreId]);
   return (
     <Section title={title} action={<Link to={genreId ? `/genre/${genreId}` : '/genre/top'} className="see-all">Tout afficher</Link>}>
-      {loading && !data ? <Spinner /> : error ? <ErrorState error={error} onRetry={reload} /> : <PodcastRow podcasts={filterPodcasts(data ?? []).slice(0, 20)} />}
+      {loading && !data ? <SkeletonCards /> : error ? <ErrorState error={error} onRetry={reload} /> : <PodcastRow podcasts={filterPodcasts(data ?? []).slice(0, 20)} />}
     </Section>
   );
 }
@@ -162,24 +164,24 @@ export function Home() {
 
   return (
     <div className="page">
-      <div className="mobile-brand">
-        <Wordmark className="mobile-brand__wordmark" />
-      </div>
-      <h1 className="page__title">Accueil</h1>
+      <header className="home-head">
+        <div className="mobile-brand">
+          <Wordmark className="mobile-brand__wordmark" />
+        </div>
+        <h1 className="page__title home-head__title">As-salāmu ʿalaykum</h1>
+        <p className="home-head__date">
+          <span>{new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}</span>
+          {hijriDate() && <span className="home-head__hijri">{hijriDate()}</span>}
+        </p>
+      </header>
 
       <PrayerCard />
 
       <div className="quick-genres">
-        <Link to="/coran" className="quick-genre quick-genre--main">
-          <BookOpen size={18} /> Coran
-        </Link>
-        <Link to="/islam" className="quick-genre quick-genre--main">
-          <Mic size={18} /> Podcasts islamiques
-        </Link>
-        {GENRES.slice(0, 6).map((g) => (
-          <Link key={g.id} to={`/genre/${g.id}`} className="quick-genre" style={{ background: g.color }}>
-            {g.name}
-          </Link>
+        <Tile to="/coran" label="Coran" icon={BookOpen} color="var(--brand)" index={0} pattern />
+        <Tile to="/islam" label="Podcasts islamiques" icon={Mic} color="var(--brand)" index={1} pattern />
+        {GENRES.slice(0, 6).map((g, i) => (
+          <GenreTile key={g.id} genre={g} index={i + 2} />
         ))}
       </div>
 

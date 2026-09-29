@@ -1,8 +1,8 @@
 import { useParams } from 'react-router';
 import { getTopPodcasts } from '../api/itunes';
 import { COUNTRIES, getGenre } from '../api/genres';
-import { PodcastGrid } from '../components/PodcastCard';
-import { ErrorState, Spinner } from '../components/common';
+import { PodcastGrid, SkeletonCards } from '../components/PodcastCard';
+import { ErrorState } from '../components/common';
 import { useLibrary } from '../store/library';
 import { useModeration } from '../store/moderation';
 import { useAsync } from '../utils/hooks';
@@ -25,7 +25,7 @@ export function GenrePage() {
           {data ? ` · ${filterPodcasts(data).length} podcasts` : ''}
         </p>
       </header>
-      {loading && !data ? <Spinner /> : error ? <ErrorState error={error} onRetry={reload} /> : <PodcastGrid podcasts={filterPodcasts(data ?? [])} />}
+      {loading && !data ? <SkeletonCards count={12} row={false} /> : error ? <ErrorState error={error} onRetry={reload} /> : <PodcastGrid podcasts={filterPodcasts(data ?? [])} />}
     </div>
   );
 }

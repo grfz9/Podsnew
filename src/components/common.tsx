@@ -239,3 +239,14 @@ export function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')} Mo`;
   return `${(bytes / 1024 / 1024 / 1024).toFixed(2).replace('.', ',')} Go`;
 }
+
+/** Petites barres animées : l'élément est en cours de lecture. */
+export function NowPlaying({ paused = false }: { paused?: boolean }) {
+  return (
+    <span className={`eq ${paused ? 'eq--paused' : ''}`} aria-hidden>
+      <i />
+      <i />
+      <i />
+    </span>
+  );
+}

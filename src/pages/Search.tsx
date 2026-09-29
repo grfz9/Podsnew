@@ -4,6 +4,7 @@ import { FileText, Search as SearchIcon, X } from 'lucide-react';
 import { searchAllPodcasts } from '../api/catalog';
 import { searchEpisodes } from '../api/itunes';
 import { GENRES } from '../api/genres';
+import { GenreTile } from '../components/GenreTile';
 import { searchTranscripts } from '../api/ai';
 import { searchLocalTranscripts } from '../lib/feed';
 import { EpisodeList, EpisodeRow, episodePath } from '../components/EpisodeRow';
@@ -168,10 +169,8 @@ export function SearchPage() {
         <>
           <h2 className="section-title">Parcourir les catégories</h2>
           <div className="genre-grid">
-            {GENRES.map((g) => (
-              <Link key={g.id} to={`/genre/${g.id}`} className="genre-tile" style={{ background: g.color }}>
-                {g.name}
-              </Link>
+            {GENRES.map((g, i) => (
+              <GenreTile key={g.id} genre={g} size="large" index={i} />
             ))}
           </div>
         </>
