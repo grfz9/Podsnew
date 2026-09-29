@@ -5,8 +5,8 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * Après chaque modification : `npm run build && npx cap sync`.
  */
 const config: CapacitorConfig = {
-  appId: 'app.podsnew',
-  appName: 'Podsnew',
+  appId: 'app.podsal',
+  appName: 'Podsal',
   webDir: 'dist',
   backgroundColor: '#121212',
   plugins: {

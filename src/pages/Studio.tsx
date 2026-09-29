@@ -30,7 +30,7 @@ function RequireAccount({ children }: { children: ReactNode }) {
     return (
       <div className="page">
         <h1 className="page__title">Studio</h1>
-        <EmptyState icon={<Mic size={32} />} title="Publiez votre podcast sur Podsnew">
+        <EmptyState icon={<Mic size={32} />} title="Publiez votre podcast sur Podsal">
           {auth.enabled ? (
             <>
               Hébergez vos épisodes, obtenez un flux RSS à soumettre aux autres plateformes et suivez vos écoutes.{' '}
@@ -121,7 +121,7 @@ function PodcastForm({ initial, onSaved }: { initial?: PodcastInput & { id?: str
         </label>
       </div>
       <label>
-        Pochette <span className="small muted">(image carrée, 1400 × 1400 à 3000 × 3000 px conseillés, 2 Mo max)</span>
+        Pochette <span className="small muted">(utilisée seulement dans le flux RSS pour les autres plateformes ; non affichée dans Podsal ; sans êtres vivants ; 2 Mo max)</span>
         <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)} />
       </label>
       <label>
@@ -131,7 +131,10 @@ function PodcastForm({ initial, onSaved }: { initial?: PodcastInput & { id?: str
       <label className="checkbox">
         <input type="checkbox" checked={form.explicit} onChange={(e) => set('explicit', e.target.checked)} /> Contenu explicite
       </label>
-      <p className="small muted">La musique n'est pas acceptée sur Podsnew : uniquement des contenus parlés.</p>
+      <p className="small muted">
+        Pas de musique ni de contenu explicite. Pour un podcast de science religieuse, publiez-le puis proposez-le à la vérification depuis la page
+        « Podcasts islamiques » : il y sera ajouté après validation.
+      </p>
       {error && <p className="error-text small">{error}</p>}
       <button className="btn btn--primary" type="submit" disabled={busy}>
         {busy ? 'Enregistrement…' : initial?.id ? 'Enregistrer' : 'Créer le podcast'}
@@ -166,7 +169,7 @@ function StudioHome() {
           </button>
         )}
       </div>
-      <p className="muted">Publiez vos épisodes sur Podsnew, obtenez un flux RSS pour les autres plateformes et suivez vos écoutes.</p>
+      <p className="muted">Publiez vos épisodes sur Podsal, obtenez un flux RSS pour les autres plateformes et suivez vos écoutes.</p>
 
       {creating && (
         <section className="panel">

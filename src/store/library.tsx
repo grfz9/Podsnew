@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
-import type { Clip, Episode, EpisodeProgress, Podcast } from '../types';
+import type { Clip, Episode, EpisodeProgress, Playlist, Podcast } from '../types';
+import { moveInQueue } from '../utils/queue';
 import { usePersistentState } from '../utils/hooks';
 import { addCompletion, addListening, emptyDeviceStats } from '../lib/stats';
 import { LIST_KEYS, type ListKey, type SyncedData } from '../lib/sync';
@@ -7,9 +8,47 @@ import { LIST_KEYS, type ListKey, type SyncedData } from '../lib/sync';
 const HISTORY_LIMIT = 100;
 const HISTORY_DESCRIPTION_MAX = 600;
 
+export type TranslationSetting = 'rashid' | 'hamidullah' | 'none';
+
+export type PrayerMethod = 'mwl' | 'ummalqura' | 'egypt' | 'karachi' | 'isna' | 'moonsighting' | 'uoif' | 'fifteen';
+
+export interface PrayerSettings {
+  enabled: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  place: string;
+  method: PrayerMethod;
+  madhab: 'shafi' | 'hanafi';
+  /** Met la lecture en pause à l'heure de chaque prière. */
+  pauseAtAdhan: boolean;
+  /** Notification à l'heure de chaque prière. */
+  notify: boolean;
+}
+
 export interface Settings {
   notifications: boolean;
+  quran: {
+    translation: TranslationSetting;
+    showArabic: boolean;
+    favorites: number[];
+  };
+  prayer: PrayerSettings;
 }
+
+export const DEFAULT_SETTINGS: Settings = {
+  notifications: false,
+  quran: { translation: 'rashid', showArabic: true, favorites: [] },
+  prayer: {
+    enabled: false,
+    latitude: null,
+    longitude: null,
+    place: '',
+    method: 'mwl',
+    madhab: 'shafi',
+    pauseAtAdhan: true,
+    notify: false,
+  },
+};
 
 export interface LibraryState extends SyncedData {
   version: 2;
@@ -19,6 +58,11 @@ export interface LibraryState extends SyncedData {
   /** Date du dernier épisode connu par podcast (sert aux notifications). */
   seen: Record<string, string>;
   sync: { userId: string | null; lastSyncedAt: number | null };
+}
+
+/** Version légère d'un épisode pour les playlists (description raccourcie). */
+function lightEpisode(e: Episode): Episode {
+  return { ...e, description: e.description.slice(0, 300) };
 }
 
 function newId(): string {
@@ -48,8 +92,9 @@ function initialState(): LibraryState {
     clips: [],
     progress: readV1('progress', {}),
     stats: {},
-    modified: { subscriptions: 0, savedEpisodes: 0, history: 0, clips: 0 },
-    settings: { notifications: false },
+    playlists: [],
+    modified: { subscriptions: 0, savedEpisodes: 0, history: 0, clips: 0, playlists: 0 },
+    settings: DEFAULT_SETTINGS,
     seen: {},
     sync: { userId: null, lastSyncedAt: null },
   };
@@ -63,7 +108,13 @@ function normalize(stored: Partial<LibraryState> | null): LibraryState {
     ...base,
     ...stored,
     modified: { ...base.modified, ...stored.modified },
-    settings: { ...base.settings, ...stored.settings },
+    settings: {
+      ...base.settings,
+      ...stored.settings,
+      quran: { ...base.settings.quran, ...stored.settings?.quran },
+      prayer: { ...base.settings.prayer, ...stored.settings?.prayer },
+    },
+    playlists: stored.playlists ?? [],
     sync: { ...base.sync, ...stored.sync },
   };
 }
@@ -100,6 +151,14 @@ export interface LibraryValue {
   clips: Clip[];
   addClip: (clip: Omit<Clip, 'id' | 'createdAt'>) => Clip;
   removeClip: (id: string) => void;
+
+  playlists: Playlist[];
+  createPlaylist: (name: string, items?: Episode[]) => Playlist;
+  renamePlaylist: (id: string, name: string) => void;
+  deletePlaylist: (id: string) => void;
+  addToPlaylist: (id: string, episode: Episode) => void;
+  removeFromPlaylist: (id: string, episodeId: string) => void;
+  movePlaylistItem: (id: string, from: number, to: number) => void;
 
   seen: Record<string, string>;
   markSeen: (entries: Record<string, string>) => void;
@@ -216,6 +275,33 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         return clip;
       },
       removeClip: (id) => updateList('clips', (list) => list.filter((c) => c.id !== id)),
+
+      playlists: state.playlists,
+      createPlaylist: (name, items = []) => {
+        const now = Date.now();
+        const playlist: Playlist = { id: newId(), name: name.trim().slice(0, 80) || 'Nouvelle playlist', items: items.map(lightEpisode), createdAt: now, updatedAt: now };
+        updateList('playlists', (list) => [playlist, ...list]);
+        return playlist;
+      },
+      renamePlaylist: (id, name) =>
+        updateList('playlists', (list) => list.map((p) => (p.id === id ? { ...p, name: name.trim().slice(0, 80) || p.name, updatedAt: Date.now() } : p))),
+      deletePlaylist: (id) => updateList('playlists', (list) => list.filter((p) => p.id !== id)),
+      addToPlaylist: (id, episode) =>
+        updateList('playlists', (list) =>
+          list.map((p) =>
+            p.id === id && !p.items.some((e) => e.id === episode.id)
+              ? { ...p, items: [...p.items, lightEpisode(episode)], updatedAt: Date.now() }
+              : p,
+          ),
+        ),
+      removeFromPlaylist: (id, episodeId) =>
+        updateList('playlists', (list) =>
+          list.map((p) => (p.id === id ? { ...p, items: p.items.filter((e) => e.id !== episodeId), updatedAt: Date.now() } : p)),
+        ),
+      movePlaylistItem: (id, from, to) =>
+        updateList('playlists', (list) =>
+          list.map((p) => (p.id === id ? { ...p, items: moveInQueue(p.items, from, to), updatedAt: Date.now() } : p)),
+        ),
 
       seen: state.seen,
       markSeen: (entries) => update((s) => ({ seen: { ...s.seen, ...entries } })),

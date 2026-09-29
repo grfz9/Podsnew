@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
-import { Heart, ListPlus, Pause, Play, Share2 } from 'lucide-react';
-import { Artwork, ErrorState, Spinner, shareLink } from '../components/common';
+import { Heart, ListPlus, Pause, Play, Share2, ShieldCheck } from 'lucide-react';
+import { Artwork, EmptyState, ErrorState, Spinner, shareLink } from '../components/common';
+import { useModeration } from '../store/moderation';
 import { DownloadButton, episodeUrl } from '../components/EpisodeRow';
 import { ChapterList, ClipEditor, SummaryPanel, TranscriptPanel } from '../components/EpisodeExtras';
 import { useEpisode, useEpisodeExtras } from '../lib/useEpisode';
@@ -9,6 +10,7 @@ import { useLibrary } from '../store/library';
 import { usePlayer } from '../store/player';
 import { formatDuration, formatReleaseDate, stripHtml } from '../utils/format';
 import { progressRatio } from '../utils/progress';
+import { podcastPath } from '../lib/paths';
 
 export function EpisodePage() {
   const { podcastId = '', episodeId = '' } = useParams();
@@ -17,12 +19,21 @@ export function EpisodePage() {
   const extras = useEpisodeExtras(data?.podcast, data?.episode);
   const library = useLibrary();
   const player = usePlayer();
+  const moderation = useModeration();
   const [notice, setNotice] = useState<string | null>(null);
 
   if (loading && !data) return <div className="page"><Spinner /></div>;
   if (!data) return <div className="page">{error && <ErrorState error={error} onRetry={reload} />}</div>;
 
   const { episode, podcast } = data;
+  if (!(podcast ? moderation.allowsPodcast(podcast) : moderation.allowsEpisode(episode))) {
+    if (moderation.loading) return <div className="page"><Spinner /></div>;
+    return (
+      <div className="page">
+        <EmptyState icon={<ShieldCheck size={32} />} title="Cet épisode n'est pas disponible sur Podsal" />
+      </div>
+    );
+  }
   const isCurrent = player.current?.id === episode.id;
   const playing = isCurrent && player.isPlaying;
   const saved = library.isSaved(episode.id);
@@ -35,7 +46,7 @@ export function EpisodePage() {
       <header className="episode-hero">
         <Artwork src={episode.artwork} alt={episode.podcastTitle} className="episode-hero__art" />
         <div className="episode-hero__info">
-          <Link to={`/podcast/${episode.podcastId}`} className="episode-hero__podcast">
+          <Link to={podcastPath(episode.podcastId)} className="episode-hero__podcast">
             {episode.podcastTitle}
           </Link>
           <h1>{episode.title}</h1>

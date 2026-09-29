@@ -9,8 +9,10 @@ export interface Podcast {
   feedUrl?: string;
   episodeCount?: number;
   lastRelease?: string;
-  /** Podcast publié par un créateur directement sur Podsnew. */
+  /** Podcast publié par un créateur directement sur Podsal. */
   native?: boolean;
+  /** Contenu signalé comme explicite par l'éditeur. */
+  explicit?: boolean;
 }
 
 export interface Episode {
@@ -27,6 +29,7 @@ export interface Episode {
   /** Identifiant de l'épisode dans le flux RSS (sert à retrouver chapitres et transcription). */
   guid?: string;
   genre?: string;
+  explicit?: boolean;
 }
 
 export interface EpisodeProgress {
@@ -89,4 +92,12 @@ export interface DeviceStats {
   podcasts: Record<string, PodcastMeta>;
   /** Secondes écoutées par heure de la journée (0 à 23). */
   hours: number[];
+}
+
+export interface Playlist {
+  id: string;
+  name: string;
+  items: Episode[];
+  createdAt: number;
+  updatedAt: number;
 }

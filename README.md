@@ -1,35 +1,46 @@
-# Podsnew
+# Podsal
 
-Application d'écoute de podcasts inspirée de Spotify et Deezer, réservée aux contenus parlés : **pas de musique** (les podcasts musicaux sont exclus du catalogue, des recherches, des recommandations et du studio).
+Application d'écoute de podcasts et du Coran, pensée dans le respect du Coran et de la Sunnah : **pas de musique**, pas de contenu explicite, pas d'images d'êtres vivants.
 
 Disponible sur le web (installable), sur Android et sur iOS.
 
+## Règles de contenu
+
+- **Coran** : toujours disponible.
+- **Podcasts islamiques** : uniquement ceux validés un par un par l'administrateur (liste de départ dans le code + page « Modération »). Les utilisateurs peuvent en proposer ; rien n'est ajouté automatiquement.
+- **Autres podcasts** (actualités, histoire, sciences…) : disponibles, sauf la musique, le contenu marqué explicite par l'éditeur et les podcasts religieux non validés (y compris ceux d'autres religions).
+- L'administrateur peut **masquer** n'importe quel podcast du catalogue.
+- **Aucune image** de podcast n'est affichée : chaque podcast a une couverture neutre (couleur, motif géométrique et initiale).
+- **Pas de résumé automatique** pour le Coran ni pour les podcasts islamiques.
+
+Ces règles s'appliquent partout : accueil, recherche, catégories, recommandations, import OPML, pages podcast et épisode.
+
 ## Fonctionnalités
 
-### Écoute
-- Catalogue Apple Podcasts : classements par pays et par catégorie, recherche de podcasts et d'épisodes.
-- Lecteur : reculer de 15 s / avancer de 30 s, vitesse de 0,75× à 2×, minuteur de sommeil, reprise automatique, file d'attente, contrôles de l'écran verrouillé, raccourcis clavier.
-- **Chapitres** et **transcriptions** publiés par les éditeurs (norme Podcasting 2.0) : la transcription suit la lecture et chaque phrase permet de sauter au passage.
-- **Téléchargements hors-ligne** : épisodes stockés sur l'appareil, lisibles sans connexion.
+### Coran
+- Récitateurs de [mp3quran.net](https://mp3quran.net), filtrables par **riwaya** (Hafs, Warsh, Qalun…), récitateurs favoris.
+- Page de sourate : **texte arabe** (édition Uthmani), **traduction française du sens** au choix — Rachid Maach (revue par le Centre Rowwad at-Tarjama) ou Muhammad Hamidullah, publiées par [QuranEnc.com](https://quranenc.com) — ou sans traduction.
+- Le verset en cours est surligné et suivi pendant la récitation ; un clic sur un verset y fait sauter.
+- **Répétition pour mémoriser** : 1, 2, 3, 5, 10 fois ou en boucle, sur la sourate entière ou sur un passage (du verset… au verset…) quand le minutage des versets est disponible.
+- Téléchargement pour l'écoute hors-ligne, ajout aux playlists.
 
-### Découverte
-- **Mix du jour** : les nouveautés de vos abonnements et quelques découvertes, renouvelés chaque jour.
-- **« Parce que vous écoutez… »** : podcasts populaires dans les catégories que vous écoutez le plus.
-- **Recherche dans ce qui est dit** : retrouve l'épisode et le moment où un sujet est abordé.
-- **Résumés automatiques** : points clés, thèmes et découpage d'un épisode, rédigés à partir de la transcription ou de la description.
+### Prière
+- **Horaires de prière** calculés sur l'appareil (bibliothèque adhan) : position GPS ou ville, méthode de calcul (Ligue islamique mondiale, Umm al-Qura, UOIF, etc.), Asr selon l'avis majoritaire ou hanafite.
+- **Pause automatique** de la lecture à l'heure de la prière, et notification si elle est activée.
 
-### Bibliothèque
-- Abonnements, favoris, historique, extraits, téléchargements.
-- **Extraits partageables** : choisissez un passage (5 s à 2 min) et partagez un lien qui lit uniquement ce passage.
-- **Statistiques d'écoute** : temps d'écoute par mois, podcasts et catégories préférés, série de jours, bilan de l'année.
-- **Import / export OPML** de vos abonnements depuis ou vers Apple Podcasts, Pocket Casts, Overcast, AntennaPod…
-- **Notifications** de nouveaux épisodes.
+### Podcasts
+- Catalogue Apple Podcasts filtré : classements, catégories, recherche de podcasts et d'épisodes.
+- Page « Podcasts islamiques » : podcasts validés et formulaire de proposition.
+- Lecteur : reculer de 15 s / avancer de 30 s, vitesse de 0,75× à 2×, minuteur de sommeil, reprise automatique, file d'attente, contrôles de l'écran verrouillé.
+- Chapitres et transcriptions publiés par les éditeurs, recherche dans ce qui est dit.
+- Téléchargements hors-ligne, extraits partageables, statistiques d'écoute, import / export OPML, notifications de nouveaux épisodes.
 
-### Compte et social (backend facultatif)
-- **Comptes et synchronisation** entre appareils : abonnements, progression, extraits, statistiques.
-- **Amis** : suivre des personnes, voir leurs écoutes (si elles le partagent), leurs extraits et leurs avis.
-- **Avis** : notes de 1 à 5 et commentaires laissés par les utilisateurs (aucun avis importé ni inventé).
-- **Studio créateur** : publier son podcast (pochette, épisodes, programmation), obtenir un flux RSS à soumettre aux autres plateformes, suivre ses écoutes.
+### Playlists et amis
+- **Playlists** : sourates et épisodes, synchronisées entre appareils.
+- **Amis** : ajout mutuel (demande puis acceptation). Des amis peuvent seulement **consulter les playlists l'un de l'autre** : il n'y a ni messagerie, ni commentaires, ni avis, ni fil d'activité.
+
+### Studio créateur
+Publier son podcast (sans musique ni contenu explicite) et obtenir un flux RSS. Un podcast religieux doit être proposé puis validé comme les autres.
 
 ## Démarrer
 
@@ -43,9 +54,31 @@ npm run typecheck  # vérification TypeScript
 npm run build      # build de production dans dist/
 ```
 
-Sans configuration, l'application fonctionne entièrement sur l'appareil : écoute, téléchargements, statistiques, mix du jour, extraits et import OPML sont disponibles. Les comptes, le social, les résumés et le studio nécessitent le backend ci-dessous.
+Sans configuration, l'application fonctionne sur l'appareil : Coran, horaires de prière, écoute, téléchargements, playlists, statistiques. Les comptes, les amis, la modération, les propositions, les résumés et le studio nécessitent le backend ci-dessous.
 
 Le build est un site statique (routage par `#`) : il peut être hébergé tel quel sur GitHub Pages, Netlify, Vercel, etc.
+
+## Ajouter des podcasts islamiques
+
+Deux possibilités, cumulables :
+
+1. **Dans le code** — liste de départ dans `src/data/islamicSeed.ts`. Il faut l'identifiant Apple Podcasts du podcast : le nombre à la fin de son adresse (`https://podcasts.apple.com/fr/podcast/nom/id1234567890` → `'1234567890'`).
+   ```ts
+   export const ISLAMIC_SEED = [
+     { id: '1234567890', title: 'Nom du podcast', author: 'Nom du prédicateur' },
+   ];
+   ```
+2. **Depuis l'application** (comptes activés) — page « Modération » : valider les propositions des utilisateurs, ajouter un podcast par recherche, retirer une validation, rétablir un podcast masqué. Sur la page d'un podcast, l'administrateur dispose aussi des boutons « Valider » et « Masquer du catalogue ».
+
+### Devenir administrateur
+
+Créez votre compte dans l'application, puis exécutez dans l'éditeur SQL du tableau de bord Supabase :
+
+```sql
+insert into admins (user_id) select id from auth.users where email = 'votre@adresse.fr';
+```
+
+Rechargez l'application : le lien « Modération » apparaît dans le menu.
 
 ## Activer les comptes (Supabase)
 
@@ -64,7 +97,7 @@ Le backend utilise [Supabase](https://supabase.com) : base Postgres avec sécuri
    ```bash
    npx supabase functions deploy proxy transcript summarize rss
    ```
-4. Pour les résumés automatiques, ajoutez une clé de l'API Claude (console.anthropic.com) :
+4. Pour les résumés automatiques (podcasts non religieux uniquement), ajoutez une clé de l'API Claude (console.anthropic.com) :
    ```bash
    npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
    ```
@@ -80,7 +113,7 @@ Pour développer avec un Supabase local (Docker requis) : `npx supabase start`, 
 |---|---|
 | `proxy` | Récupère flux RSS, chapitres et transcriptions quand l'hébergeur du podcast bloque le navigateur (utilisateurs connectés, adresses internes refusées, 8 Mo max). |
 | `transcript` | Récupère la transcription d'un épisode et l'ajoute à l'index de recherche. |
-| `summarize` | Rédige le résumé d'un épisode avec Claude (modèle `claude-opus-5-5`). Chaque épisode n'est résumé qu'une fois ; 20 nouveaux résumés par utilisateur et par jour. |
+| `summarize` | Rédige le résumé d'un épisode avec Claude (modèle `claude-opus-5-5`). Refuse le Coran et les podcasts islamiques. Chaque épisode n'est résumé qu'une fois ; 20 nouveaux résumés par utilisateur et par jour. |
 | `rss` | Flux RSS public des podcasts publiés dans le studio. |
 
 ## Application mobile (Capacitor)
@@ -92,26 +125,31 @@ npm run cap:android   # ouvre le projet dans Android Studio
 npm run cap:ios       # ouvre le projet dans Xcode (macOS)
 ```
 
-Pour la version mobile, définissez les variables Supabase **avant** le build, puis lancez `npm run cap:sync`. L'identifiant d'application est `app.podsnew` (modifiable dans `capacitor.config.ts`).
+Pour la version mobile, définissez les variables Supabase **avant** le build, puis lancez `npm run cap:sync`. L'identifiant d'application est `app.podsal` (modifiable dans `capacitor.config.ts`).
 
-## Limites connues
+## Sources et limites
 
-- **Transcriptions et chapitres** : uniquement quand l'éditeur les publie dans son flux RSS ; beaucoup de podcasts n'en ont pas encore. La recherche « dans les épisodes » ne porte que sur les transcriptions déjà consultées sur Podsnew.
-- **Téléchargements** : certains hébergeurs refusent les téléchargements depuis un navigateur. Dans ce cas, l'épisode est conservé dans le cache de l'application installée, et l'avance rapide hors-ligne peut y être limitée.
-- **Notifications** : dans le navigateur, la vérification en arrière-plan ne fonctionne qu'avec l'application installée sous Chrome/Android ; ailleurs, elle a lieu quand l'application est ouverte. Pour recevoir des notifications application fermée sur iOS, il faudra ajouter des notifications push côté serveur.
+- **Traductions** : une traduction rend le sens du Coran, elle n'est pas le Coran ; l'application l'indique sur chaque sourate. Seules des traductions publiées et revues par QuranEnc sont proposées.
+- **Texte arabe** : édition Uthmani selon la lecture de Hafs. Pour une récitation dans une autre riwaya, l'application le signale.
+- **Minutage des versets** (surlignage, répétition d'un passage) : fourni par mp3quran.net pour une partie des récitations seulement ; sinon, seule la sourate entière peut être répétée.
+- **Horaires de prière** : calculés, ils peuvent différer de quelques minutes de ceux de votre mosquée ; vérifiez-les et choisissez la méthode en conséquence.
+- **Podcasts généraux** : le filtrage repose sur la catégorie et le marquage « explicite » déclarés par les éditeurs. Un podcast peut contenir un générique musical : l'administrateur peut alors le masquer.
+- **Transcriptions et chapitres** : uniquement quand l'éditeur les publie dans son flux RSS.
+- **Téléchargements** : certains hébergeurs refusent les téléchargements depuis un navigateur ; l'épisode est alors conservé dans le cache de l'application installée.
+- **Notifications** : dans le navigateur, la vérification en arrière-plan ne fonctionne qu'avec l'application installée sous Chrome/Android ; ailleurs, elle a lieu quand l'application est ouverte.
 - **Écoute en arrière-plan sur Android** : le système peut interrompre la lecture après un long moment en arrière-plan ; un service de lecture natif sera nécessaire pour la garantir.
-- **Résumés** : générés automatiquement, ils peuvent contenir des erreurs ; la page l'indique.
 
 ## Structure
 
 ```
 src/
-  api/          catalogue Apple, podcasts des créateurs, social, résumés, studio
-  store/        état global : bibliothèque, compte et synchronisation, téléchargements, lecteur
-  lib/          statistiques, synchronisation, recommandations, OPML, flux RSS, notifications
-  components/   mise en page, lecteur, épisodes, graphiques, avis, activité
-  pages/        Accueil, Recherche, Podcast, Épisode, Extrait, Bibliothèque, Statistiques,
-                Amis, Profil, Compte, Studio, Import, File d'attente
+  api/          catalogue Apple, Coran (récitateurs, texte, traductions), modération, amis, studio
+  data/         sourates, liste de départ des podcasts islamiques
+  store/        état global : bibliothèque, compte et synchronisation, modération, téléchargements, lecteur
+  lib/          règles de contenu, horaires de prière, statistiques, synchronisation, recommandations, OPML
+  components/   mise en page, lecteur, épisodes, playlists, couvertures, graphiques
+  pages/        Accueil, Coran, Prière, Podcasts islamiques, Modération, Recherche, Podcast, Épisode,
+                Bibliothèque, Playlists, Amis, Statistiques, Compte, Studio, Import, File d'attente
 public/sw.js    service worker (hors-ligne, téléchargements, notifications)
 supabase/       schéma SQL (migrations) et fonctions serveur
 android/, ios/  projets natifs Capacitor

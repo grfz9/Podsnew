@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { Bell, ChartColumn, Clock, Download, FileDown, FileUp, Heart, Library as LibraryIcon, Play, Scissors, Trash } from 'lucide-react';
+import { Bell, ChartColumn, Clock, Download, FileDown, FileUp, Heart, Library as LibraryIcon, ListMusic, Play, Scissors, Trash } from 'lucide-react';
+import { PlaylistGrid } from '../components/Playlists';
 import { COUNTRIES } from '../api/genres';
 import { lookupPodcasts } from '../api/itunes';
 import { EpisodeList, EpisodeRow } from '../components/EpisodeRow';
@@ -16,6 +17,7 @@ import { formatReleaseDate, formatTime } from '../utils/format';
 
 const TABS = [
   { id: 'subscriptions', label: 'Abonnements' },
+  { id: 'playlists', label: 'Playlists' },
   { id: 'downloads', label: 'Téléchargements' },
   { id: 'saved', label: 'Favoris' },
   { id: 'clips', label: 'Extraits' },
@@ -23,6 +25,39 @@ const TABS = [
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
+
+function Playlists() {
+  const library = useLibrary();
+  const [name, setName] = useState('');
+  return (
+    <>
+      <form
+        className="form form--inline"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!name.trim()) return;
+          library.createPlaylist(name);
+          setName('');
+        }}
+      >
+        <label>
+          Nouvelle playlist
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="Ex. Tafsir du soir" />
+        </label>
+        <button className="btn btn--primary btn--small" type="submit" disabled={!name.trim()}>
+          Créer
+        </button>
+      </form>
+      {library.playlists.length ? (
+        <PlaylistGrid playlists={library.playlists} linkTo={(p) => `/playlist/${p.id}`} />
+      ) : (
+        <EmptyState icon={<ListMusic size={32} />} title="Aucune playlist">
+          Créez une playlist, puis ajoutez-y des épisodes ou des sourates avec « Ajouter à une playlist ». Vos amis pourront l'écouter.
+        </EmptyState>
+      )}
+    </>
+  );
+}
 
 function Downloads() {
   const { downloads, usage, remove } = useDownloads();
@@ -112,7 +147,7 @@ function Settings() {
     if (enabled) {
       const granted = await requestNotificationPermission().catch(() => false);
       if (!granted) {
-        setNotifyError('Autorisez les notifications pour Podsnew dans les réglages de votre navigateur ou de votre téléphone.');
+        setNotifyError('Autorisez les notifications pour Podsal dans les réglages de votre navigateur ou de votre téléphone.');
         return;
       }
       void registerBackgroundCheck();
@@ -209,6 +244,8 @@ export function LibraryPage() {
             Appuyez sur « S'abonner » sur la page d'un podcast, ou <Link to="/import" className="link">importez vos abonnements</Link> depuis une autre application.
           </EmptyState>
         ))}
+
+      {tab === 'playlists' && <Playlists />}
 
       {tab === 'downloads' && <Downloads />}
 

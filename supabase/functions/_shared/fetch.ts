@@ -36,7 +36,7 @@ export async function fetchText(raw: string, maxBytes = 8_000_000, timeoutMs = 1
   let url = checkUrl(raw);
   const signal = AbortSignal.timeout(timeoutMs);
   for (let hop = 0; hop < 6; hop++) {
-    const res = await fetch(url, { redirect: 'manual', signal, headers: { 'User-Agent': 'Podsnew/1.0 (+https://github.com/grfz9/Podsnew)' } });
+    const res = await fetch(url, { redirect: 'manual', signal, headers: { 'User-Agent': 'Podsal/1.0 (+https://github.com/grfz9/Podsnew)' } });
     if (res.status >= 300 && res.status < 400) {
       const location = res.headers.get('location');
       await res.body?.cancel();

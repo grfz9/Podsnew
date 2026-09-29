@@ -13,7 +13,7 @@ export const supabase: SupabaseClient | null = url && key ? createClient(url, ke
 export const backendEnabled = supabase !== null;
 
 export function requireBackend(): SupabaseClient {
-  if (!supabase) throw new Error("Les comptes ne sont pas activés sur cette installation de Podsnew.");
+  if (!supabase) throw new Error("Les comptes ne sont pas activés sur cette installation de Podsal.");
   return supabase;
 }
 
@@ -40,28 +40,7 @@ export interface Profile {
   id: string;
   username: string;
   display_name: string | null;
-  share_activity: boolean;
   created_at: string;
-}
-
-export interface ReviewRow {
-  id: number;
-  podcast_id: string;
-  user_id: string;
-  rating: number;
-  body: string | null;
-  created_at: string;
-  updated_at: string;
-  profiles?: Pick<Profile, 'username' | 'display_name'>;
-}
-
-export interface ActivityRow {
-  id: number;
-  user_id: string;
-  kind: 'listen' | 'clip' | 'review';
-  payload: Record<string, unknown>;
-  created_at: string;
-  profiles?: Pick<Profile, 'username' | 'display_name'>;
 }
 
 export interface CreatorPodcastRow {

@@ -69,9 +69,10 @@ describe('synchronisation', () => {
     savedEpisodes: [],
     history: [],
     clips: [],
+    playlists: [],
     progress: {},
     stats: {},
-    modified: { subscriptions: 0, savedEpisodes: 0, history: 0, clips: 0 },
+    modified: { subscriptions: 0, savedEpisodes: 0, history: 0, clips: 0, playlists: 0 },
   });
   const pod = (id: string) => ({ id, title: id, author: '', artwork: '' }) as Podcast;
 

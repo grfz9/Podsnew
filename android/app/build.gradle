@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "app.podsnew"
+    namespace = "app.podsal"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "app.podsnew"
+        applicationId "app.podsal"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

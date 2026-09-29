@@ -23,6 +23,7 @@ import { useAsync } from '../utils/hooks';
 import { currentChapterIndex, useEpisodeExtras } from '../lib/useEpisode';
 import { Artwork } from './common';
 import { episodePath } from './EpisodeRow';
+import { podcastPath } from '../lib/paths';
 
 function ProgressBar() {
   const { seek } = usePlayer();
@@ -254,7 +255,6 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="full-player" role="dialog" aria-modal="true" aria-label="Lecteur">
-      <div className="full-player__bg" style={{ backgroundImage: ep.artwork ? `url(${ep.artwork})` : undefined }} />
       <div className="full-player__content">
         <div className="full-player__top">
           <button className="icon-btn" onClick={onClose} aria-label="Fermer le lecteur">
@@ -273,7 +273,7 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
               {ep.title}
             </button>
           </h2>
-          <button className="link-button muted" onClick={() => go(`/podcast/${ep.podcastId}`)}>
+          <button className="link-button muted" onClick={() => go(podcastPath(ep.podcastId))}>
             {ep.podcastTitle}
           </button>
         </div>

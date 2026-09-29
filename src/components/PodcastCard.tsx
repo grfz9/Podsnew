@@ -1,10 +1,11 @@
 import { Link } from 'react-router';
 import type { Podcast } from '../types';
 import { Artwork } from './common';
+import { podcastPath } from '../lib/paths';
 
 export function PodcastCard({ podcast, rank }: { podcast: Podcast; rank?: number }) {
   return (
-    <Link to={`/podcast/${podcast.id}`} className="card" state={{ podcast }}>
+    <Link to={podcastPath(podcast.id)} className="card" state={{ podcast }}>
       <div className="card__art">
         <Artwork src={podcast.artwork} alt={podcast.title} />
         {rank !== undefined && <span className="card__rank">{rank}</span>}

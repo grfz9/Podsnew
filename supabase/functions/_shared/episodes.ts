@@ -25,7 +25,7 @@ export interface PodcastData {
 
 const MUSIC_GENRES = new Set(['1310', '1523', '1524', '1525']);
 
-/** Retrouve un épisode et son podcast (catalogue Apple ou créateur Podsnew) à partir des identifiants. */
+/** Retrouve un épisode et son podcast (catalogue Apple ou créateur Podsal) à partir des identifiants. */
 export async function loadEpisode(
   admin: SupabaseClient,
   podcastId: string,

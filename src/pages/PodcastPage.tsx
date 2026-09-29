@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import { ArrowUpDown, Check, Pause, Play, Plus, Rss, Search, Share2 } from 'lucide-react';
 import { getAnyPodcast } from '../api/catalog';
 import { EpisodeList } from '../components/EpisodeRow';
-import { Reviews } from '../components/Reviews';
-import { Artwork, ErrorState, Spinner, Tabs, shareLink } from '../components/common';
+import { Artwork, EmptyState, ErrorState, Spinner, Tabs, shareLink } from '../components/common';
+import { ModerationTools } from '../components/ModerationTools';
+import { useModeration } from '../store/moderation';
+import { ShieldCheck } from 'lucide-react';
 import { useLibrary } from '../store/library';
 import { usePlayer } from '../store/player';
 import type { Podcast } from '../types';
@@ -18,6 +20,7 @@ export function PodcastPage() {
   const location = useLocation();
   const library = useLibrary();
   const player = usePlayer();
+  const moderation = useModeration();
   const { data, error, loading, reload } = useAsync((signal) => getAnyPodcast(id, library.country, 200, signal), [id, library.country]);
 
   const [query, setQuery] = useState('');
@@ -43,9 +46,35 @@ export function PodcastPage() {
     return oldestFirst ? [...list].reverse() : list;
   }, [data, query, filter, oldestFirst, library.progress]);
 
+  // Un podcast refusé a peut-être été validé ou rétabli depuis le chargement de l'appli : on relit la liste une fois.
+  const refused = !!data && !!podcast && !moderation.allowsPodcast(podcast);
+  const { reload: reloadModeration } = moderation;
+  useEffect(() => {
+    if (refused) reloadModeration();
+  }, [refused, id, reloadModeration]);
+
   if (!podcast) {
     if (error) return <div className="page"><ErrorState error={error} onRetry={reload} /></div>;
     return <div className="page"><Spinner /></div>;
+  }
+
+  if (refused && moderation.loading) return <div className="page"><Spinner /></div>;
+  if (refused) {
+    return (
+      <div className="page">
+        <EmptyState icon={<ShieldCheck size={32} />} title="Ce podcast n'est pas disponible sur Podsal">
+          {moderation.isBlocked(podcast.id)
+            ? 'Il a été retiré par la modération.'
+            : 'Podsal ne propose pas de musique ni de contenu explicite, et les podcasts religieux ne sont proposés qu’après vérification.'}{' '}
+          {!moderation.isBlocked(podcast.id) && (
+            <Link to={`/islam?proposer=${encodeURIComponent(podcast.id)}`} className="link">
+              Proposer ce podcast à la validation
+            </Link>
+          )}
+        </EmptyState>
+        <ModerationTools podcast={podcast} onChange={reload} />
+      </div>
+    );
   }
 
   const subscribed = library.isSubscribed(podcast.id);
@@ -57,12 +86,19 @@ export function PodcastPage() {
   return (
     <div className="page page--flush">
       <header className="podcast-hero">
-        <div className="podcast-hero__bg" style={{ backgroundImage: podcast.artwork ? `url(${podcast.artwork})` : undefined }} />
         <Artwork src={podcast.artwork} alt={podcast.title} className="podcast-hero__art" />
         <div className="podcast-hero__info">
           <span className="small">
-            {podcast.native ? 'Publié sur Podsnew' : 'Podcast'}
-            {podcast.genre ? ` · ${podcast.genre}` : ''}
+            {moderation.isValidated(podcast.id) ? (
+              <span className="badge-validated">
+                <ShieldCheck size={14} /> Podcast islamique vérifié
+              </span>
+            ) : (
+              <>
+                {podcast.native ? 'Publié sur Podsal' : 'Podcast'}
+                {podcast.genre ? ` · ${podcast.genre}` : ''}
+              </>
+            )}
           </span>
           <h1>{podcast.title}</h1>
           <p className="podcast-hero__author">{podcast.author}</p>
@@ -129,10 +165,10 @@ export function PodcastPage() {
       )}
 
       <div className="pad">
-        <Reviews podcast={podcast} />
+        <ModerationTools podcast={podcast} onChange={reload} />
         {podcast.native && (
           <p className="small muted">
-            Vous êtes créateur ? <Link to="/studio" className="link">Publiez votre podcast sur Podsnew</Link>.
+            Vous êtes créateur ? <Link to="/studio" className="link">Publiez votre podcast sur Podsal</Link>.
           </p>
         )}
       </div>

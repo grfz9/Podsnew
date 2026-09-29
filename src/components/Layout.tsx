@@ -1,28 +1,33 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
-import { ChartColumn, House, Library, ListMusic, Mic, Search, User, Users, WifiOff } from 'lucide-react';
+import { BookOpen, ChartColumn, Clock, House, Library, ListMusic, Mic, Search, ShieldCheck, User, Users, WifiOff } from 'lucide-react';
+import { useModeration } from '../store/moderation';
+import { PlaylistDialogProvider } from './Playlists';
 import { useAuth } from '../store/auth';
 import { useLibrary } from '../store/library';
 import { SKIP_BACK, SKIP_FORWARD, usePlayer } from '../store/player';
 import { Artwork } from './common';
 import { BackgroundTasks, useOnline } from './Background';
 import { FullPlayer, PlayerBar } from './Player';
+import { podcastPath } from '../lib/paths';
 
 const SIDEBAR_NAV = [
   { to: '/', label: 'Accueil', icon: House, end: true },
+  { to: '/coran', label: 'Coran', icon: BookOpen },
+  { to: '/islam', label: 'Podcasts islamiques', icon: Mic },
   { to: '/search', label: 'Rechercher', icon: Search },
   { to: '/library', label: 'Bibliothèque', icon: Library },
+  { to: '/priere', label: 'Prière', icon: Clock },
   { to: '/queue', label: "File d'attente", icon: ListMusic },
   { to: '/friends', label: 'Amis', icon: Users },
   { to: '/stats', label: 'Statistiques', icon: ChartColumn },
-  { to: '/studio', label: 'Studio', icon: Mic },
 ];
 
 const MOBILE_NAV = [
   { to: '/', label: 'Accueil', icon: House, end: true },
+  { to: '/coran', label: 'Coran', icon: BookOpen },
   { to: '/search', label: 'Rechercher', icon: Search },
   { to: '/library', label: 'Bibliothèque', icon: Library },
-  { to: '/friends', label: 'Amis', icon: Users },
   { to: '/account', label: 'Compte', icon: User },
 ];
 
@@ -67,6 +72,7 @@ function AccountLink() {
 
 export function Layout() {
   const { subscriptions } = useLibrary();
+  const { isAdmin } = useModeration();
   const { current } = usePlayer();
   const [expanded, setExpanded] = useState(false);
   const location = useLocation();
@@ -81,60 +87,68 @@ export function Layout() {
   }, [location.pathname]);
 
   return (
-    <div className={`app ${current ? 'app--with-player' : ''}`}>
-      <BackgroundTasks />
-      <aside className="sidebar">
-        <Link to="/" className="brand">
-          <span className="brand__logo">
-            <Mic size={18} />
-          </span>
-          Podsnew
-        </Link>
-        <nav className="sidebar__nav">
-          {SIDEBAR_NAV.map(({ to, label, icon: Icon, end }) => (
-            <NavLink key={to} to={to} end={end} className="nav-link">
+    <PlaylistDialogProvider>
+      <div className={`app ${current ? 'app--with-player' : ''}`}>
+        <BackgroundTasks />
+        <aside className="sidebar">
+          <Link to="/" className="brand">
+            <span className="brand__logo">
+              <Mic size={18} />
+            </span>
+            Podsal
+          </Link>
+          <nav className="sidebar__nav">
+            {SIDEBAR_NAV.map(({ to, label, icon: Icon, end }) => (
+              <NavLink key={to} to={to} end={end} className="nav-link">
+                <Icon size={22} />
+                {label}
+              </NavLink>
+            ))}
+            {isAdmin && (
+              <NavLink to="/moderation" className="nav-link">
+                <ShieldCheck size={22} />
+                Modération
+              </NavLink>
+            )}
+          </nav>
+          <div className="sidebar__subs">
+            <div className="sidebar__heading">Vos abonnements</div>
+            {subscriptions.length === 0 && <p className="small muted">Abonnez-vous à des podcasts pour les retrouver ici.</p>}
+            {subscriptions.map((p) => (
+              <NavLink key={p.id} to={podcastPath(p.id)} className="sub-link">
+                <Artwork alt={p.title} size={40} />
+                <span>
+                  <span className="sub-link__title">{p.title}</span>
+                  <span className="sub-link__author">{p.author}</span>
+                </span>
+              </NavLink>
+            ))}
+          </div>
+          <AccountLink />
+        </aside>
+
+        <main className="main">
+          {!online && (
+            <div className="offline-banner" role="status">
+              <WifiOff size={16} /> Hors-ligne : les épisodes téléchargés restent disponibles dans la Bibliothèque.
+            </div>
+          )}
+          <Outlet />
+        </main>
+
+        <PlayerBar onExpand={() => setExpanded(true)} />
+
+        <nav className="bottom-nav">
+          {MOBILE_NAV.map(({ to, label, icon: Icon, end }) => (
+            <NavLink key={to} to={to} end={end} className="bottom-nav__link">
               <Icon size={22} />
-              {label}
+              <span>{label}</span>
             </NavLink>
           ))}
         </nav>
-        <div className="sidebar__subs">
-          <div className="sidebar__heading">Vos abonnements</div>
-          {subscriptions.length === 0 && <p className="small muted">Abonnez-vous à des podcasts pour les retrouver ici.</p>}
-          {subscriptions.map((p) => (
-            <NavLink key={p.id} to={`/podcast/${p.id}`} className="sub-link">
-              <Artwork src={p.artwork} alt={p.title} size={40} />
-              <span>
-                <span className="sub-link__title">{p.title}</span>
-                <span className="sub-link__author">{p.author}</span>
-              </span>
-            </NavLink>
-          ))}
-        </div>
-        <AccountLink />
-      </aside>
 
-      <main className="main">
-        {!online && (
-          <div className="offline-banner" role="status">
-            <WifiOff size={16} /> Hors-ligne : les épisodes téléchargés restent disponibles dans la Bibliothèque.
-          </div>
-        )}
-        <Outlet />
-      </main>
-
-      <PlayerBar onExpand={() => setExpanded(true)} />
-
-      <nav className="bottom-nav">
-        {MOBILE_NAV.map(({ to, label, icon: Icon, end }) => (
-          <NavLink key={to} to={to} end={end} className="bottom-nav__link">
-            <Icon size={22} />
-            <span>{label}</span>
-          </NavLink>
-        ))}
-      </nav>
-
-      {expanded && <FullPlayer onClose={closePlayer} />}
-    </div>
+        {expanded && <FullPlayer onClose={closePlayer} />}
+      </div>
+    </PlaylistDialogProvider>
   );
 }

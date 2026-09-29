@@ -4,11 +4,13 @@ import { COUNTRIES, getGenre } from '../api/genres';
 import { PodcastGrid } from '../components/PodcastCard';
 import { ErrorState, Spinner } from '../components/common';
 import { useLibrary } from '../store/library';
+import { useModeration } from '../store/moderation';
 import { useAsync } from '../utils/hooks';
 
 export function GenrePage() {
   const { id = 'top' } = useParams();
   const { country } = useLibrary();
+  const { filterPodcasts } = useModeration();
   const genreId = id === 'top' ? undefined : Number(id);
   const genre = genreId ? getGenre(genreId) : undefined;
   const countryName = COUNTRIES.find((c) => c.code === country)?.name ?? country.toUpperCase();
@@ -20,10 +22,10 @@ export function GenrePage() {
         <h1>{genre?.name ?? 'Top podcasts'}</h1>
         <p>
           Classement Apple Podcasts · {countryName}
-          {data ? ` · ${data.length} podcasts` : ''}
+          {data ? ` · ${filterPodcasts(data).length} podcasts` : ''}
         </p>
       </header>
-      {loading && !data ? <Spinner /> : error ? <ErrorState error={error} onRetry={reload} /> : <PodcastGrid podcasts={data ?? []} ranked />}
+      {loading && !data ? <Spinner /> : error ? <ErrorState error={error} onRetry={reload} /> : <PodcastGrid podcasts={filterPodcasts(data ?? [])} />}
     </div>
   );
 }

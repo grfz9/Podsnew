@@ -15,6 +15,11 @@ import { QueuePage } from './pages/Queue';
 import { SearchPage } from './pages/Search';
 import { StatsPage } from './pages/Stats';
 import { StudioPage, StudioPodcastPage } from './pages/Studio';
+import { QuranHome, ReciterPage, SurahPage } from './pages/Quran';
+import { PrayerPage } from './pages/Prayer';
+import { IslamPage, ModerationPage } from './pages/Islam';
+import { PlaylistPage } from './components/Playlists';
+import { ModerationProvider } from './store/moderation';
 import { AuthProvider } from './store/auth';
 import { DownloadsProvider } from './store/downloads';
 import { LibraryProvider } from './store/library';
@@ -32,33 +37,43 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <LibraryProvider>
       <AuthProvider>
-        <DownloadsProvider>
-          <PlayerProvider>
-            {/* HashRouter : fonctionne sur n'importe quel hébergement statique et dans l'application native. */}
-            <HashRouter>
-              <Routes>
-                <Route element={<Layout />}>
-                  <Route index element={<Home />} />
-                  <Route path="search" element={<SearchPage />} />
-                  <Route path="library" element={<LibraryPage />} />
-                  <Route path="queue" element={<QueuePage />} />
-                  <Route path="genre/:id" element={<GenrePage />} />
-                  <Route path="podcast/:id" element={<PodcastPage />} />
-                  <Route path="podcast/:podcastId/episode/:episodeId" element={<EpisodePage />} />
-                  <Route path="clip" element={<ClipPage />} />
-                  <Route path="stats" element={<StatsPage />} />
-                  <Route path="import" element={<ImportPage />} />
-                  <Route path="friends" element={<FriendsPage />} />
-                  <Route path="u/:username" element={<ProfilePage />} />
-                  <Route path="account" element={<AccountPage />} />
-                  <Route path="studio" element={<StudioPage />} />
-                  <Route path="studio/:id" element={<StudioPodcastPage />} />
-                  <Route path="*" element={<Home />} />
-                </Route>
-              </Routes>
-            </HashRouter>
-          </PlayerProvider>
-        </DownloadsProvider>
+        <ModerationProvider>
+          <DownloadsProvider>
+            <PlayerProvider>
+              {/* HashRouter : fonctionne sur n'importe quel hébergement statique et dans l'application native. */}
+              <HashRouter>
+                <Routes>
+                  <Route element={<Layout />}>
+                    <Route index element={<Home />} />
+                    <Route path="search" element={<SearchPage />} />
+                    <Route path="library" element={<LibraryPage />} />
+                    <Route path="queue" element={<QueuePage />} />
+                    <Route path="genre/:id" element={<GenrePage />} />
+                    <Route path="podcast/:id" element={<PodcastPage />} />
+                    <Route path="podcast/:podcastId/episode/:episodeId" element={<EpisodePage />} />
+                    <Route path="clip" element={<ClipPage />} />
+                    <Route path="stats" element={<StatsPage />} />
+                    <Route path="import" element={<ImportPage />} />
+                    <Route path="friends" element={<FriendsPage />} />
+                    <Route path="u/:username" element={<ProfilePage />} />
+                    <Route path="u/:username/playlist/:playlistId" element={<ProfilePage />} />
+                    <Route path="playlist/:id" element={<PlaylistPage />} />
+                    <Route path="coran" element={<QuranHome />} />
+                    <Route path="coran/:reciterId" element={<ReciterPage />} />
+                    <Route path="coran/:reciterId/:surah" element={<SurahPage />} />
+                    <Route path="priere" element={<PrayerPage />} />
+                    <Route path="islam" element={<IslamPage />} />
+                    <Route path="moderation" element={<ModerationPage />} />
+                    <Route path="account" element={<AccountPage />} />
+                    <Route path="studio" element={<StudioPage />} />
+                    <Route path="studio/:id" element={<StudioPodcastPage />} />
+                    <Route path="*" element={<Home />} />
+                  </Route>
+                </Routes>
+              </HashRouter>
+            </PlayerProvider>
+          </DownloadsProvider>
+        </ModerationProvider>
       </AuthProvider>
     </LibraryProvider>
   </StrictMode>,

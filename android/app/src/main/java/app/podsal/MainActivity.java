@@ -1,4 +1,4 @@
-package app.podsnew;
+package app.podsal;
 
 import com.getcapacitor.BridgeActivity;
 

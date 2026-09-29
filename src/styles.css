@@ -1,5 +1,5 @@
 /*
- * Podsnew — thème sombre.
+ * Podsal — thème sombre.
  * Règles : angles de 6 px (pas de boutons « pilule »), pas de violet ni de dégradés décoratifs,
  * animations limitées et désactivées si l'utilisateur préfère réduire les mouvements.
  */
@@ -91,7 +91,10 @@ mark { background: rgba(30, 215, 96, 0.28); color: var(--text); border-radius: 2
 
 /* ---------- Éléments communs ---------- */
 .artwork { display: block; object-fit: cover; border-radius: var(--radius); background: var(--bg-hover); }
-.artwork--placeholder { display: grid; place-items: center; color: var(--text-dim); aspect-ratio: 1; width: 100%; }
+.cover { position: relative; display: grid; place-items: center; aspect-ratio: 1; overflow: hidden; color: rgba(255, 255, 255, 0.9); flex-shrink: 0; }
+.cover__pattern { position: absolute; inset: 12%; width: 76%; height: 76%; color: rgba(255, 255, 255, 0.16); }
+.cover__letter { position: relative; font-weight: 800; font-size: clamp(18px, 40%, 72px); line-height: 1; }
+.card__art .cover .cover__letter, .podcast-hero__art .cover__letter, .full-player__art .cover__letter, .episode-hero__art .cover__letter, .clip-page__art .cover__letter { font-size: 64px; }
 
 .state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 16px; color: var(--text-muted); text-align: center; }
 .state p { margin: 0; }
@@ -217,6 +220,7 @@ input[type='checkbox']:not(.switch) { accent-color: var(--accent); width: 16px; 
 
 .quick-genres { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-bottom: 36px; }
 .quick-genre { padding: 16px; border-radius: var(--radius); font-weight: 800; transition: filter 0.15s; }
+.quick-genre--main { display: flex; align-items: center; gap: 10px; background: #1f5f46; }
 .quick-genre:hover, .genre-tile:hover { filter: brightness(1.12); }
 .genre-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
 .genre-tile { aspect-ratio: 16 / 10; border-radius: var(--radius-lg); padding: 16px; font-size: 20px; font-weight: 800; transition: filter 0.15s; overflow-wrap: anywhere; }
@@ -346,7 +350,7 @@ input[type='checkbox']:not(.switch) { accent-color: var(--accent); width: 16px; 
 .share-toggle { background: var(--bg-elevated); border-radius: var(--radius-lg); padding: 4px 16px; margin-bottom: 24px; }
 .share-toggle .setting { margin: 12px 0; }
 .profile-head { display: flex; align-items: center; gap: 18px; margin-bottom: 28px; flex-wrap: wrap; }
-.profile-head > div { flex: 1; min-width: 0; }
+.profile-head > div:not(.cover) { flex: 1; min-width: 0; }
 .profile-head h1 { font-size: 28px; }
 
 /* ---------- Compte ---------- */
@@ -566,4 +570,111 @@ input[type='checkbox']:not(.switch) { accent-color: var(--accent); width: 16px; 
 /* Moins de mouvement si l'utilisateur l'a demandé au système. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+/* ---------- Prière ---------- */
+.prayer-banner {
+  position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 120; max-width: calc(100% - 24px);
+  display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: #1f5f46; color: #fff;
+  border-radius: var(--radius-lg); box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5); font-weight: 600;
+}
+.prayer-card { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; padding: 16px 18px; border-radius: var(--radius-lg); background: #17392b; margin-bottom: 28px; }
+.prayer-card:hover { background: #1b4333; }
+.prayer-card--setup { background: var(--bg-elevated); }
+.prayer-card--setup:hover { background: var(--bg-hover); }
+.prayer-card--setup > span { display: flex; flex-direction: column; gap: 2px; }
+.prayer-card__next { display: flex; flex-direction: column; gap: 2px; min-width: 180px; }
+.prayer-card__next strong { font-size: 20px; }
+.prayer-card__list { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; justify-content: flex-end; }
+.prayer-card__item { display: flex; flex-direction: column; align-items: center; padding: 6px 10px; border-radius: var(--radius); min-width: 64px; color: var(--text-muted); }
+.prayer-card__item strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.prayer-card__item--next { background: rgba(255, 255, 255, 0.1); color: var(--text); }
+.prayer-today { max-width: 560px; }
+.prayer-table { list-style: none; padding: 0; margin: 12px 0; display: flex; flex-direction: column; gap: 4px; }
+.prayer-row { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; align-items: center; padding: 12px 16px; border-radius: var(--radius); background: var(--bg-elevated); }
+.prayer-row strong { font-size: 18px; font-variant-numeric: tabular-nums; }
+.prayer-row--next { background: #17392b; }
+.prayer-row--minor { color: var(--text-muted); }
+.setting--inline { margin: 0; gap: 6px; }
+
+/* ---------- Playlists ---------- */
+.dialog-backdrop { position: fixed; inset: 0; z-index: 150; background: rgba(0, 0, 0, 0.6); display: grid; place-items: center; padding: 16px; }
+.dialog { width: 100%; max-width: 420px; max-height: 80vh; overflow-y: auto; background: #202020; border-radius: var(--radius-lg); padding: 18px; box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6); }
+.dialog__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dialog__head h2 { font-size: 18px; }
+.dialog__episode { margin: 4px 0 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dialog__list { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.dialog__item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 10px; border-radius: var(--radius); }
+.dialog__item:not(:disabled):hover { background: var(--bg-hover); }
+.dialog__item span:nth-child(2) { flex: 1; font-weight: 600; }
+.dialog__create { display: flex; gap: 8px; }
+.dialog__create input { flex: 1; min-width: 0; background: var(--bg-hover); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; }
+.playlist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.playlist-card { display: flex; flex-direction: column; gap: 4px; padding: 16px; border-radius: var(--radius-lg); background: var(--bg-elevated); min-width: 0; }
+.playlist-card strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+a.playlist-card:hover { background: var(--bg-hover); }
+.playlist-card__icon { width: 56px; height: 56px; border-radius: var(--radius); background: #1f5f46; display: grid; place-items: center; margin-bottom: 8px; }
+.playlist__actions { margin-bottom: 12px; }
+
+/* ---------- Coran ---------- */
+.reciter-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 20px; }
+.reciter-row { display: flex; align-items: center; gap: 14px; padding: 8px 10px; border-radius: var(--radius); }
+.reciter-row:hover { background: var(--bg-elevated); }
+.reciter-row .cover { border-radius: 50%; }
+.reciter-row__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.reciter-row__text strong, .reciter-row__text span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.surah-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.surah-chip { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: var(--radius); background: var(--bg-elevated); min-width: 0; }
+.surah-chip:hover { background: var(--bg-hover); }
+.surah-chip strong, .surah-chip span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.moshaf-select { max-width: 640px; }
+.surah-search { margin-bottom: 12px; }
+.surah-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.surah-row { display: flex; align-items: center; gap: 12px; padding: 10px; border-bottom: 1px solid var(--border); }
+.surah-row:hover { background: rgba(255, 255, 255, 0.03); }
+.surah-row--current .surah-row__text strong { color: var(--accent); }
+.surah-row__number { width: 32px; height: 32px; flex-shrink: 0; display: grid; place-items: center; border: 1px solid #3a3a3a; border-radius: var(--radius); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--text-muted); }
+.surah-row__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.surah-row__text:hover strong { text-decoration: underline; }
+.surah-row__arabic { font-family: 'Amiri Quran', 'Amiri', 'Scheherazade New', 'Noto Naskh Arabic', 'Traditional Arabic', serif; font-size: 22px; margin-right: 8px; }
+.surah-nav { display: flex; align-items: center; gap: 4px; margin-bottom: 12px; }
+.surah-nav > a:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.surah-nav .btn { flex-shrink: 0; white-space: nowrap; }
+.surah-head { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 20px; }
+.surah-head__arabic { font-family: 'Amiri Quran', 'Amiri', 'Scheherazade New', 'Noto Naskh Arabic', serif; font-size: 40px; margin: 0; line-height: 1.6; }
+.surah-head h1 { font-size: 26px; }
+.surah-head p { margin: 0; }
+.surah-head__actions { justify-content: center; margin-top: 12px; }
+.repeat-form { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.repeat-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+.repeat-form select, .repeat-form input, .panel__tools select { background: var(--bg-hover); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; }
+.repeat-form input { width: 90px; }
+.repeat-form__note { margin: 0; flex: 1; }
+.basmala { font-family: 'Amiri Quran', 'Amiri', 'Scheherazade New', 'Noto Naskh Arabic', serif; font-size: 28px; text-align: center; margin: 12px 0 20px; line-height: 2; }
+.ayahs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ayah { display: flex; gap: 14px; padding: 16px 8px; border-bottom: 1px solid var(--border); border-radius: var(--radius); }
+.ayah--active { background: #17392b; }
+.ayah__number { flex-shrink: 0; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; border: 1px solid #3a3a3a; font-size: 13px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.ayah__number:not(:disabled):hover { border-color: var(--accent); color: var(--text); }
+.ayah__number:disabled { opacity: 1; cursor: default; }
+.ayah__body { flex: 1; min-width: 0; }
+.ayah__arabic { font-family: 'Amiri Quran', 'Amiri', 'Scheherazade New', 'Noto Naskh Arabic', 'Traditional Arabic', serif; font-size: 28px; line-height: 2.1; margin: 0 0 8px; text-align: right; }
+.ayah__translation { margin: 0; line-height: 1.65; color: var(--text-muted); }
+.ayah--active .ayah__translation { color: var(--text); }
+.ayah__footnotes { margin: 6px 0 0; white-space: pre-line; }
+.quran-link { margin: 16px 0 24px; }
+
+/* ---------- Modération ---------- */
+.badge-validated { display: inline-flex; align-items: center; gap: 6px; color: #7ee2a8; font-weight: 700; }
+.moderation-tools { margin: 24px 0; padding: 16px; border: 1px dashed #5a5a5a; border-radius: var(--radius-lg); }
+.propose { margin-top: 12px; }
+.propose__selected { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: var(--radius); background: var(--bg-elevated); }
+.propose__selected > div:not(.cover) { flex: 1; min-width: 0; }
+.import-row--tall { align-items: flex-start; }
+
+@media (max-width: 800px) {
+  .surah-row__arabic { display: none; }
+  .surah-head__arabic { font-size: 32px; }
+  .ayah__arabic { font-size: 24px; }
+  .prayer-card__list { justify-content: flex-start; }
 }

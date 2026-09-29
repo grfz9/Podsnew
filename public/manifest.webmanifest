@@ -1,7 +1,7 @@
 {
-  "name": "Podsnew",
-  "short_name": "Podsnew",
-  "description": "Écoutez vos podcasts préférés.",
+  "name": "Podsal",
+  "short_name": "Podsal",
+  "description": "Podcasts, Coran et rappels, dans le respect du Coran et de la Sunnah.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#121212",

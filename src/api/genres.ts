@@ -2,7 +2,7 @@ import type { Genre, Podcast } from '../types';
 
 /**
  * Catégories de podcasts Apple (identifiants officiels).
- * La musique est volontairement absente : Podsnew est réservé à la parole.
+ * La musique est volontairement absente : Podsal est réservé à la parole.
  */
 export const GENRES: Genre[] = [
   { id: 1489, name: 'Actualités', color: '#c8102e' },
@@ -21,11 +21,29 @@ export const GENRES: Genre[] = [
   { id: 1309, name: 'Cinéma & séries', color: '#be123c' },
   { id: 1305, name: 'Enfants & famille', color: '#c2410c' },
   { id: 1502, name: 'Loisirs', color: '#57534e' },
-  { id: 1314, name: 'Religion & spiritualité', color: '#4d7c0f' },
 ];
 
 export function getGenre(id: number): Genre | undefined {
   return GENRES.find((g) => g.id === id);
+}
+
+/**
+ * Religion et spiritualité (1314) et ses sous-catégories : bouddhisme, christianisme, hindouisme,
+ * islam, judaïsme, religion, spiritualité. Ces podcasts sont exclus du catalogue général :
+ * seuls les podcasts islamiques validés par la modération sont proposés.
+ */
+const RELIGION_GENRE_IDS = new Set(['1314', '1438', '1439', '1440', '1441', '1443', '1444', '1463']);
+const RELIGION_NAME = /religi|spiritu|islam|musulm|christ|chrétien|catholi|évangél|protestant|juda|juif|jewish|bouddh|buddh|hindou|hindu|bible|église|church|gospel/i;
+
+export function isReligiousGenre(idOrName: string | number | undefined): boolean {
+  if (idOrName === undefined) return false;
+  const value = String(idOrName);
+  return RELIGION_GENRE_IDS.has(value) || RELIGION_NAME.test(value);
+}
+
+export function isReligiousPodcast(podcast: Pick<Podcast, 'genre' | 'genreIds'>): boolean {
+  if (podcast.genreIds?.some((id) => RELIGION_GENRE_IDS.has(id))) return true;
+  return isReligiousGenre(podcast.genre);
 }
 
 /** Musique (1310) et ses sous-catégories : commentaire, histoire, interviews. */

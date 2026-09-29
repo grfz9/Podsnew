@@ -3,7 +3,7 @@ import { getGenre } from './genres';
 import { supabase, type CreatorEpisodeRow, type CreatorPodcastRow } from '../lib/supabase';
 
 /**
- * Podcasts publiés directement sur Podsnew par des créateurs (espace Studio).
+ * Podcasts publiés directement sur Podsal par des créateurs (espace Studio).
  * Leurs identifiants sont préfixés par « c- » pour les distinguer du catalogue Apple.
  */
 export const NATIVE_PREFIX = 'c-';

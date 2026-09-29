@@ -23,6 +23,16 @@ const SAVE_EVERY_MS = 5000;
 /** Le temps d'écoute est enregistré par paquets pour limiter les écritures. */
 const LISTEN_FLUSH_SECONDS = 15;
 
+/** Répétition (mémorisation) : tout l'épisode, ou un passage [start, end], un nombre de fois ou sans fin. */
+export interface Repeat {
+  episodeId: string;
+  /** Lectures restantes, lecture en cours comprise (Infinity = sans fin). */
+  remaining: number;
+  start: number;
+  /** Absent : jusqu'à la fin du fichier. */
+  end?: number;
+}
+
 export type SleepTimer = { kind: 'minutes'; endsAt: number } | { kind: 'episode' } | null;
 
 interface PlayerValue {
@@ -40,6 +50,8 @@ interface PlayerValue {
 
   play: (episode: Episode, startAt?: number) => void;
   playSegment: (episode: Episode, start: number, end: number) => void;
+  repeat: Repeat | null;
+  setRepeat: (repeat: Repeat | null) => void;
   playAll: (episodes: Episode[]) => void;
   toggle: () => void;
   pause: () => void;
@@ -114,6 +126,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   sleepRef.current = sleep;
   const segmentRef = useRef(segment);
   segmentRef.current = segment;
+  const [repeat, setRepeatState] = useState<Repeat | null>(null);
+  const repeatRef = useRef(repeat);
+  repeatRef.current = repeat;
+  const setRepeat = useCallback((r: Repeat | null) => {
+    repeatRef.current = r;
+    setRepeatState(r);
+  }, []);
 
   /* Temps d'écoute réel (horloge murale, indépendant de la vitesse de lecture). */
   const lastTick = useRef<number | null>(null);
@@ -160,6 +179,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       pendingListen.current = 0;
       lastTick.current = null;
       loadedId.current = episode.id;
+      if (repeatRef.current && repeatRef.current.episodeId !== episode.id) setRepeat(null);
       pendingSeek.current = startAt ?? resumePosition(libraryRef.current.progress[episode.id]);
       setError(null);
       setTime(pendingSeek.current);
@@ -175,7 +195,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         audio.play().catch(() => setIsBuffering(false));
       }
     },
-    [persistProgress, flushListening, rate, update],
+    [persistProgress, flushListening, rate, update, setRepeat],
   );
 
   /** Affiche un épisode dans le lecteur sans charger l'audio (chargé au premier « lecture »). */
@@ -307,9 +327,27 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         audio.pause();
         setSegment(null);
       }
+      const rep = repeatRef.current;
+      if (rep?.end !== undefined && rep.episodeId === loadedId.current && audio.currentTime >= rep.end) {
+        if (rep.remaining > 1) {
+          setRepeat({ ...rep, remaining: rep.remaining - 1 });
+          audio.currentTime = rep.start;
+        } else {
+          setRepeat(null);
+          audio.pause();
+        }
+      }
       if (Date.now() - lastSave.current > SAVE_EVERY_MS) persistProgress();
     };
     const onEnded = () => {
+      const rep = repeatRef.current;
+      if (rep && rep.end === undefined && rep.episodeId === loadedId.current && rep.remaining > 1) {
+        setRepeat({ ...rep, remaining: rep.remaining - 1 });
+        audio.currentTime = rep.start;
+        void audio.play().catch(() => undefined);
+        return;
+      }
+      if (rep) setRepeat(null);
       const ep = currentRef.current;
       if (ep) libraryRef.current.saveProgress(ep.id, audio.duration || ep.duration, audio.duration || ep.duration, true);
       setIsPlaying(false);
@@ -347,7 +385,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('error', onError);
     };
-  }, [next, persistProgress, flushListening]);
+  }, [next, persistProgress, flushListening, setRepeat]);
 
   // Sauvegarde de la progression quand on quitte la page.
   useEffect(() => {
@@ -390,8 +428,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     navigator.mediaSession.metadata = new MediaMetadata({
       title: current.title,
       artist: current.podcastTitle,
-      album: 'Podsnew',
-      artwork: current.artwork ? [{ src: current.artwork, sizes: '600x600', type: 'image/jpeg' }] : [],
+      album: 'Podsal',
+      // Pas de pochette : les images de podcasts ne sont pas affichées dans Podsal.
+      artwork: [{ src: new URL('favicon.svg', location.href).href, sizes: 'any', type: 'image/svg+xml' }],
     });
     const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
       ['play', () => toggle()],
@@ -424,6 +463,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       segment,
       play,
       playSegment,
+      repeat,
+      setRepeat,
       playAll,
       toggle,
       pause,
@@ -451,7 +492,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setSleep: (m) =>
         setSleepState(m === null ? null : m === 'episode' ? { kind: 'episode' } : { kind: 'minutes', endsAt: Date.now() + m * 60_000 }),
     }),
-    [current, queue, isPlaying, isBuffering, error, rate, volume, muted, sleep, segment, play, playSegment, playAll, toggle, pause, seek, skip, next, select, update],
+    [current, queue, isPlaying, isBuffering, error, rate, volume, muted, sleep, segment, repeat, setRepeat, play, playSegment, playAll, toggle, pause, seek, skip, next, select, update],
   );
 
   const timeValue = useMemo(() => ({ time, duration }), [time, duration]);
