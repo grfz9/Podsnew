@@ -1,16 +1,29 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
-import { House, Library, ListMusic, Mic, Search } from 'lucide-react';
+import { ChartColumn, House, Library, ListMusic, Mic, Search, User, Users, WifiOff } from 'lucide-react';
+import { useAuth } from '../store/auth';
 import { useLibrary } from '../store/library';
 import { SKIP_BACK, SKIP_FORWARD, usePlayer } from '../store/player';
 import { Artwork } from './common';
+import { BackgroundTasks, useOnline } from './Background';
 import { FullPlayer, PlayerBar } from './Player';
 
-const NAV = [
+const SIDEBAR_NAV = [
   { to: '/', label: 'Accueil', icon: House, end: true },
   { to: '/search', label: 'Rechercher', icon: Search },
   { to: '/library', label: 'Bibliothèque', icon: Library },
   { to: '/queue', label: "File d'attente", icon: ListMusic },
+  { to: '/friends', label: 'Amis', icon: Users },
+  { to: '/stats', label: 'Statistiques', icon: ChartColumn },
+  { to: '/studio', label: 'Studio', icon: Mic },
+];
+
+const MOBILE_NAV = [
+  { to: '/', label: 'Accueil', icon: House, end: true },
+  { to: '/search', label: 'Rechercher', icon: Search },
+  { to: '/library', label: 'Bibliothèque', icon: Library },
+  { to: '/friends', label: 'Amis', icon: Users },
+  { to: '/account', label: 'Compte', icon: User },
 ];
 
 /** Raccourcis clavier : espace = lecture/pause, ← / → = reculer / avancer. */
@@ -20,13 +33,13 @@ function useKeyboardShortcuts() {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (!current || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
-      if (e.code === 'Space' && !target.closest('button, a')) {
+      if (target.closest('input, textarea, select, [contenteditable="true"], [role="dialog"] [role="menu"]')) return;
+      if (e.code === 'Space' && !target.closest('button, a, [tabindex]')) {
         e.preventDefault();
         toggle();
-      } else if (e.key === 'ArrowLeft') {
+      } else if (e.key === 'ArrowLeft' && !target.closest('[role="listitem"]')) {
         skip(-SKIP_BACK);
-      } else if (e.key === 'ArrowRight') {
+      } else if (e.key === 'ArrowRight' && !target.closest('[role="listitem"]')) {
         skip(SKIP_FORWARD);
       }
     };
@@ -35,11 +48,29 @@ function useKeyboardShortcuts() {
   }, [toggle, skip, current]);
 }
 
+function AccountLink() {
+  const auth = useAuth();
+  const name = auth.profile?.display_name || auth.profile?.username;
+  return (
+    <NavLink to="/account" className="nav-link sidebar__account">
+      {name ? (
+        <span className="avatar avatar--small" aria-hidden>
+          {name.slice(0, 1).toUpperCase()}
+        </span>
+      ) : (
+        <User size={22} />
+      )}
+      {name ?? (auth.enabled ? 'Se connecter' : 'Compte')}
+    </NavLink>
+  );
+}
+
 export function Layout() {
   const { subscriptions } = useLibrary();
   const { current } = usePlayer();
   const [expanded, setExpanded] = useState(false);
   const location = useLocation();
+  const online = useOnline();
   const closePlayer = useCallback(() => setExpanded(false), []);
 
   useKeyboardShortcuts();
@@ -51,6 +82,7 @@ export function Layout() {
 
   return (
     <div className={`app ${current ? 'app--with-player' : ''}`}>
+      <BackgroundTasks />
       <aside className="sidebar">
         <Link to="/" className="brand">
           <span className="brand__logo">
@@ -59,7 +91,7 @@ export function Layout() {
           Podsnew
         </Link>
         <nav className="sidebar__nav">
-          {NAV.map(({ to, label, icon: Icon, end }) => (
+          {SIDEBAR_NAV.map(({ to, label, icon: Icon, end }) => (
             <NavLink key={to} to={to} end={end} className="nav-link">
               <Icon size={22} />
               {label}
@@ -79,16 +111,22 @@ export function Layout() {
             </NavLink>
           ))}
         </div>
+        <AccountLink />
       </aside>
 
       <main className="main">
+        {!online && (
+          <div className="offline-banner" role="status">
+            <WifiOff size={16} /> Hors-ligne : les épisodes téléchargés restent disponibles dans la Bibliothèque.
+          </div>
+        )}
         <Outlet />
       </main>
 
       <PlayerBar onExpand={() => setExpanded(true)} />
 
       <nav className="bottom-nav">
-        {NAV.map(({ to, label, icon: Icon, end }) => (
+        {MOBILE_NAV.map(({ to, label, icon: Icon, end }) => (
           <NavLink key={to} to={to} end={end} className="bottom-nav__link">
             <Icon size={22} />
             <span>{label}</span>

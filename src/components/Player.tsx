@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 import {
   ChevronDown,
+  FileText,
+  Scissors,
   ListMusic,
   LoaderCircle,
   Moon,
@@ -15,7 +17,12 @@ import {
 } from 'lucide-react';
 import { SKIP_BACK, SKIP_FORWARD, usePlayer, usePlayerTime } from '../store/player';
 import { formatTime, stripHtml } from '../utils/format';
+import { getAnyPodcast } from '../api/catalog';
+import { useLibrary } from '../store/library';
+import { useAsync } from '../utils/hooks';
+import { currentChapterIndex, useEpisodeExtras } from '../lib/useEpisode';
 import { Artwork } from './common';
+import { episodePath } from './EpisodeRow';
 
 function ProgressBar() {
   const { seek } = usePlayer();
@@ -83,7 +90,7 @@ function Controls({ large = false }: { large?: boolean }) {
 function RateButton() {
   const { rate, cycleRate } = usePlayer();
   return (
-    <button className="pill-btn" onClick={cycleRate} title="Vitesse de lecture" aria-label={`Vitesse ${rate}x`}>
+    <button className="ctrl-btn" onClick={cycleRate} title="Vitesse de lecture" aria-label={`Vitesse ${rate}x`}>
       {rate}×
     </button>
   );
@@ -123,7 +130,7 @@ function SleepButton() {
   return (
     <div className="menu-wrap" ref={ref}>
       <button
-        className={`pill-btn ${sleep ? 'pill-btn--active' : ''}`}
+        className={`ctrl-btn ${sleep ? 'ctrl-btn--active' : ''}`}
         onClick={() => setOpen((o) => !o)}
         title="Minuteur de sommeil"
         aria-label="Minuteur de sommeil"
@@ -224,7 +231,14 @@ export function PlayerBar({ onExpand }: { onExpand: () => void }) {
 /** Lecteur plein écran (mobile / clic sur la pochette). */
 export function FullPlayer({ onClose }: { onClose: () => void }) {
   const player = usePlayer();
+  const { country } = useLibrary();
+  const { time } = usePlayerTime();
+  const navigate = useNavigate();
   const ep = player.current;
+  const podcast = useAsync(() => (ep ? getAnyPodcast(ep.podcastId, country, 200) : Promise.resolve(null)), [ep?.podcastId, country]);
+  const extras = useEpisodeExtras(podcast.data?.podcast, ep ?? undefined);
+  const chapterIndex = currentChapterIndex(extras.chapters, time);
+  const chapter = chapterIndex >= 0 ? extras.chapters[chapterIndex] : null;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -233,6 +247,11 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
   }, [onClose]);
 
   if (!ep) return null;
+  const go = (path: string) => {
+    onClose();
+    navigate(path);
+  };
+
   return (
     <div className="full-player" role="dialog" aria-modal="true" aria-label="Lecteur">
       <div className="full-player__bg" style={{ backgroundImage: ep.artwork ? `url(${ep.artwork})` : undefined }} />
@@ -242,16 +261,21 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
             <ChevronDown size={28} />
           </button>
           <span className="small muted">En cours de lecture</span>
-          <Link to="/queue" className="icon-btn" onClick={onClose} aria-label="File d'attente">
+          <button className="icon-btn" onClick={() => go('/queue')} aria-label="File d'attente">
             <ListMusic size={22} />
-          </Link>
+          </button>
         </div>
-        <Artwork src={ep.artwork} alt={ep.podcastTitle} className="full-player__art" />
+        <Artwork src={chapter?.img || ep.artwork} alt={ep.podcastTitle} className="full-player__art" />
         <div className="full-player__meta">
-          <h2>{ep.title}</h2>
-          <Link to={`/podcast/${ep.podcastId}`} onClick={onClose} className="muted">
+          {chapter && <p className="full-player__chapter">Chapitre {chapterIndex + 1} · {chapter.title}</p>}
+          <h2>
+            <button className="link-button" onClick={() => go(episodePath(ep))}>
+              {ep.title}
+            </button>
+          </h2>
+          <button className="link-button muted" onClick={() => go(`/podcast/${ep.podcastId}`)}>
             {ep.podcastTitle}
-          </Link>
+          </button>
         </div>
         {player.error && <p className="player-bar__error">{player.error}</p>}
         <ProgressBar />
@@ -259,7 +283,27 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
         <div className="full-player__extras">
           <RateButton />
           <SleepButton />
+          <button className="ctrl-btn" onClick={() => go(`${episodePath(ep)}?clip=1`)} aria-label="Créer un extrait">
+            <Scissors size={14} /> Extrait
+          </button>
+          {extras.transcript && (
+            <button className="ctrl-btn" onClick={() => go(episodePath(ep))} aria-label="Transcription">
+              <FileText size={14} /> Texte
+            </button>
+          )}
         </div>
+        {extras.chapters.length > 0 && (
+          <ol className="chapters full-player__chapters">
+            {extras.chapters.map((c, i) => (
+              <li key={`${c.start}-${i}`}>
+                <button className={`chapter ${i === chapterIndex ? 'chapter--active' : ''}`} onClick={() => player.seek(c.start)}>
+                  <span className="chapter__time">{formatTime(c.start)}</span>
+                  <span className="chapter__title">{c.title}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        )}
         {ep.description && <p className="full-player__desc">{stripHtml(ep.description)}</p>}
       </div>
     </div>

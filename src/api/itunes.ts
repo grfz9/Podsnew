@@ -1,4 +1,5 @@
 import type { Episode, Podcast } from '../types';
+import { isMusicGenre, isMusicPodcast } from './genres';
 
 /**
  * Catalogue de podcasts basé sur l'API publique d'Apple (iTunes Search API) :
@@ -17,6 +18,8 @@ export interface RawPodcast {
   artworkUrl100?: string;
   artworkUrl600?: string;
   primaryGenreName?: string;
+  genreIds?: string[];
+  genres?: string[];
   feedUrl?: string;
   trackCount?: number;
   releaseDate?: string;
@@ -31,10 +34,12 @@ export interface RawEpisode {
   description?: string;
   shortDescription?: string;
   episodeUrl?: string;
+  episodeGuid?: string;
   trackTimeMillis?: number;
   releaseDate: string;
   artworkUrl600?: string;
   artworkUrl160?: string;
+  genres?: { name: string; id: string }[];
 }
 
 interface RawChartEntry {
@@ -43,8 +48,7 @@ interface RawChartEntry {
   'im:artist'?: { label: string };
   'im:image'?: { label: string }[];
   summary?: { label: string };
-  category?: { attributes: { label: string } };
-  'im:releaseDate'?: { label: string };
+  category?: { attributes: { label: string; 'im:id'?: string } };
 }
 
 /* ---------- Conversions vers nos types ---------- */
@@ -62,13 +66,14 @@ export function mapPodcast(raw: RawPodcast): Podcast {
     author: raw.artistName,
     artwork: raw.artworkUrl600 || upscaleArtwork(raw.artworkUrl100),
     genre: raw.primaryGenreName,
+    genreIds: raw.genreIds?.filter((id) => id !== '26'), // 26 = « Podcasts », catégorie racine
     feedUrl: raw.feedUrl,
     episodeCount: raw.trackCount,
     lastRelease: raw.releaseDate,
   };
 }
 
-export function mapEpisode(raw: RawEpisode, fallbackArtwork = ''): Episode | null {
+export function mapEpisode(raw: RawEpisode, fallbackArtwork = '', fallbackGenre?: string): Episode | null {
   if (!raw.episodeUrl) return null;
   return {
     id: String(raw.trackId),
@@ -80,17 +85,25 @@ export function mapEpisode(raw: RawEpisode, fallbackArtwork = ''): Episode | nul
     duration: raw.trackTimeMillis ? Math.round(raw.trackTimeMillis / 1000) : 0,
     releaseDate: raw.releaseDate,
     artwork: raw.artworkUrl600 || fallbackArtwork,
+    guid: raw.episodeGuid,
+    genre: raw.genres?.[0]?.name ?? fallbackGenre,
   };
+}
+
+function isMusicEpisode(raw: RawEpisode): boolean {
+  return !!raw.genres?.some((g) => isMusicGenre(g.id) || isMusicGenre(g.name));
 }
 
 export function mapChartEntry(entry: RawChartEntry): Podcast {
   const images = entry['im:image'] ?? [];
+  const category = entry.category?.attributes;
   return {
     id: entry.id.attributes['im:id'],
     title: entry['im:name'].label,
     author: entry['im:artist']?.label ?? '',
     artwork: upscaleArtwork(images[images.length - 1]?.label),
-    genre: entry.category?.attributes.label,
+    genre: category?.label,
+    genreIds: category?.['im:id'] ? [category['im:id']] : undefined,
     description: entry.summary?.label,
   };
 }
@@ -103,43 +116,97 @@ async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+/** Petit cache mémoire : évite de recharger un podcast à chaque navigation. */
+const CACHE_TTL = 10 * 60 * 1000;
+const cache = new Map<string, { at: number; value: Promise<unknown> }>();
+
+/**
+ * La requête mise en cache n'est jamais annulée (elle peut servir à d'autres écrans) ;
+ * seul l'appelant arrête de l'attendre si son `signal` est annulé.
+ */
+function cached<T>(key: string, load: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+  let hit = cache.get(key);
+  if (!hit || Date.now() - hit.at >= CACHE_TTL) {
+    const value = load();
+    hit = { at: Date.now(), value };
+    cache.set(key, hit);
+    value.catch(() => cache.delete(key));
+  }
+  const value = hit.value as Promise<T>;
+  if (!signal) return value;
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(new DOMException('Annulé', 'AbortError'));
+    if (signal.aborted) return onAbort();
+    signal.addEventListener('abort', onAbort, { once: true });
+    value.then(resolve, reject).finally(() => signal.removeEventListener('abort', onAbort));
+  });
+}
+
+export function clearCatalogCache() {
+  cache.clear();
+}
+
 export async function searchPodcasts(term: string, country: string, signal?: AbortSignal): Promise<Podcast[]> {
-  const params = new URLSearchParams({ media: 'podcast', entity: 'podcast', term, country, limit: '30' });
+  const params = new URLSearchParams({ media: 'podcast', entity: 'podcast', term, country, limit: '40' });
   const data = await getJson<{ results: RawPodcast[] }>(`${BASE}/search?${params}`, signal);
-  return data.results.filter((r) => r.collectionId).map(mapPodcast);
+  return data.results
+    .filter((r) => r.collectionId)
+    .map(mapPodcast)
+    .filter((p) => !isMusicPodcast(p));
 }
 
 export async function searchEpisodes(term: string, country: string, signal?: AbortSignal): Promise<Episode[]> {
-  const params = new URLSearchParams({ media: 'podcast', entity: 'podcastEpisode', term, country, limit: '25' });
+  const params = new URLSearchParams({ media: 'podcast', entity: 'podcastEpisode', term, country, limit: '30' });
   const data = await getJson<{ results: RawEpisode[] }>(`${BASE}/search?${params}`, signal);
-  return data.results.map((r) => mapEpisode(r)).filter((e): e is Episode => e !== null);
+  return data.results
+    .filter((r) => !isMusicEpisode(r))
+    .map((r) => mapEpisode(r))
+    .filter((e): e is Episode => e !== null);
 }
 
-/** Classement des podcasts les plus écoutés, éventuellement par catégorie. */
-export async function getTopPodcasts(country: string, genreId?: number, limit = 30, signal?: AbortSignal): Promise<Podcast[]> {
-  const genre = genreId ? `/genre=${genreId}` : '';
-  const url = `${BASE}/${country}/rss/toppodcasts/limit=${limit}${genre}/json`;
-  const data = await getJson<{ feed: { entry?: RawChartEntry | RawChartEntry[] } }>(url, signal);
-  const entries = data.feed.entry;
-  if (!entries) return [];
-  return (Array.isArray(entries) ? entries : [entries]).map(mapChartEntry);
+/** Classement des podcasts les plus écoutés, éventuellement par catégorie (sans musique). */
+export function getTopPodcasts(country: string, genreId?: number, limit = 30, signal?: AbortSignal): Promise<Podcast[]> {
+  return cached(`top|${country}|${genreId ?? ''}|${limit}`, async () => {
+    const genre = genreId ? `/genre=${genreId}` : '';
+    const url = `${BASE}/${country}/rss/toppodcasts/limit=${limit}${genre}/json`;
+    const data = await getJson<{ feed: { entry?: RawChartEntry | RawChartEntry[] } }>(url);
+    const entries = data.feed.entry;
+    if (!entries) return [];
+    return (Array.isArray(entries) ? entries : [entries]).map(mapChartEntry).filter((p) => !isMusicPodcast(p));
+  }, signal);
 }
 
-export async function getPodcast(
+export function getPodcast(
   id: string,
   country: string,
   limit = 100,
   signal?: AbortSignal,
 ): Promise<{ podcast: Podcast; episodes: Episode[] }> {
-  const params = new URLSearchParams({ id, entity: 'podcastEpisode', limit: String(limit), country });
-  const data = await getJson<{ results: (RawPodcast | RawEpisode)[] }>(`${BASE}/lookup?${params}`, signal);
-  const rawPodcast = data.results.find((r): r is RawPodcast => r.wrapperType !== 'podcastEpisode');
-  if (!rawPodcast) throw new Error('Podcast introuvable');
-  const podcast = mapPodcast(rawPodcast);
-  const episodes = data.results
-    .filter((r): r is RawEpisode => r.wrapperType === 'podcastEpisode')
-    .map((r) => mapEpisode(r, podcast.artwork))
-    .filter((e): e is Episode => e !== null)
-    .sort((a, b) => b.releaseDate.localeCompare(a.releaseDate));
-  return { podcast, episodes };
+  return cached(`podcast|${id}|${country}|${limit}`, async () => {
+    const params = new URLSearchParams({ id, entity: 'podcastEpisode', limit: String(limit), country });
+    const data = await getJson<{ results: (RawPodcast | RawEpisode)[] }>(`${BASE}/lookup?${params}`);
+    const rawPodcast = data.results.find((r): r is RawPodcast => r.wrapperType !== 'podcastEpisode');
+    if (!rawPodcast) throw new Error('Podcast introuvable');
+    const podcast = mapPodcast(rawPodcast);
+    if (isMusicPodcast(podcast)) throw new Error("Podsnew est réservé aux podcasts parlés : ce contenu musical n'est pas disponible.");
+    const episodes = data.results
+      .filter((r): r is RawEpisode => r.wrapperType === 'podcastEpisode')
+      .map((r) => mapEpisode(r, podcast.artwork, podcast.genre))
+      .filter((e): e is Episode => e !== null)
+      .sort((a, b) => b.releaseDate.localeCompare(a.releaseDate));
+    return { podcast, episodes };
+  }, signal);
+}
+
+/** Informations de plusieurs podcasts en une requête (sans leurs épisodes). */
+export async function lookupPodcasts(ids: string[], country: string, signal?: AbortSignal): Promise<Podcast[]> {
+  if (ids.length === 0) return [];
+  const results: Podcast[] = [];
+  // L'API accepte plusieurs identifiants séparés par des virgules ; on procède par lots.
+  for (let i = 0; i < ids.length; i += 100) {
+    const params = new URLSearchParams({ id: ids.slice(i, i + 100).join(','), country });
+    const data = await getJson<{ results: RawPodcast[] }>(`${BASE}/lookup?${params}`, signal);
+    results.push(...data.results.filter((r) => r.collectionId).map(mapPodcast));
+  }
+  return results;
 }

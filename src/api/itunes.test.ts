@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getPodcast, getTopPodcasts, mapEpisode, upscaleArtwork } from './itunes';
+import { clearCatalogCache, getPodcast, getTopPodcasts, mapEpisode, searchPodcasts, upscaleArtwork } from './itunes';
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  clearCatalogCache();
+});
 
 function mockFetch(body: unknown) {
   const fn = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(body) });
@@ -35,6 +38,19 @@ describe('itunes', () => {
     expect(podcast).toMatchObject({ id: '42', title: 'Mon podcast', author: 'Moi' });
     expect(episodes.map((e) => e.title)).toEqual(['Récent', 'Ancien']);
     expect(episodes[1]).toMatchObject({ duration: 60, artwork: 'art.jpg', podcastId: '42' });
+  });
+
+  it('les recherches excluent les podcasts musicaux', async () => {
+    mockFetch({
+      results: [
+        { collectionId: 1, collectionName: 'Parlé', artistName: 'A', genreIds: ['1487', '26'] },
+        { collectionId: 2, collectionName: 'Playlist', artistName: 'B', genreIds: ['1310', '26'] },
+        { collectionId: 3, collectionName: 'Critique musicale', artistName: 'C', primaryGenreName: 'Music Commentary' },
+      ],
+    });
+    const results = await searchPodcasts('test-musique', 'fr');
+    expect(results.map((p) => p.title)).toEqual(['Parlé']);
+    expect(results[0].genreIds).toEqual(['1487']);
   });
 
   it('getTopPodcasts gère une entrée unique', async () => {

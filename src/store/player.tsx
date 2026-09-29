@@ -12,12 +12,16 @@ import type { Episode } from '../types';
 import { usePersistentState } from '../utils/hooks';
 import { isFinished, resumePosition } from '../utils/progress';
 import * as Q from '../utils/queue';
+import { localUrlFor } from '../lib/downloads';
+import { isNativeId, trackNativePlay } from '../api/native';
 import { useLibrary } from './library';
 
 export const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 1.75, 2];
 export const SKIP_BACK = 15;
 export const SKIP_FORWARD = 30;
 const SAVE_EVERY_MS = 5000;
+/** Le temps d'écoute est enregistré par paquets pour limiter les écritures. */
+const LISTEN_FLUSH_SECONDS = 15;
 
 export type SleepTimer = { kind: 'minutes'; endsAt: number } | { kind: 'episode' } | null;
 
@@ -31,8 +35,12 @@ interface PlayerValue {
   volume: number;
   muted: boolean;
   sleep: SleepTimer;
+  /** Extrait en cours de lecture (s'arrête automatiquement à la fin). */
+  segment: { start: number; end: number } | null;
 
-  play: (episode: Episode) => void;
+  play: (episode: Episode, startAt?: number) => void;
+  playSegment: (episode: Episode, start: number, end: number) => void;
+  playAll: (episodes: Episode[]) => void;
   toggle: () => void;
   pause: () => void;
   seek: (seconds: number) => void;
@@ -90,6 +98,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [muted, setMuted] = useState(false);
   const [sleep, setSleepState] = useState<SleepTimer>(null);
+  const [segment, setSegment] = useState<{ start: number; end: number } | null>(null);
   const [time, setTime] = useState(() => (persisted.current ? resumePosition(library.progress[persisted.current.id]) : 0));
   const [duration, setDuration] = useState(persisted.current?.duration ?? 0);
 
@@ -103,12 +112,32 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   queueRef.current = queue;
   const sleepRef = useRef(sleep);
   sleepRef.current = sleep;
+  const segmentRef = useRef(segment);
+  segmentRef.current = segment;
+
+  /* Temps d'écoute réel (horloge murale, indépendant de la vitesse de lecture). */
+  const lastTick = useRef<number | null>(null);
+  const pendingListen = useRef(0);
+  const listenedByEpisode = useRef(new Map<string, number>());
 
   const update = useCallback(
     (patch: Partial<PersistedPlayer> | ((p: PersistedPlayer) => Partial<PersistedPlayer>)) =>
       setPersisted((p) => ({ ...p, ...(typeof patch === 'function' ? patch(p) : patch) })),
     [setPersisted],
   );
+
+  const flushListening = useCallback(() => {
+    const ep = currentRef.current;
+    const seconds = Math.floor(pendingListen.current);
+    if (!ep || seconds < 1) return;
+    pendingListen.current -= seconds;
+    libraryRef.current.recordListening(ep, seconds);
+    const total = (listenedByEpisode.current.get(ep.id) ?? 0) + seconds;
+    listenedByEpisode.current.set(ep.id, total);
+    if (isNativeId(ep.id) && total >= 30) {
+      trackNativePlay(ep.id, libraryRef.current.deviceId, total).catch(() => undefined);
+    }
+  }, []);
 
   const persistProgress = useCallback(() => {
     const audio = audioRef.current;
@@ -121,16 +150,22 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const load = useCallback(
-    (episode: Episode, autoplay: boolean) => {
+    (episode: Episode, autoplay: boolean, startAt?: number) => {
       const audio = audioRef.current;
       if (!audio) return;
-      if (loadedId.current && loadedId.current !== episode.id) persistProgress();
+      if (loadedId.current && loadedId.current !== episode.id) {
+        persistProgress();
+        flushListening();
+      }
+      pendingListen.current = 0;
+      lastTick.current = null;
       loadedId.current = episode.id;
-      pendingSeek.current = resumePosition(libraryRef.current.progress[episode.id]);
+      pendingSeek.current = startAt ?? resumePosition(libraryRef.current.progress[episode.id]);
       setError(null);
       setTime(pendingSeek.current);
       setDuration(episode.duration);
-      audio.src = episode.audioUrl;
+      // Fichier téléchargé si disponible, sinon lecture en streaming.
+      audio.src = localUrlFor(episode.id) ?? episode.audioUrl;
       audio.defaultPlaybackRate = rate;
       audio.playbackRate = rate;
       update({ current: episode });
@@ -140,7 +175,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         audio.play().catch(() => setIsBuffering(false));
       }
     },
-    [persistProgress, rate, update],
+    [persistProgress, flushListening, rate, update],
   );
 
   /** Affiche un épisode dans le lecteur sans charger l'audio (chargé au premier « lecture »). */
@@ -153,18 +188,53 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     [update],
   );
 
+  const seek = useCallback((seconds: number) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const max = Number.isFinite(audio.duration) ? audio.duration : Infinity;
+    const target = Math.max(0, Math.min(seconds, max));
+    const seg = segmentRef.current;
+    if (seg && (target < seg.start - 1 || target > seg.end)) setSegment(null);
+    if (loadedId.current === currentRef.current?.id && audio.readyState > 0) {
+      audio.currentTime = target;
+    } else {
+      pendingSeek.current = target;
+    }
+    setTime(target);
+  }, []);
+
   const play = useCallback(
-    (episode: Episode) => {
+    (episode: Episode, startAt?: number) => {
       const audio = audioRef.current;
       if (!audio) return;
+      setSegment(null);
       if (loadedId.current === episode.id) {
+        if (startAt !== undefined) seek(startAt);
         void audio.play().catch(() => undefined);
         return;
       }
       update((p) => ({ queue: Q.removeFromQueue(p.queue, episode.id) }));
-      load(episode, true);
+      load(episode, true, startAt);
     },
-    [load, update],
+    [load, update, seek],
+  );
+
+  const playSegment = useCallback(
+    (episode: Episode, start: number, end: number) => {
+      play(episode, start);
+      setSegment({ start, end });
+    },
+    [play],
+  );
+
+  const playAll = useCallback(
+    (episodes: Episode[]) => {
+      const [first, ...rest] = episodes;
+      if (!first) return;
+      play(first);
+      update({ queue: rest.filter((e) => e.id !== first.id) });
+    },
+    [play, update],
   );
 
   const pause = useCallback(() => audioRef.current?.pause(), []);
@@ -182,19 +252,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [load]);
 
-  const seek = useCallback((seconds: number) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const max = Number.isFinite(audio.duration) ? audio.duration : Infinity;
-    const target = Math.max(0, Math.min(seconds, max));
-    if (loadedId.current === currentRef.current?.id && audio.readyState > 0) {
-      audio.currentTime = target;
-    } else {
-      pendingSeek.current = target;
-    }
-    setTime(target);
-  }, []);
-
   const skip = useCallback(
     (delta: number) => {
       const audio = audioRef.current;
@@ -208,6 +265,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const next = useCallback(() => {
     const [upNext, ...rest] = queueRef.current;
     if (!upNext) return;
+    setSegment(null);
     update({ queue: rest });
     load(upNext, true);
   }, [load, update]);
@@ -217,10 +275,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const onPlay = () => setIsPlaying(true);
+    const onPlay = () => {
+      setIsPlaying(true);
+      lastTick.current = performance.now();
+    };
     const onPause = () => {
       setIsPlaying(false);
+      lastTick.current = null;
       persistProgress();
+      flushListening();
     };
     const onWaiting = () => setIsBuffering(true);
     const onPlaying = () => setIsBuffering(false);
@@ -233,12 +296,24 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
     const onTime = () => {
       setTime(audio.currentTime);
+      if (!audio.paused) {
+        const now = performance.now();
+        if (lastTick.current !== null && now - lastTick.current < 3000) pendingListen.current += (now - lastTick.current) / 1000;
+        lastTick.current = now;
+        if (pendingListen.current >= LISTEN_FLUSH_SECONDS) flushListening();
+      }
+      const seg = segmentRef.current;
+      if (seg && audio.currentTime >= seg.end) {
+        audio.pause();
+        setSegment(null);
+      }
       if (Date.now() - lastSave.current > SAVE_EVERY_MS) persistProgress();
     };
     const onEnded = () => {
       const ep = currentRef.current;
       if (ep) libraryRef.current.saveProgress(ep.id, audio.duration || ep.duration, audio.duration || ep.duration, true);
       setIsPlaying(false);
+      flushListening();
       if (sleepRef.current?.kind === 'episode') {
         setSleepState(null);
         return;
@@ -249,7 +324,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       if (!audio.src) return;
       setIsBuffering(false);
       setIsPlaying(false);
-      setError("Impossible de lire cet épisode. Le fichier audio est peut-être indisponible.");
+      setError(navigator.onLine ? 'Impossible de lire cet épisode. Le fichier audio est peut-être indisponible.' : 'Vous êtes hors-ligne et cet épisode n’est pas téléchargé.');
     };
 
     audio.addEventListener('play', onPlay);
@@ -272,13 +347,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('error', onError);
     };
-  }, [next, persistProgress]);
+  }, [next, persistProgress, flushListening]);
 
   // Sauvegarde de la progression quand on quitte la page.
   useEffect(() => {
-    window.addEventListener('pagehide', persistProgress);
-    return () => window.removeEventListener('pagehide', persistProgress);
-  }, [persistProgress]);
+    const onHide = () => {
+      persistProgress();
+      flushListening();
+    };
+    window.addEventListener('pagehide', onHide);
+    return () => window.removeEventListener('pagehide', onHide);
+  }, [persistProgress, flushListening]);
 
   /* ---------- Vitesse & volume ---------- */
   useEffect(() => {
@@ -342,7 +421,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       volume,
       muted,
       sleep,
+      segment,
       play,
+      playSegment,
+      playAll,
       toggle,
       pause,
       seek,
@@ -369,7 +451,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setSleep: (m) =>
         setSleepState(m === null ? null : m === 'episode' ? { kind: 'episode' } : { kind: 'minutes', endsAt: Date.now() + m * 60_000 }),
     }),
-    [current, queue, isPlaying, isBuffering, error, rate, volume, muted, sleep, play, toggle, pause, seek, skip, next, select, update],
+    [current, queue, isPlaying, isBuffering, error, rate, volume, muted, sleep, segment, play, playSegment, playAll, toggle, pause, seek, skip, next, select, update],
   );
 
   const timeValue = useMemo(() => ({ time, duration }), [time, duration]);

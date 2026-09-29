@@ -1,0 +1,180 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import type { Session } from '@supabase/supabase-js';
+import { supabase, type Profile } from '../lib/supabase';
+import { mergeSynced, type SyncedData } from '../lib/sync';
+import { useLibrary, type LibraryState } from './library';
+
+export type SyncStatus = 'off' | 'syncing' | 'synced' | 'error';
+
+interface AuthValue {
+  enabled: boolean;
+  loading: boolean;
+  session: Session | null;
+  userId: string | null;
+  email: string | null;
+  profile: Profile | null;
+  syncStatus: SyncStatus;
+  lastSyncedAt: number | null;
+  signIn: (email: string, password: string) => Promise<void>;
+  /** Renvoie true si une confirmation par e-mail est nécessaire. */
+  signUp: (email: string, password: string, username: string, displayName: string) => Promise<boolean>;
+  resetPassword: (email: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  updateProfile: (patch: Partial<Pick<Profile, 'display_name' | 'share_activity'>>) => Promise<void>;
+  syncNow: () => void;
+}
+
+const AuthContext = createContext<AuthValue | null>(null);
+
+function syncedPart(s: LibraryState): SyncedData {
+  const { subscriptions, savedEpisodes, history, clips, progress, stats, modified } = s;
+  return { subscriptions, savedEpisodes, history, clips, progress, stats, modified };
+}
+
+const PUSH_DELAY_MS = 3000;
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const library = useLibrary();
+  const libraryRef = useRef(library);
+  libraryRef.current = library;
+
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(!!supabase);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('off');
+  const pulledFor = useRef<string | null>(null);
+  const userId = session?.user.id ?? null;
+
+  /* ---------- Session ---------- */
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!supabase || !userId) {
+      setProfile(null);
+      return;
+    }
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle<Profile>()
+      .then(({ data }) => setProfile(data));
+  }, [userId]);
+
+  /* ---------- Synchronisation ---------- */
+  const push = useCallback(async (uid: string, data?: SyncedData) => {
+    if (!supabase) return;
+    const { error } = await supabase
+      .from('user_state')
+      .upsert({ user_id: uid, data: data ?? syncedPart(libraryRef.current.state), updated_at: new Date().toISOString() });
+    setSyncStatus(error ? 'error' : 'synced');
+  }, []);
+
+  const pullAndMerge = useCallback(
+    async (uid: string) => {
+      if (!supabase) return;
+      setSyncStatus('syncing');
+      const { data, error } = await supabase.from('user_state').select('data').eq('user_id', uid).maybeSingle<{ data: Partial<SyncedData> }>();
+      if (error) {
+        setSyncStatus('error');
+        return;
+      }
+      const lib = libraryRef.current;
+      const firstSync = lib.state.sync.userId !== uid || !lib.state.sync.lastSyncedAt;
+      const merged = mergeSynced(syncedPart(lib.state), data?.data ?? {}, firstSync);
+      lib.applySynced(merged, uid);
+      pulledFor.current = uid;
+      await push(uid, merged);
+    },
+    [push],
+  );
+
+  useEffect(() => {
+    if (!userId) {
+      pulledFor.current = null;
+      setSyncStatus('off');
+      return;
+    }
+    void pullAndMerge(userId);
+    const onVisible = () => document.visibilityState === 'visible' && void pullAndMerge(userId);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [userId, pullAndMerge]);
+
+  // Envoi différé après chaque modification locale des données synchronisées.
+  const { subscriptions, savedEpisodes, history, clips, progress, stats } = library.state;
+  useEffect(() => {
+    if (!userId || pulledFor.current !== userId) return;
+    const t = setTimeout(() => void push(userId), PUSH_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [userId, push, subscriptions, savedEpisodes, history, clips, progress, stats]);
+
+  /* ---------- Actions ---------- */
+  const value = useMemo<AuthValue>(
+    () => ({
+      enabled: !!supabase,
+      loading,
+      session,
+      userId,
+      email: session?.user.email ?? null,
+      profile,
+      syncStatus,
+      lastSyncedAt: library.state.sync.lastSyncedAt,
+      signIn: async (email, password) => {
+        const { error } = await supabase!.auth.signInWithPassword({ email, password });
+        if (error) throw new Error(error.message === 'Invalid login credentials' ? 'E-mail ou mot de passe incorrect.' : error.message);
+      },
+      signUp: async (email, password, username, displayName) => {
+        const { data, error } = await supabase!.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { username: username.toLowerCase(), display_name: displayName || username },
+            emailRedirectTo: `${location.origin}${location.pathname}`,
+          },
+        });
+        if (error) throw new Error(error.message);
+        return !data.session;
+      },
+      resetPassword: async (email) => {
+        const { error } = await supabase!.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}${location.pathname}#/account` });
+        if (error) throw new Error(error.message);
+      },
+      signOut: async () => {
+        if (userId) await push(userId);
+        await supabase!.auth.signOut();
+        libraryRef.current.resetSync();
+      },
+      updateProfile: async (patch) => {
+        if (!userId) return;
+        const previous = profile;
+        // Mise à jour optimiste : l'interface réagit tout de suite, on revient en arrière en cas d'échec.
+        setProfile((p) => (p ? { ...p, ...patch } : p));
+        const { data, error } = await supabase!.from('profiles').update(patch).eq('id', userId).select().single<Profile>();
+        if (error) {
+          setProfile(previous);
+          throw new Error(error.message);
+        }
+        setProfile(data);
+      },
+      syncNow: () => userId && void pullAndMerge(userId),
+    }),
+    [loading, session, userId, profile, syncStatus, library.state.sync.lastSyncedAt, push, pullAndMerge],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth(): AuthValue {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth doit être utilisé dans <AuthProvider>');
+  return ctx;
+}

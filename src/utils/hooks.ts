@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type DependencyList } from 'react';
 
 /** useState synchronisé avec localStorage. */
-export function usePersistentState<T>(key: string, initial: T) {
+export function usePersistentState<T>(key: string, initial: T | (() => T)) {
   const [value, setValue] = useState<T>(() => {
+    const fallback = () => (typeof initial === 'function' ? (initial as () => T)() : initial);
     try {
       const stored = localStorage.getItem(key);
-      return stored ? (JSON.parse(stored) as T) : initial;
+      return stored ? (JSON.parse(stored) as T) : fallback();
     } catch {
-      return initial;
+      return fallback();
     }
   });
 

@@ -1,23 +1,75 @@
-import { useState } from 'react';
-import { Link } from 'react-router';
-import { Check, Heart, ListEnd, ListPlus, Pause, Play } from 'lucide-react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
+import { Link, useNavigate } from 'react-router';
+import { Check, CircleCheck, Download, Heart, ListEnd, ListPlus, LoaderCircle, Ellipsis, Pause, Play, Scissors, Share2, Trash, X } from 'lucide-react';
 import type { Episode } from '../types';
 import { useLibrary } from '../store/library';
 import { usePlayer } from '../store/player';
+import { useDownloads } from '../store/downloads';
 import { formatDuration, formatReleaseDate, stripHtml } from '../utils/format';
 import { progressRatio, remainingSeconds } from '../utils/progress';
-import { Artwork } from './common';
+import { Artwork, Menu, shareLink, type MenuItem } from './common';
+
+export function episodePath(e: Pick<Episode, 'podcastId' | 'id'>): string {
+  return `/podcast/${e.podcastId}/episode/${e.id}`;
+}
+
+export function episodeUrl(e: Pick<Episode, 'podcastId' | 'id'>): string {
+  return `${location.origin}${location.pathname}#${episodePath(e)}`;
+}
+
+/** Bouton de téléchargement pour l'écoute hors-ligne (avec progression). */
+export function DownloadButton({ episode }: { episode: Episode }) {
+  const downloads = useDownloads();
+  const status = downloads.status(episode.id);
+  if (status.state === 'downloading') {
+    return (
+      <button
+        className="icon-btn download-progress"
+        onClick={() => downloads.cancel(episode.id)}
+        aria-label={`Téléchargement ${Math.round(status.progress * 100)} %, annuler`}
+        title="Annuler le téléchargement"
+        style={{ '--p': `${status.progress * 360}deg` } as CSSProperties}
+      >
+        {status.progress > 0 ? <X size={14} /> : <LoaderCircle className="spin" size={18} />}
+      </button>
+    );
+  }
+  if (status.state === 'done') {
+    return (
+      <button className="icon-btn icon-btn--active" onClick={() => downloads.remove(episode.id)} aria-label="Supprimer le téléchargement" title="Téléchargé — cliquer pour supprimer">
+        <CircleCheck size={18} />
+      </button>
+    );
+  }
+  return (
+    <button
+      className="icon-btn"
+      onClick={() => downloads.download(episode)}
+      aria-label="Télécharger pour écouter hors-ligne"
+      title={status.state === 'error' ? status.message : 'Télécharger'}
+    >
+      <Download size={18} />
+    </button>
+  );
+}
 
 interface Props {
   episode: Episode;
   /** Affiche la pochette et le nom du podcast (utile hors de la page du podcast). */
   showPodcast?: boolean;
+  /** Texte affiché à la place de la description (ex. extrait de transcription). */
+  excerpt?: ReactNode;
+  /** Position de départ (ex. moment trouvé dans une transcription). */
+  startAt?: number;
 }
 
-export function EpisodeRow({ episode, showPodcast = false }: Props) {
+export function EpisodeRow({ episode, showPodcast = false, excerpt, startAt }: Props) {
   const player = usePlayer();
   const library = useLibrary();
+  const downloads = useDownloads();
   const [expanded, setExpanded] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const progress = library.progress[episode.id];
   const ratio = progressRatio(progress, episode.duration);
@@ -26,15 +78,34 @@ export function EpisodeRow({ episode, showPodcast = false }: Props) {
   const saved = library.isSaved(episode.id);
   const inQueue = player.queue.some((e) => e.id === episode.id);
   const description = stripHtml(episode.description);
+  const downloadError = downloads.status(episode.id);
 
   let timeLabel = formatDuration(episode.duration);
   if (progress?.completed) timeLabel = 'Écouté';
   else if (ratio > 0) timeLabel = `Reste ${formatDuration(remainingSeconds(progress, episode.duration))}`;
 
+  const menu: MenuItem[] = [
+    { label: 'Lire ensuite', icon: <ListEnd size={16} />, onSelect: () => player.enqueueNext(episode), disabled: isCurrent },
+    inQueue
+      ? { label: 'Retirer de la file', icon: <Trash size={16} />, onSelect: () => player.dequeue(episode.id) }
+      : { label: "Ajouter à la file d'attente", icon: <ListPlus size={16} />, onSelect: () => player.enqueue(episode), disabled: isCurrent },
+    {
+      label: progress?.completed ? 'Marquer comme non écouté' : 'Marquer comme écouté',
+      icon: <Check size={16} />,
+      onSelect: () => library.setCompleted(episode, !progress?.completed),
+    },
+    { label: 'Créer un extrait', icon: <Scissors size={16} />, onSelect: () => navigate(`${episodePath(episode)}?clip=1`) },
+    {
+      label: 'Partager',
+      icon: <Share2 size={16} />,
+      onSelect: () => shareLink(episode.title, episodeUrl(episode)).then((m) => m && setNotice(m)),
+    },
+  ];
+
   return (
     <article className={`episode ${isCurrent ? 'episode--current' : ''} ${progress?.completed ? 'episode--done' : ''}`}>
       {showPodcast && (
-        <Link to={`/podcast/${episode.podcastId}`} className="episode__art">
+        <Link to={`/podcast/${episode.podcastId}`} className="episode__art" tabIndex={-1}>
           <Artwork src={episode.artwork} alt={episode.podcastTitle} size={72} />
         </Link>
       )}
@@ -44,20 +115,26 @@ export function EpisodeRow({ episode, showPodcast = false }: Props) {
             {episode.podcastTitle}
           </Link>
         )}
-        <h3 className="episode__title">{episode.title}</h3>
-        {description && (
-          <p
-            className={`episode__desc ${expanded ? 'episode__desc--open' : ''}`}
-            onClick={() => setExpanded((v) => !v)}
-            title={expanded ? 'Réduire' : 'Lire la suite'}
-          >
-            {description}
-          </p>
+        <h3 className="episode__title">
+          <Link to={episodePath(episode)}>{episode.title}</Link>
+        </h3>
+        {excerpt ? (
+          <p className="episode__desc episode__desc--open">{excerpt}</p>
+        ) : (
+          description && (
+            <p
+              className={`episode__desc ${expanded ? 'episode__desc--open' : ''}`}
+              onClick={() => setExpanded((v) => !v)}
+              title={expanded ? 'Réduire' : 'Lire la suite'}
+            >
+              {description}
+            </p>
+          )
         )}
         <div className="episode__actions">
           <button
             className="play-btn play-btn--small"
-            onClick={() => (playingThis ? player.pause() : player.play(episode))}
+            onClick={() => (playingThis ? player.pause() : player.play(episode, startAt))}
             aria-label={playingThis ? 'Pause' : 'Lire'}
           >
             {playingThis ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
@@ -80,33 +157,11 @@ export function EpisodeRow({ episode, showPodcast = false }: Props) {
           >
             <Heart size={18} fill={saved ? 'currentColor' : 'none'} />
           </button>
-          <button
-            className="icon-btn"
-            onClick={() => player.enqueueNext(episode)}
-            aria-label="Lire ensuite"
-            title="Lire ensuite"
-            disabled={isCurrent}
-          >
-            <ListEnd size={18} />
-          </button>
-          <button
-            className={`icon-btn ${inQueue ? 'icon-btn--active' : ''}`}
-            onClick={() => (inQueue ? player.dequeue(episode.id) : player.enqueue(episode))}
-            aria-label={inQueue ? 'Retirer de la file' : "Ajouter à la file d'attente"}
-            title={inQueue ? 'Retirer de la file' : "Ajouter à la file d'attente"}
-            disabled={isCurrent}
-          >
-            <ListPlus size={18} />
-          </button>
-          <button
-            className={`icon-btn ${progress?.completed ? 'icon-btn--active' : ''}`}
-            onClick={() => library.setCompleted(episode, !progress?.completed)}
-            aria-label={progress?.completed ? 'Marquer comme non écouté' : 'Marquer comme écouté'}
-            title={progress?.completed ? 'Marquer comme non écouté' : 'Marquer comme écouté'}
-          >
-            <Check size={18} />
-          </button>
+          <DownloadButton episode={episode} />
+          <Menu trigger={<Ellipsis size={18} />} label="Plus d'actions" items={menu} />
         </div>
+        {notice && <p className="small muted">{notice}</p>}
+        {downloadError.state === 'error' && <p className="small error-text">{downloadError.message}</p>}
       </div>
     </article>
   );
