@@ -21,7 +21,7 @@ import { getAnyPodcast } from '../api/catalog';
 import { useLibrary } from '../store/library';
 import { useAsync } from '../utils/hooks';
 import { currentChapterIndex, useEpisodeExtras } from '../lib/useEpisode';
-import { Artwork } from './common';
+import { Artwork, NowPlaying } from './common';
 import { episodePath } from './EpisodeRow';
 import { podcastPath } from '../lib/paths';
 
@@ -198,7 +198,10 @@ export function PlayerBar({ onExpand }: { onExpand: () => void }) {
       <div className="player-bar__line" style={{ width: `${duration ? (time / duration) * 100 : 0}%` }} />
 
       <div className="player-bar__info" onClick={onExpand} role="button" tabIndex={0} aria-label="Ouvrir le lecteur">
-        <Artwork src={ep.artwork} alt={ep.podcastTitle} size={56} />
+        <span className="player-bar__art">
+          <Artwork src={ep.artwork} alt={ep.podcastTitle} size={56} kind={ep.podcastId.startsWith('quran-') ? 'quran' : 'podcast'} />
+          {player.isPlaying && <NowPlaying />}
+        </span>
         <div className="player-bar__text">
           <div className="player-bar__title">{ep.title}</div>
           <div className="player-bar__podcast">{ep.podcastTitle}</div>
@@ -265,7 +268,12 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
             <ListMusic size={22} />
           </button>
         </div>
-        <Artwork src={chapter?.img || ep.artwork} alt={ep.podcastTitle} className="full-player__art" />
+        <Artwork
+          src={chapter?.img || ep.artwork}
+          alt={ep.podcastTitle}
+          kind={ep.podcastId.startsWith('quran-') ? 'quran' : 'podcast'}
+          className={`full-player__art ${player.isPlaying ? '' : 'full-player__art--paused'}`}
+        />
         <div className="full-player__meta">
           {chapter && <p className="full-player__chapter">Chapitre {chapterIndex + 1} · {chapter.title}</p>}
           <h2>

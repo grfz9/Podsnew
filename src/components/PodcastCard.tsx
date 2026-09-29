@@ -1,11 +1,12 @@
+import type { CSSProperties } from 'react';
 import { Link } from 'react-router';
 import type { Podcast } from '../types';
 import { Artwork } from './common';
 import { podcastPath } from '../lib/paths';
 
-export function PodcastCard({ podcast, rank }: { podcast: Podcast; rank?: number }) {
+export function PodcastCard({ podcast, rank, index = 0 }: { podcast: Podcast; rank?: number; index?: number }) {
   return (
-    <Link to={podcastPath(podcast.id)} className="card" state={{ podcast }}>
+    <Link to={podcastPath(podcast.id)} className="card" state={{ podcast }} style={{ '--i': Math.min(index, 12) } as CSSProperties}>
       <div className="card__art">
         <Artwork src={podcast.artwork} alt={podcast.title} />
         {rank !== undefined && <span className="card__rank">{rank}</span>}
@@ -23,7 +24,7 @@ export function PodcastGrid({ podcasts, ranked = false }: { podcasts: Podcast[];
   return (
     <div className="grid">
       {podcasts.map((p, i) => (
-        <PodcastCard key={p.id} podcast={p} rank={ranked ? i + 1 : undefined} />
+        <PodcastCard key={p.id} podcast={p} rank={ranked ? i + 1 : undefined} index={i} />
       ))}
     </div>
   );
@@ -34,7 +35,22 @@ export function PodcastRow({ podcasts, ranked = false }: { podcasts: Podcast[]; 
   return (
     <div className="row-scroll">
       {podcasts.map((p, i) => (
-        <PodcastCard key={p.id} podcast={p} rank={ranked ? i + 1 : undefined} />
+        <PodcastCard key={p.id} podcast={p} rank={ranked ? i + 1 : undefined} index={i} />
+      ))}
+    </div>
+  );
+}
+
+/** Emplacements de cartes pendant le chargement (plutôt qu'un indicateur qui tourne). */
+export function SkeletonCards({ count = 6, row = true }: { count?: number; row?: boolean }) {
+  return (
+    <div className={row ? 'row-scroll' : 'grid'} role="status" aria-label="Chargement…">
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="card card--skeleton" aria-hidden>
+          <div className="card__art skeleton" />
+          <div className="skeleton skeleton--line" />
+          <div className="skeleton skeleton--line skeleton--short" />
+        </div>
       ))}
     </div>
   );

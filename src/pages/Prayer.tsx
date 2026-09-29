@@ -34,14 +34,23 @@ export function PrayerCard() {
   const next = nextPrayer(p, now);
   const today = prayerTimes(p, now);
   if (!next || !today) return null;
+  // Avancée entre la prière précédente et la suivante (avant Fajr : depuis Isha de la veille).
+  const previous = FIVE_PRAYERS.map((k) => today[k]).filter((t) => t <= now).pop() ?? new Date(today.isha.getTime() - 86_400_000);
+  const span = next.time.getTime() - previous.getTime();
+  const ratio = span > 0 ? Math.min(1, Math.max(0, (now.getTime() - previous.getTime()) / span)) : 0;
   return (
     <Link to="/priere" className="prayer-card">
       <span className="prayer-card__next">
-        <span className="small muted">Prochaine prière · {p.place}</span>
+        <span className="small prayer-card__label">
+          <span className="live-dot" aria-hidden /> Prochaine prière · {p.place}
+        </span>
         <strong>
           {PRAYER_NAMES[next.key]} à {formatClock(next.time)}
         </strong>
         <span className="small muted">{formatCountdown(next.time.getTime() - now.getTime())}</span>
+        <span className="prayer-card__progress" role="progressbar" aria-valuenow={Math.round(ratio * 100)} aria-valuemin={0} aria-valuemax={100} aria-label="Temps écoulé depuis la prière précédente">
+          <span style={{ width: `${ratio * 100}%` }} />
+        </span>
       </span>
       <span className="prayer-card__list">
         {FIVE_PRAYERS.map((k) => (

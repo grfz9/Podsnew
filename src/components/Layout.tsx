@@ -131,7 +131,9 @@ export function Layout() {
               <WifiOff size={16} /> Hors-ligne : les épisodes téléchargés restent disponibles dans la Bibliothèque.
             </div>
           )}
-          <Outlet />
+          <div className="route-view" key={location.pathname}>
+            <Outlet />
+          </div>
         </main>
 
         <PlayerBar onExpand={() => setExpanded(true)} />

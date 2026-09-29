@@ -59,3 +59,14 @@ export function greeting(date: Date = new Date()): string {
   if (h < 18) return 'Bonjour';
   return 'Bonsoir';
 }
+
+/** Date du calendrier hégirien (Umm al-Qura), ex. « 18 rabia ath-thani 1448 H ». */
+export function hijriDate(date: Date = new Date()): string {
+  try {
+    return new Intl.DateTimeFormat('fr-FR-u-ca-islamic-umalqura', { day: 'numeric', month: 'long', year: 'numeric' })
+      .format(date)
+      .replace(/\s*AH$/, ' H');
+  } catch {
+    return '';
+  }
+}

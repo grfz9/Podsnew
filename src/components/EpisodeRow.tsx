@@ -7,7 +7,7 @@ import { usePlayer } from '../store/player';
 import { useDownloads } from '../store/downloads';
 import { formatDuration, formatReleaseDate, stripHtml } from '../utils/format';
 import { progressRatio, remainingSeconds } from '../utils/progress';
-import { Artwork, Menu, shareLink, type MenuItem } from './common';
+import { Artwork, Menu, NowPlaying, shareLink, type MenuItem } from './common';
 import { usePlaylistDialog } from './Playlists';
 import { absoluteUrl, episodePath, podcastPath } from '../lib/paths';
 
@@ -118,6 +118,7 @@ export function EpisodeRow({ episode, showPodcast = false, excerpt, startAt }: P
           </Link>
         )}
         <h3 className="episode__title">
+          {isCurrent && <NowPlaying paused={!playingThis} />}
           <Link to={episodePath(episode)}>{episode.title}</Link>
         </h3>
         {excerpt ? (
