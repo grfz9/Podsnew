@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { BookOpen, ChartColumn, Clock, House, Library, ListMusic, Mic, Search, ShieldCheck, User, Users, WifiOff } from 'lucide-react';
 import { useModeration } from '../store/moderation';
 import { PlaylistDialogProvider } from './Playlists';
+import { Wordmark } from './Wordmark';
 import { useAuth } from '../store/auth';
 import { useLibrary } from '../store/library';
 import { SKIP_BACK, SKIP_FORWARD, usePlayer } from '../store/player';
@@ -91,11 +92,8 @@ export function Layout() {
       <div className={`app ${current ? 'app--with-player' : ''}`}>
         <BackgroundTasks />
         <aside className="sidebar">
-          <Link to="/" className="brand">
-            <span className="brand__logo">
-              <Mic size={18} />
-            </span>
-            Podsal
+          <Link to="/" className="brand" aria-label="Podsal, accueil">
+            <Wordmark className="brand__wordmark" />
           </Link>
           <nav className="sidebar__nav">
             {SIDEBAR_NAV.map(({ to, label, icon: Icon, end }) => (

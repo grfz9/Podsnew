@@ -430,7 +430,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       artist: current.podcastTitle,
       album: 'Podsal',
       // Pas de pochette : les images de podcasts ne sont pas affichées dans Podsal.
-      artwork: [{ src: new URL('favicon.svg', location.href).href, sizes: 'any', type: 'image/svg+xml' }],
+      artwork: [{ src: new URL('icons/icon-512.png', location.href).href, sizes: '512x512', type: 'image/png' }],
     });
     const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
       ['play', () => toggle()],

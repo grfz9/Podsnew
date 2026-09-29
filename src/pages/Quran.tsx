@@ -16,6 +16,7 @@ import {
   type TranslationId,
 } from '../api/quran';
 import { getSurah } from '../data/surahs';
+import { knownReciterRank, reciterMatches } from '../data/reciters';
 import { Artwork, EmptyState, ErrorState, Spinner, Tabs } from '../components/common';
 import { DownloadButton } from '../components/EpisodeRow';
 import { usePlaylistDialog } from '../components/Playlists';
@@ -79,10 +80,18 @@ export function QuranHome() {
     return [...count.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name);
   }, [data]);
 
-  const list = (data ?? []).filter(
-    (r) => (!q || r.name.toLowerCase().includes(q)) && (riwaya === 'all' || r.moshaf.some((m) => m.riwaya === riwaya)),
-  );
+  const list = (data ?? []).filter((r) => reciterMatches(r.name, q) && (riwaya === 'all' || r.moshaf.some((m) => m.riwaya === riwaya)));
   const favs = (data ?? []).filter((r) => favorites.includes(r.id));
+  // Récitateurs connus, dans l'ordre de la liste (src/data/reciters.ts).
+  const known = useMemo(
+    () =>
+      (data ?? [])
+        .map((r) => ({ r, rank: knownReciterRank(r.name) }))
+        .filter((x) => x.rank >= 0)
+        .sort((a, b) => a.rank - b.rank)
+        .map((x) => x.r),
+    [data],
+  );
   const recent = library.history.filter((e) => isQuranId(e.podcastId)).slice(0, 4);
 
   return (
@@ -114,6 +123,18 @@ export function QuranHome() {
         </section>
       )}
 
+      {known.length > 0 && !q && riwaya === 'all' && (
+        <section className="section">
+          <h2 className="section-title">Récitateurs connus</h2>
+          <div className="reciter-grid">
+            {known.map((r) => (
+              <ReciterRow key={r.id} reciter={r} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <h2 className="section-title">Tous les récitateurs{data ? ` (${data.length})` : ''}</h2>
       <div className="search-box">
         <Search size={20} />
         <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher un récitateur" aria-label="Rechercher un récitateur" />

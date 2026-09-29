@@ -109,7 +109,8 @@ async function checkNewEpisodes() {
   const seen = { ...(state.seen || {}) };
   const fresh = [];
   for (const podcast of state.subscriptions.slice(0, 50)) {
-    if (podcast.id.startsWith('c-')) continue;
+    // Seuls les podcasts du catalogue Apple sont vérifiés ici ; les autres le sont quand l'application est ouverte.
+    if (!/^\d+$/.test(podcast.id)) continue;
     try {
       const params = new URLSearchParams({ id: podcast.id, entity: 'podcastEpisode', limit: '1', country: state.country || 'fr' });
       const res = await fetch(`https://itunes.apple.com/lookup?${params}`);
@@ -126,7 +127,7 @@ async function checkNewEpisodes() {
   for (const { podcast, episode } of fresh.slice(0, 5)) {
     await self.registration.showNotification(podcast.title, {
       body: episode.trackName,
-      icon: new URL('favicon.svg', self.registration.scope).href,
+      icon: new URL('icons/icon-192.png', self.registration.scope).href,
       tag: `episode-${episode.trackId}`,
       data: { url: `${self.registration.scope}#/podcast/${podcast.id}` },
     });

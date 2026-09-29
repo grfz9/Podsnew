@@ -19,6 +19,7 @@ Ces règles s'appliquent partout : accueil, recherche, catégories, recommandati
 
 ### Coran
 - Récitateurs de [mp3quran.net](https://mp3quran.net), filtrables par **riwaya** (Hafs, Warsh, Qalun…), récitateurs favoris.
+- **Récitateurs connus** mis en avant, Muhammad al-Luhaidan en tête (liste dans `src/data/reciters.ts`) ; la recherche tolère les différentes transcriptions (« luhaidan », « lohaidan », « اللحيدان »).
 - Page de sourate : **texte arabe** (édition Uthmani), **traduction française du sens** au choix — Rachid Maach (revue par le Centre Rowwad at-Tarjama) ou Muhammad Hamidullah, publiées par [QuranEnc.com](https://quranenc.com) — ou sans traduction.
 - Le verset en cours est surligné et suivi pendant la récitation ; un clic sur un verset y fait sauter.
 - **Répétition pour mémoriser** : 1, 2, 3, 5, 10 fois ou en boucle, sur la sourate entière ou sur un passage (du verset… au verset…) quand le minutage des versets est disponible.
@@ -60,15 +61,31 @@ Le build est un site statique (routage par `#`) : il peut être hébergé tel qu
 
 ## Ajouter des podcasts islamiques
 
-Deux possibilités, cumulables :
+La liste de départ (`src/data/islamicSeed.ts`) contient :
 
-1. **Dans le code** — liste de départ dans `src/data/islamicSeed.ts`. Il faut l'identifiant Apple Podcasts du podcast : le nombre à la fin de son adresse (`https://podcasts.apple.com/fr/podcast/nom/id1234567890` → `'1234567890'`).
+| Podcast | Source |
+|---|---|
+| Le minhaj as-Salafiyah | Apple Podcasts (`id1802887942`) |
+| Khoutbas – Mihraby (imam Younes, Abu Zakariya) | flux RSS `https://feeds.buzzsprout.com/2392576.rss` |
+
+Pour en ajouter d'autres, deux possibilités cumulables :
+
+1. **Depuis l'application** (comptes activés, compte administrateur) — page « Modération » :
+   - **Propositions** : valider ou refuser les podcasts proposés par les utilisateurs ;
+   - **Ajouter → Par flux RSS** : coller l'adresse du flux d'un podcast absent d'Apple Podcasts (Spotify for Creators, Buzzsprout, Ausha, SoundCloud…), « Vérifier le flux », puis « Valider » ;
+   - **Ajouter → Dans le catalogue Apple Podcasts** : rechercher par nom, puis « Valider » ;
+   - **Validés** : retirer une validation (ou « Masquer » un podcast de la liste de départ) ;
+   - **Masqués** : rétablir un podcast.
+
+   Sur la page d'un podcast, l'administrateur dispose aussi des boutons « Valider » et « Masquer du catalogue ».
+2. **Dans le code** — ajouter une ligne à `src/data/islamicSeed.ts` :
    ```ts
-   export const ISLAMIC_SEED = [
-     { id: '1234567890', title: 'Nom du podcast', author: 'Nom du prédicateur' },
-   ];
+   { id: '1234567890', title: 'Nom du podcast', author: 'Nom du prédicateur' },          // Apple Podcasts : nombre à la fin de l'adresse
+   { id: 'rss-…', title: 'Nom', author: 'Auteur', feedUrl: 'https://…/feed.xml' },   // flux RSS
    ```
-2. **Depuis l'application** (comptes activés) — page « Modération » : valider les propositions des utilisateurs, ajouter un podcast par recherche, retirer une validation, rétablir un podcast masqué. Sur la page d'un podcast, l'administrateur dispose aussi des boutons « Valider » et « Masquer du catalogue ».
+   Pour un flux RSS, l'identifiant `rss-…` est calculé à partir de l'adresse (`rssPodcastId` dans `src/api/rss.ts`) ; un test vérifie qu'il correspond.
+
+Un site web sans flux podcast (pages de cours, chaîne YouTube, canal Telegram) ne peut pas être ajouté : il faut un flux RSS ou une fiche Apple Podcasts.
 
 ### Devenir administrateur
 
@@ -144,7 +161,7 @@ Pour la version mobile, définissez les variables Supabase **avant** le build, p
 ```
 src/
   api/          catalogue Apple, Coran (récitateurs, texte, traductions), modération, amis, studio
-  data/         sourates, liste de départ des podcasts islamiques
+  data/         sourates, récitateurs connus, liste de départ des podcasts islamiques
   store/        état global : bibliothèque, compte et synchronisation, modération, téléchargements, lecteur
   lib/          règles de contenu, horaires de prière, statistiques, synchronisation, recommandations, OPML
   components/   mise en page, lecteur, épisodes, playlists, couvertures, graphiques
@@ -153,4 +170,16 @@ src/
 public/sw.js    service worker (hors-ligne, téléchargements, notifications)
 supabase/       schéma SQL (migrations) et fonctions serveur
 android/, ios/  projets natifs Capacitor
+brand/          logo fourni (branding.pdf) et script qui en tire favicon, icônes et écrans de démarrage
+```
+
+## Identité visuelle
+
+Le logo (`brand/branding.pdf`) est un mot-symbole « Podsal » blanc cassé (`#f5f1ec`) sur vert-bleu (`#2f4f4f`). Il est repris dans la barre latérale, sur l'accueil mobile, dans le favicon (initiale « P »), les icônes de l'application web et des applications Android / iOS, et les écrans de démarrage. Les éléments interactifs utilisent une teinte claire du même vert-bleu (`#6cc4b4`).
+
+Pour régénérer les éléments après une modification du logo :
+
+```bash
+pip install pymupdf
+python3 brand/generate.py
 ```

@@ -4,9 +4,10 @@ import { ISLAMIC_SEED } from '../data/islamicSeed';
 import { checkIsAdmin, getBlocked, getValidated, rowToPodcast, type BlockedRow } from '../api/moderation';
 import { allowsEpisode, allowsPodcast, isReligiousContent, type PolicyState } from '../lib/policy';
 import { useAuth } from './auth';
+import { registerFeed } from '../api/rss';
 
 interface ModerationValue {
-  /** Podcasts islamiques validés (liste de départ + validations de la modération). */
+  /** Podcasts islamiques validés (liste de départ + validations de la modération), hors podcasts masqués. */
   validated: Podcast[];
   blocked: BlockedRow[];
   isAdmin: boolean;
@@ -25,6 +26,9 @@ const ModerationContext = createContext<ModerationValue | null>(null);
 
 const SEED: Podcast[] = ISLAMIC_SEED.map((p) => ({ ...p, artwork: '', genre: 'Islam' }));
 
+/** Podcast de la liste de départ (fichier src/data/islamicSeed.ts) : il se retire en le masquant. */
+export const isSeedPodcast = (id: string) => SEED.some((p) => p.id === id);
+
 export function ModerationProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const [validated, setValidated] = useState<Podcast[]>(SEED);
@@ -41,6 +45,7 @@ export function ModerationProvider({ children }: { children: ReactNode }) {
       .then(([rows, blockedRows]) => {
         if (cancelled) return;
         const fromDb = rows.map(rowToPodcast);
+        for (const p of fromDb) registerFeed(p.id, p.feedUrl);
         const known = new Set(fromDb.map((p) => p.id));
         setValidated([...fromDb, ...SEED.filter((p) => !known.has(p.id))].sort((a, b) => a.title.localeCompare(b.title, 'fr')));
         setBlocked(blockedRows);
@@ -75,12 +80,14 @@ export function ModerationProvider({ children }: { children: ReactNode }) {
   }, [auth.enabled, reload]);
 
   const value = useMemo<ModerationValue>(() => {
+    const blockedIds = new Set(blocked.map((b) => b.podcast_id));
+    const visible = validated.filter((p) => !blockedIds.has(p.id));
     const state: PolicyState = {
-      validated: new Set(validated.map((p) => p.id)),
-      blocked: new Set(blocked.map((b) => b.podcast_id)),
+      validated: new Set(visible.map((p) => p.id)),
+      blocked: blockedIds,
     };
     return {
-      validated,
+      validated: visible,
       blocked,
       isAdmin,
       loading,

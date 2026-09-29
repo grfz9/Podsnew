@@ -1,15 +1,18 @@
 import type { Episode, Podcast } from '../types';
 import { getPodcast as getApplePodcast, searchPodcasts as searchApple } from './itunes';
 import { getNativePodcast, isNativeId, searchNativePodcasts } from './native';
+import { getRssPodcast, isRssId } from './rss';
 
-/** Un podcast du catalogue Apple ou d'un créateur Podsal. */
+/** Un podcast du catalogue Apple, d'un créateur Podsal ou ajouté par son flux RSS. */
 export function getAnyPodcast(
   id: string,
   country: string,
   limit = 100,
   signal?: AbortSignal,
 ): Promise<{ podcast: Podcast; episodes: Episode[] }> {
-  return isNativeId(id) ? getNativePodcast(id) : getApplePodcast(id, country, limit, signal);
+  if (isNativeId(id)) return getNativePodcast(id);
+  if (isRssId(id)) return getRssPodcast(id, limit);
+  return getApplePodcast(id, country, limit, signal);
 }
 
 /** Recherche combinée : créateurs Podsal d'abord, puis catalogue Apple. */

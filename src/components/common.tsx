@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { LoaderCircle, Star } from 'lucide-react';
 
 /** Couleurs des couvertures (tons sobres, sans violet). */
-const COVER_COLORS = ['#1f5f46', '#0f5f73', '#1e3a8a', '#6b4f2a', '#4d6b1f', '#334155', '#7a2e2e', '#8a6d1f', '#23523a', '#3f4f5f'];
+const COVER_COLORS = ['#2f4f4f', '#0f5f73', '#1e3a8a', '#6b4f2a', '#4d6b1f', '#334155', '#7a2e2e', '#8a6d1f', '#23523a', '#3f4f5f'];
 
 function hash(text: string): number {
   let h = 0;
@@ -38,7 +38,7 @@ export function Artwork({
   className?: string;
   kind?: 'podcast' | 'quran';
 }) {
-  const color = kind === 'quran' ? '#1f5f46' : COVER_COLORS[hash(alt) % COVER_COLORS.length];
+  const color = kind === 'quran' ? '#2f4f4f' : COVER_COLORS[hash(alt) % COVER_COLORS.length];
   const style = { background: color, ...(size ? { width: size, height: size } : {}) };
   const fontSize = size ? Math.max(14, size * 0.42) : undefined;
   return (
