@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { HttpError } from './http.ts';
 import { fetchText } from './fetch.ts';
-import { findItem, parseFeed, parseTranscript, pickTranscript, transcriptToText, type ParsedSegment } from './podcast.ts';
+import { findItem, parseFeed, parseTranscript, pickTranscript, rssEpisodeId, transcriptToText, type ParsedSegment } from './podcast.ts';
 
 /** Épisode tel que stocké côté client (voir src/types.ts). */
 export interface EpisodeData {
@@ -25,7 +25,7 @@ export interface PodcastData {
 
 const MUSIC_GENRES = new Set(['1310', '1523', '1524', '1525']);
 
-/** Retrouve un épisode et son podcast (catalogue Apple ou créateur Podsal) à partir des identifiants. */
+/** Retrouve un épisode et son podcast (catalogue Apple, créateur Podsal ou flux RSS validé) à partir des identifiants. */
 export async function loadEpisode(
   admin: SupabaseClient,
   podcastId: string,
@@ -58,6 +58,32 @@ export async function loadEpisode(
         releaseDate: row.published_at,
         artwork: p.cover_url ?? '',
         guid: row.id,
+      },
+    };
+  }
+
+  if (podcastId.startsWith('rss-')) {
+    // Seuls les flux validés par la modération sont connus du serveur.
+    const { data: row } = await admin.from('islamic_podcasts').select('title, feed_url').eq('podcast_id', podcastId).maybeSingle();
+    if (!row?.feed_url) throw new HttpError(404, 'Podcast introuvable.');
+    const feed = parseFeed((await fetchText(row.feed_url, 15_000_000)).body);
+    const item = feed.items.find((i) => i.enclosureUrl && rssEpisodeId(i) === episodeId);
+    if (!item) throw new HttpError(404, 'Épisode introuvable.');
+    const title = feed.title || row.title;
+    const date = item.pubDate ? new Date(item.pubDate) : null;
+    return {
+      podcast: { id: podcastId, title, feedUrl: row.feed_url },
+      episode: {
+        id: episodeId,
+        podcastId,
+        podcastTitle: title,
+        title: item.title,
+        description: item.description ?? '',
+        audioUrl: item.enclosureUrl!,
+        duration: item.duration ?? 0,
+        releaseDate: date && !Number.isNaN(date.getTime()) ? date.toISOString() : '',
+        artwork: '',
+        guid: item.guid,
       },
     };
   }

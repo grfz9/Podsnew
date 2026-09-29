@@ -17,6 +17,9 @@ export interface FeedItem {
   enclosureUrl?: string;
   pubDate?: string;
   description?: string;
+  /** Durée annoncée par le flux (itunes:duration), en secondes. */
+  duration?: number;
+  explicit?: boolean;
   transcripts: TranscriptRef[];
   chaptersUrl?: string;
   /** Chapitres intégrés au flux (format Podlove Simple Chapters). */
@@ -26,6 +29,10 @@ export interface FeedItem {
 export interface ParsedFeed {
   title: string;
   description: string;
+  /** Auteur (itunes:author), catégories iTunes et marquage explicite du podcast. */
+  author?: string;
+  categories?: string[];
+  explicit?: boolean;
   items: FeedItem[];
 }
 
@@ -54,6 +61,17 @@ function text(value: unknown): string {
   return '';
 }
 
+function isExplicit(value: unknown): boolean {
+  return /^(yes|true|explicit)$/i.test(text(value));
+}
+
+function categories(value: unknown): string[] {
+  return asArray(value as Node | Node[] | undefined).flatMap((c) => {
+    const name = typeof c === 'object' && c ? String((c as Node)['@_text'] ?? '') : '';
+    return [name, ...categories(typeof c === 'object' && c ? (c as Node)['itunes:category'] : undefined)].filter(Boolean);
+  });
+}
+
 function asArray<T>(value: T | T[] | undefined): T[] {
   if (value === undefined || value === null) return [];
   return Array.isArray(value) ? value : [value];
@@ -73,7 +91,7 @@ export function parseFeed(xml: string): ParsedFeed {
     ignoreAttributes: false,
     attributeNamePrefix: '@_',
     parseTagValue: false, // garde les guid tels quels (ex. « 00123 »)
-    isArray: (name) => ['item', 'podcast:transcript', 'psc:chapter'].includes(name),
+    isArray: (name) => ['item', 'podcast:transcript', 'psc:chapter', 'itunes:category'].includes(name),
   });
   const doc = parser.parse(xml) as Node;
   const channel = ((doc.rss as Node | undefined)?.channel ?? {}) as Node;
@@ -86,7 +104,9 @@ export function parseFeed(xml: string): ParsedFeed {
       title: text(item.title),
       enclosureUrl: (enclosure?.['@_url'] as string | undefined) ?? undefined,
       pubDate: text(item.pubDate) || undefined,
-      description: text(item.description) || undefined,
+      description: text(item.description) || text(item['content:encoded']) || text(item['itunes:summary']) || undefined,
+      duration: item['itunes:duration'] !== undefined ? parseTimestamp(text(item['itunes:duration'])) || undefined : undefined,
+      explicit: isExplicit(item['itunes:explicit']) || undefined,
       transcripts: asArray(item['podcast:transcript'] as Node[] | undefined)
         .filter((t) => typeof t['@_url'] === 'string')
         .map((t) => ({ url: t['@_url'] as string, type: String(t['@_type'] ?? ''), language: t['@_language'] as string | undefined })),
@@ -101,7 +121,14 @@ export function parseFeed(xml: string): ParsedFeed {
         : undefined,
     };
   });
-  return { title: text(channel.title), description: text(channel.description), items };
+  return {
+    title: text(channel.title),
+    description: text(channel.description) || text(channel['itunes:summary']),
+    author: text(channel['itunes:author']) || undefined,
+    categories: categories(channel['itunes:category']),
+    explicit: isExplicit(channel['itunes:explicit']),
+    items,
+  };
 }
 
 /** Normalise une URL audio pour comparer flux RSS et catalogue (sans paramètres ni préfixes de mesure d'audience). */
@@ -247,4 +274,22 @@ export function parseTranscript(body: string, type: string): ParsedSegment[] {
 
 export function transcriptToText(segments: ParsedSegment[]): string {
   return segments.map((s) => (s.speaker ? `${s.speaker} : ${s.text}` : s.text)).join('\n');
+}
+
+/** Empreinte courte et stable d'un texte (deux FNV-1a 32 bits) : identifiants des podcasts et épisodes RSS. */
+export function stableHash(text: string): string {
+  const fnv = (seed: number) => {
+    let h = seed >>> 0;
+    for (let i = 0; i < text.length; i++) {
+      h ^= text.charCodeAt(i);
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h.toString(16).padStart(8, '0');
+  };
+  return fnv(0x811c9dc5) + fnv(0x9747b28c);
+}
+
+/** Identifiant d'un épisode de podcast ajouté par son flux RSS. */
+export function rssEpisodeId(item: Pick<FeedItem, 'guid' | 'enclosureUrl'>): string {
+  return `r${stableHash(item.guid || item.enclosureUrl || '')}`;
 }

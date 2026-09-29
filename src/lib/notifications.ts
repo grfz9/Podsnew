@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import type { Podcast } from '../types';
 import { getPodcast } from '../api/itunes';
+import { getRssPodcast, isRssId } from '../api/rss';
 import { idbPut } from './idb';
 
 /**
@@ -33,7 +34,9 @@ export function permissionGranted(): boolean {
 
 let nativeId = 1;
 
-export async function notify(title: string, body: string, path: string, icon?: string): Promise<void> {
+const APP_ICON = 'icons/icon-192.png';
+
+export async function notify(title: string, body: string, path: string, icon: string = new URL(APP_ICON, location.href).href): Promise<void> {
   if (isNative()) {
     const { LocalNotifications } = await import('@capacitor/local-notifications');
     await LocalNotifications.schedule({ notifications: [{ id: nativeId++, title, body, extra: { path } }] });
@@ -111,7 +114,7 @@ export async function findNewEpisodes(
   const nextSeen: Record<string, string> = {};
   const fresh: FreshEpisode[] = [];
   const results = await Promise.allSettled(
-    subscriptions.filter((p) => !p.native).slice(0, 50).map((p) => getPodcast(p.id, country, 3)),
+    subscriptions.filter((p) => !p.native).slice(0, 50).map((p) => (isRssId(p.id) ? getRssPodcast(p.id, 3, p.feedUrl) : getPodcast(p.id, country, 3))),
   );
   results.forEach((r, i) => {
     if (r.status !== 'fulfilled' || r.value.episodes.length === 0) return;

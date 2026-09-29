@@ -7,6 +7,7 @@ import { latestNativePodcasts } from '../api/native';
 import { EpisodeList } from '../components/EpisodeRow';
 import { PodcastRow } from '../components/PodcastCard';
 import { ErrorState, Section, Spinner } from '../components/common';
+import { Wordmark } from '../components/Wordmark';
 import { buildDailyMix, excludeKnown, recommendationSeeds, type Seed } from '../lib/recommend';
 import { useAuth } from '../store/auth';
 import { useModeration } from '../store/moderation';
@@ -161,6 +162,9 @@ export function Home() {
 
   return (
     <div className="page">
+      <div className="mobile-brand">
+        <Wordmark className="mobile-brand__wordmark" />
+      </div>
       <h1 className="page__title">Accueil</h1>
 
       <PrayerCard />

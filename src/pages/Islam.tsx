@@ -2,13 +2,14 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { BookOpen, Check, Search, ShieldCheck, X } from 'lucide-react';
 import { searchPodcasts, getPodcast, lookupPodcasts } from '../api/itunes';
-import { mySuggestions, pendingSuggestions, setSuggestionStatus, suggestPodcast, unblockPodcast, unvalidatePodcast, validatePodcast, type SuggestionRow } from '../api/moderation';
+import { blockPodcast, mySuggestions, pendingSuggestions, setSuggestionStatus, suggestPodcast, unblockPodcast, unvalidatePodcast, validatePodcast, type SuggestionRow } from '../api/moderation';
 import { PodcastGrid } from '../components/PodcastCard';
 import { Artwork, EmptyState, ErrorState, Spinner, Tabs } from '../components/common';
 import { isMusicPodcast } from '../api/genres';
 import { useAuth } from '../store/auth';
 import { useLibrary } from '../store/library';
-import { useModeration } from '../store/moderation';
+import { isSeedPodcast, useModeration } from '../store/moderation';
+import { previewFeed } from '../api/rss';
 import type { Podcast } from '../types';
 import { formatReleaseDate } from '../utils/format';
 import { useAsync, useDebounced } from '../utils/hooks';
@@ -304,9 +305,19 @@ export function ModerationPage() {
                 </Link>
                 <span className="small muted">{p.author}</span>
               </div>
-              <button className="btn btn--outline btn--small" onClick={() => confirm(`Retirer « ${p.title} » ?`) && run(() => unvalidatePodcast(p.id))}>
-                Retirer
-              </button>
+              {isSeedPodcast(p.id) ? (
+                <button
+                  className="btn btn--outline btn--small"
+                  title="Ce podcast fait partie de la liste de départ : on le retire en le masquant."
+                  onClick={() => confirm(`Masquer « ${p.title} » pour tous les utilisateurs ?`) && run(() => blockPodcast(p))}
+                >
+                  Masquer
+                </button>
+              ) : (
+                <button className="btn btn--outline btn--small" onClick={() => confirm(`Retirer « ${p.title} » ?`) && run(() => unvalidatePodcast(p.id))}>
+                  Retirer
+                </button>
+              )}
             </li>
           ))}
           {!moderation.validated.length && <p className="muted">Aucun podcast validé.</p>}
@@ -315,6 +326,8 @@ export function ModerationPage() {
 
       {tab === 'add' && (
         <>
+          <FeedForm onValidated={() => run(async () => undefined)} />
+          <h2 className="settings__subtitle">Dans le catalogue Apple Podcasts</h2>
           <div className="search-box">
             <Search size={20} />
             <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Nom du podcast ou du prédicateur" aria-label="Rechercher un podcast" />
@@ -364,5 +377,92 @@ export function ModerationPage() {
         </ul>
       )}
     </div>
+  );
+}
+
+/** Ajout d'un podcast absent d'Apple Podcasts, par l'adresse de son flux RSS. */
+function FeedForm({ onValidated }: { onValidated: () => void }) {
+  const moderation = useModeration();
+  const [url, setUrl] = useState('');
+  const [preview, setPreview] = useState<{ podcast: Podcast; count: number; latest?: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const check = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setPreview(null);
+    setBusy(true);
+    try {
+      const { podcast, episodes } = await previewFeed(url);
+      setPreview({ podcast, count: episodes.length, latest: episodes[0]?.releaseDate });
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const validate = async () => {
+    if (!preview) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await validatePodcast(preview.podcast);
+      setPreview(null);
+      setUrl('');
+      onValidated();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="feed-form">
+      <h2 className="settings__subtitle">Par flux RSS</h2>
+      <p className="small muted">
+        Pour un podcast absent d'Apple Podcasts (Spotify for Creators, Buzzsprout, Ausha, SoundCloud, site personnel…) : collez l'adresse de son flux RSS, souvent
+        indiquée sous « RSS » ou « S'abonner » sur la page du podcast.
+      </p>
+      <form className="row-actions" onSubmit={check}>
+        <input
+          type="url"
+          className="input feed-form__input"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://exemple.fr/podcast/feed.xml"
+          aria-label="Adresse du flux RSS"
+          required
+        />
+        <button className="btn btn--outline" disabled={busy || !url.trim()}>
+          Vérifier le flux
+        </button>
+      </form>
+      {error && <p className="small error-text">{error}</p>}
+      {preview && (
+        <div className="propose__selected">
+          <Artwork alt={preview.podcast.title} size={56} />
+          <div>
+            <Link to={`/podcast/${preview.podcast.id}`} className="link">
+              <strong>{preview.podcast.title}</strong>
+            </Link>
+            <div className="small muted">
+              {[preview.podcast.author, `${preview.count} épisode${preview.count > 1 ? 's' : ''}`, preview.latest && `dernier ${formatReleaseDate(preview.latest).toLowerCase()}`]
+                .filter(Boolean)
+                .join(' · ')}
+            </div>
+          </div>
+          {moderation.isValidated(preview.podcast.id) ? (
+            <span className="small ok-text">Déjà validé</span>
+          ) : (
+            <button className="btn btn--primary btn--small" disabled={busy} onClick={validate}>
+              <ShieldCheck size={14} /> Valider
+            </button>
+          )}
+        </div>
+      )}
+    </section>
   );
 }

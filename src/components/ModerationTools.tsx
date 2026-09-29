@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { EyeOff, ShieldCheck, ShieldOff } from 'lucide-react';
 import type { Podcast } from '../types';
 import { blockPodcast, unblockPodcast, unvalidatePodcast, validatePodcast } from '../api/moderation';
-import { useModeration } from '../store/moderation';
+import { isSeedPodcast, useModeration } from '../store/moderation';
 
 /** Actions de l'administrateur sur un podcast (visible uniquement par lui). */
 export function ModerationTools({ podcast, onChange }: { podcast: Podcast; onChange?: () => void }) {
@@ -32,7 +32,9 @@ export function ModerationTools({ podcast, onChange }: { podcast: Podcast; onCha
     <section className="moderation-tools">
       <h2 className="panel__title">Modération</h2>
       <div className="row-actions">
-        {validated ? (
+        {validated && isSeedPodcast(podcast.id) ? (
+          <span className="small muted">Dans la liste de départ : pour le retirer, masquez-le.</span>
+        ) : validated ? (
           <button className="btn btn--outline btn--small" disabled={busy} onClick={() => run(() => unvalidatePodcast(podcast.id))}>
             <ShieldOff size={14} /> Retirer des podcasts islamiques
           </button>
