@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { episodeRef, postActivity } from '../api/social';
 import { idbGet } from '../lib/idb';
 import { findNewEpisodes, notify, onNativeNotificationOpen, permissionGranted, shareStateWithServiceWorker } from '../lib/notifications';
-import { useAuth } from '../store/auth';
+import { formatClock, nextPrayer, PRAYER_NAMES } from '../lib/prayer';
 import { useLibrary } from '../store/library';
 import { usePlayer } from '../store/player';
 
@@ -41,7 +40,7 @@ function NewEpisodeNotifier() {
       const { fresh, seen: nextSeen } = await findNewEpisodes(lib.subscriptions, seen, lib.country);
       if (cancelled) return;
       for (const item of fresh.slice(0, 5)) {
-        await notify(item.podcast.title, item.title, `/podcast/${item.podcast.id}`, item.podcast.artwork).catch(() => undefined);
+        await notify(item.podcast.title, item.title, `/podcast/${item.podcast.id}`).catch(() => undefined);
       }
       if (Object.keys(nextSeen).length || Object.keys(fromWorker?.seen ?? {}).length) lib.markSeen({ ...seen, ...nextSeen });
     };
@@ -56,29 +55,52 @@ function NewEpisodeNotifier() {
   return null;
 }
 
-/** Publie « a écouté… » pour les personnes qui ont choisi de partager leur activité (une fois par épisode et par jour). */
-function ActivityReporter() {
-  const auth = useAuth();
-  const { current, isPlaying } = usePlayer();
+/** Heure de la prière : met la lecture en pause et affiche un rappel (selon les réglages). */
+function PrayerWatcher() {
+  const library = useLibrary();
+  const player = usePlayer();
+  const playerRef = useRef(player);
+  playerRef.current = player;
+  const [banner, setBanner] = useState<string | null>(null);
+  const fired = useRef<string | null>(null);
+  const p = library.settings.prayer;
+
   useEffect(() => {
-    if (!auth.userId || !auth.profile?.share_activity || !isPlaying || !current) return;
-    const key = `podsnew:shared:${new Date().toDateString()}`;
-    let shared: string[] = [];
-    try {
-      shared = JSON.parse(localStorage.getItem(key) ?? '[]');
-    } catch {
-      shared = [];
-    }
-    if (shared.includes(current.id)) return;
-    // On attend une minute d'écoute avant de partager.
-    const t = setTimeout(() => {
-      postActivity(auth.userId!, 'listen', { episode: episodeRef(current) })
-        .then(() => localStorage.setItem(key, JSON.stringify([...shared, current.id])))
-        .catch(() => undefined);
-    }, 60_000);
-    return () => clearTimeout(t);
-  }, [auth.userId, auth.profile?.share_activity, isPlaying, current]);
-  return null;
+    if (!p.enabled || p.latitude === null || (!p.pauseAtAdhan && !p.notify)) return;
+    // La prochaine prière est calculée à l'avance ; on vérifie toutes les 15 s si son heure est passée.
+    let target = nextPrayer(p);
+    const check = () => {
+      if (!target) return;
+      const now = new Date();
+      if (now < target.time) return;
+      const key = `${target.key}-${target.time.toISOString()}`;
+      // Heure dépassée de plus de 10 min (appareil en veille) : pas de rappel tardif.
+      if (fired.current !== key && now.getTime() - target.time.getTime() < 10 * 60 * 1000) {
+        fired.current = key;
+        const message = `C'est l'heure de la prière : ${PRAYER_NAMES[target.key]} (${formatClock(target.time)}).`;
+        if (p.pauseAtAdhan && playerRef.current.isPlaying) {
+          playerRef.current.pause();
+          setBanner(`${message} La lecture a été mise en pause.`);
+        } else {
+          setBanner(message);
+        }
+        if (p.notify) void notify(PRAYER_NAMES[target.key], message, '/priere').catch(() => undefined);
+      }
+      target = nextPrayer(p, new Date(now.getTime() + 1000));
+    };
+    const timer = setInterval(check, 15_000);
+    return () => clearInterval(timer);
+  }, [p]);
+
+  if (!banner) return null;
+  return (
+    <div className="prayer-banner" role="alert">
+      <span>{banner}</span>
+      <button className="btn btn--outline btn--small" onClick={() => setBanner(null)}>
+        Fermer
+      </button>
+    </div>
+  );
 }
 
 export function useOnline(): boolean {
@@ -100,7 +122,7 @@ export function BackgroundTasks() {
   return (
     <>
       <NewEpisodeNotifier />
-      <ActivityReporter />
+      <PrayerWatcher />
     </>
   );
 }

@@ -5,6 +5,7 @@ import { BarChart, RankedBars } from '../components/BarChart';
 import { Artwork, EmptyState, Tabs, shareText } from '../components/common';
 import { dayKey, summarize, type StatsSummary } from '../lib/stats';
 import { useLibrary } from '../store/library';
+import { podcastPath } from '../lib/paths';
 
 type PeriodId = 'year' | 'month' | 'all';
 
@@ -150,7 +151,7 @@ export function StatsPage() {
               key: p.item.id,
               value: p.seconds,
               label: (
-                <Link to={`/podcast/${p.item.id}`} className="ranked__link">
+                <Link to={podcastPath(p.item.id)} className="ranked__link">
                   <Artwork src={p.item.artwork} alt={p.item.title} size={32} />
                   {p.item.title}
                 </Link>

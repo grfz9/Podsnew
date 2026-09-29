@@ -10,6 +10,7 @@ import { EpisodeList, EpisodeRow, episodePath } from '../components/EpisodeRow';
 import { PodcastGrid } from '../components/PodcastCard';
 import { EmptyState, ErrorState, Spinner, Tabs } from '../components/common';
 import { useAuth } from '../store/auth';
+import { useModeration } from '../store/moderation';
 import { useLibrary } from '../store/library';
 import { formatTime } from '../utils/format';
 import { useAsync, useDebounced } from '../utils/hooks';
@@ -36,6 +37,7 @@ function Snippet({ text }: { text: string }) {
 
 function TranscriptResults({ term }: { term: string }) {
   const auth = useAuth();
+  const moderation = useModeration();
   const { data, error, loading, reload } = useAsync(async () => {
     const [server, local] = await Promise.all([
       auth.enabled ? searchTranscripts(term) : Promise.resolve([]),
@@ -45,7 +47,7 @@ function TranscriptResults({ term }: { term: string }) {
     return [
       ...server,
       ...local.filter((l) => !seen.has(l.episode.id)).map((l) => ({ episode: l.episode, snippet: l.text, startAt: l.start })),
-    ];
+    ].filter((h) => moderation.allowsEpisode(h.episode));
   }, [term, auth.enabled]);
 
   if (loading) return <Spinner label="Recherche dans les transcriptions…" />;
@@ -53,7 +55,7 @@ function TranscriptResults({ term }: { term: string }) {
   if (!data?.length) {
     return (
       <EmptyState icon={<FileText size={32} />} title={`« ${term} » n'apparaît dans aucune transcription indexée`}>
-        La recherche porte sur les épisodes dont l'éditeur publie une transcription et qui ont déjà été consultés sur Podsnew.
+        La recherche porte sur les épisodes dont l'éditeur publie une transcription et qui ont déjà été consultés sur Podsal.
       </EmptyState>
     );
   }
@@ -83,15 +85,18 @@ function TranscriptResults({ term }: { term: string }) {
 
 function Results({ term, tab }: { term: string; tab: Tab }) {
   const { country } = useLibrary();
+  const moderation = useModeration();
   const podcasts = useAsync((signal) => (tab === 'podcasts' ? searchAllPodcasts(term, country, signal) : Promise.resolve([])), [term, country, tab]);
   const episodes = useAsync((signal) => (tab === 'episodes' ? searchEpisodes(term, country, signal) : Promise.resolve([])), [term, country, tab]);
 
   if (tab === 'transcripts') return <TranscriptResults term={term} />;
   const state = tab === 'podcasts' ? podcasts : episodes;
+  const podcastList = moderation.filterPodcasts(podcasts.data ?? []);
+  const episodeList = moderation.filterEpisodes(episodes.data ?? []);
   if (state.loading) return <Spinner label="Recherche…" />;
   if (state.error) return <ErrorState error={state.error} onRetry={state.reload} />;
-  if (!state.data?.length) return <NoResults term={term} />;
-  return tab === 'podcasts' ? <PodcastGrid podcasts={podcasts.data ?? []} /> : <EpisodeList episodes={episodes.data ?? []} showPodcast />;
+  if (!(tab === 'podcasts' ? podcastList : episodeList).length) return <NoResults term={term} />;
+  return tab === 'podcasts' ? <PodcastGrid podcasts={podcastList} /> : <EpisodeList episodes={episodeList} showPodcast />;
 }
 
 export function SearchPage() {

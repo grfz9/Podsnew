@@ -51,7 +51,7 @@ export function buildOpml(podcasts: Podcast[], date: Date = new Date()): string 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">
   <head>
-    <title>Abonnements Podsnew</title>
+    <title>Abonnements Podsal</title>
     <dateCreated>${date.toUTCString()}</dateCreated>
   </head>
   <body>

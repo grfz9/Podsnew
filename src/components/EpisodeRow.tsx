@@ -1,6 +1,6 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { Check, CircleCheck, Download, Heart, ListEnd, ListPlus, LoaderCircle, Ellipsis, Pause, Play, Scissors, Share2, Trash, X } from 'lucide-react';
+import { Check, CircleCheck, Download, Heart, ListEnd, ListMusic, ListPlus, LoaderCircle, Ellipsis, Pause, Play, Scissors, Share2, Trash, X } from 'lucide-react';
 import type { Episode } from '../types';
 import { useLibrary } from '../store/library';
 import { usePlayer } from '../store/player';
@@ -8,13 +8,13 @@ import { useDownloads } from '../store/downloads';
 import { formatDuration, formatReleaseDate, stripHtml } from '../utils/format';
 import { progressRatio, remainingSeconds } from '../utils/progress';
 import { Artwork, Menu, shareLink, type MenuItem } from './common';
+import { usePlaylistDialog } from './Playlists';
+import { absoluteUrl, episodePath, podcastPath } from '../lib/paths';
 
-export function episodePath(e: Pick<Episode, 'podcastId' | 'id'>): string {
-  return `/podcast/${e.podcastId}/episode/${e.id}`;
-}
+export { episodePath };
 
 export function episodeUrl(e: Pick<Episode, 'podcastId' | 'id'>): string {
-  return `${location.origin}${location.pathname}#${episodePath(e)}`;
+  return absoluteUrl(episodePath(e));
 }
 
 /** Bouton de téléchargement pour l'écoute hors-ligne (avec progression). */
@@ -70,6 +70,7 @@ export function EpisodeRow({ episode, showPodcast = false, excerpt, startAt }: P
   const [expanded, setExpanded] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const navigate = useNavigate();
+  const openPlaylist = usePlaylistDialog();
 
   const progress = library.progress[episode.id];
   const ratio = progressRatio(progress, episode.duration);
@@ -94,6 +95,7 @@ export function EpisodeRow({ episode, showPodcast = false, excerpt, startAt }: P
       icon: <Check size={16} />,
       onSelect: () => library.setCompleted(episode, !progress?.completed),
     },
+    { label: 'Ajouter à une playlist', icon: <ListMusic size={16} />, onSelect: () => openPlaylist(episode) },
     { label: 'Créer un extrait', icon: <Scissors size={16} />, onSelect: () => navigate(`${episodePath(episode)}?clip=1`) },
     {
       label: 'Partager',
@@ -105,13 +107,13 @@ export function EpisodeRow({ episode, showPodcast = false, excerpt, startAt }: P
   return (
     <article className={`episode ${isCurrent ? 'episode--current' : ''} ${progress?.completed ? 'episode--done' : ''}`}>
       {showPodcast && (
-        <Link to={`/podcast/${episode.podcastId}`} className="episode__art" tabIndex={-1}>
-          <Artwork src={episode.artwork} alt={episode.podcastTitle} size={72} />
+        <Link to={podcastPath(episode.podcastId)} className="episode__art" tabIndex={-1}>
+          <Artwork alt={episode.podcastTitle} size={72} kind={episode.podcastId.startsWith('quran-') ? 'quran' : 'podcast'} />
         </Link>
       )}
       <div className="episode__body">
         {showPodcast && (
-          <Link to={`/podcast/${episode.podcastId}`} className="episode__podcast">
+          <Link to={podcastPath(episode.podcastId)} className="episode__podcast">
             {episode.podcastTitle}
           </Link>
         )}

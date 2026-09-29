@@ -5,6 +5,7 @@ import { searchPodcasts } from '../api/itunes';
 import { Artwork } from '../components/common';
 import { matchFeed, parseOpml, type OpmlFeed } from '../lib/opml';
 import { useLibrary } from '../store/library';
+import { useModeration } from '../store/moderation';
 import type { Podcast } from '../types';
 
 interface Row {
@@ -17,6 +18,7 @@ interface Row {
 /** Import des abonnements depuis une autre application (fichier OPML). */
 export function ImportPage() {
   const library = useLibrary();
+  const moderation = useModeration();
   const [rows, setRows] = useState<Row[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<number | null>(null);
@@ -52,6 +54,7 @@ export function ImportPage() {
         } catch {
           match = undefined;
         }
+        if (match && !moderation.allowsPodcast(match)) match = undefined;
         const already = match ? library.isSubscribed(match.id) : false;
         setRows((prev) =>
           prev.map((r, j) => (j === i ? { ...r, match, status: match ? 'found' : 'missing', selected: !!match && !already } : r)),
@@ -109,7 +112,7 @@ export function ImportPage() {
                   <span className="small muted">
                     {r.status === 'pending' && 'Recherche…'}
                     {r.status === 'found' && (library.isSubscribed(r.match!.id) ? 'Déjà dans vos abonnements' : r.match!.author)}
-                    {r.status === 'missing' && 'Introuvable dans le catalogue'}
+                    {r.status === 'missing' && 'Introuvable ou non disponible sur Podsal'}
                   </span>
                 </div>
                 {r.status === 'found' ? <Check size={18} className="ok-text" /> : r.status === 'missing' ? <X size={18} className="muted" /> : null}

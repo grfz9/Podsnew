@@ -6,10 +6,10 @@ import type { TranscriptRef } from '../../supabase/functions/_shared/podcast';
 import { usePlayer, usePlayerTime } from '../store/player';
 import { useLibrary } from '../store/library';
 import { useAuth } from '../store/auth';
+import { useModeration } from '../store/moderation';
 import { getTranscript } from '../lib/feed';
 import { currentChapterIndex } from '../lib/useEpisode';
 import { getCachedSummary, getServerTranscript, requestSummary, type SummaryResult } from '../api/ai';
-import { postActivity, episodeRef } from '../api/social';
 import { formatTime } from '../utils/format';
 import { shareLink } from './common';
 
@@ -180,6 +180,13 @@ export function TranscriptPanel({
 /* ---------- Résumé automatique ---------- */
 
 export function SummaryPanel({ podcastId, episode }: { podcastId: string; episode: Episode }) {
+  const moderation = useModeration();
+  if (moderation.isReligious(podcastId)) return null;
+  return <SummaryPanelInner podcastId={podcastId} episode={episode} />;
+}
+
+/** Pas de résumé automatique pour le Coran et les podcasts islamiques (voir SummaryPanel). */
+function SummaryPanelInner({ podcastId, episode }: { podcastId: string; episode: Episode }) {
   const auth = useAuth();
   const library = useLibrary();
   const player = usePlayer();
@@ -300,7 +307,6 @@ function parseTime(value: string): number | null {
 export function ClipEditor({ episode, autoOpen = false }: { episode: Episode; autoOpen?: boolean }) {
   const player = usePlayer();
   const library = useLibrary();
-  const auth = useAuth();
   const time = useEpisodeTime(episode);
   const [open, setOpen] = useState(autoOpen);
   const initialEnd = time !== null && time > CLIP_MIN ? Math.floor(time) : 30;
@@ -335,9 +341,6 @@ export function ClipEditor({ episode, autoOpen = false }: { episode: Episode; au
     const path = clipPath(episode, clip.start, clip.end, clip.note);
     const url = `${location.origin}${location.pathname}#${path}`;
     setLink(url);
-    if (auth.userId) {
-      postActivity(auth.userId, 'clip', { episode: episodeRef(episode), start: s, end: e, note: clip.note }).catch(() => undefined);
-    }
     const m = await shareLink(`Extrait de « ${episode.title} »`, url);
     // Si le lien n'a pu être ni partagé ni copié, il reste affiché dans le champ ci-dessous.
     setMessage(m === url ? null : m);

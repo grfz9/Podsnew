@@ -20,15 +20,15 @@ interface AuthValue {
   signUp: (email: string, password: string, username: string, displayName: string) => Promise<boolean>;
   resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
-  updateProfile: (patch: Partial<Pick<Profile, 'display_name' | 'share_activity'>>) => Promise<void>;
+  updateProfile: (patch: Partial<Pick<Profile, 'display_name'>>) => Promise<void>;
   syncNow: () => void;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
 
 function syncedPart(s: LibraryState): SyncedData {
-  const { subscriptions, savedEpisodes, history, clips, progress, stats, modified } = s;
-  return { subscriptions, savedEpisodes, history, clips, progress, stats, modified };
+  const { subscriptions, savedEpisodes, history, clips, playlists, progress, stats, modified } = s;
+  return { subscriptions, savedEpisodes, history, clips, playlists, progress, stats, modified };
 }
 
 const PUSH_DELAY_MS = 3000;
@@ -110,12 +110,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [userId, pullAndMerge]);
 
   // Envoi différé après chaque modification locale des données synchronisées.
-  const { subscriptions, savedEpisodes, history, clips, progress, stats } = library.state;
+  const { subscriptions, savedEpisodes, history, clips, playlists, progress, stats } = library.state;
   useEffect(() => {
     if (!userId || pulledFor.current !== userId) return;
     const t = setTimeout(() => void push(userId), PUSH_DELAY_MS);
     return () => clearTimeout(t);
-  }, [userId, push, subscriptions, savedEpisodes, history, clips, progress, stats]);
+  }, [userId, push, subscriptions, savedEpisodes, history, clips, playlists, progress, stats]);
 
   /* ---------- Actions ---------- */
   const value = useMemo<AuthValue>(

@@ -63,6 +63,11 @@ serve(async (req) => {
   const { podcastId, episodeId, country } = await readJson<{ podcastId?: string; episodeId?: string; country?: string }>(req);
   if (!podcastId || !episodeId) throw new HttpError(400, 'Paramètres manquants.');
 
+  // Pas de résumé automatique pour le Coran ni pour les podcasts islamiques validés.
+  if (podcastId.startsWith('quran-')) throw new HttpError(422, 'Pas de résumé automatique pour le Coran.');
+  const { data: religious } = await admin.from('islamic_podcasts').select('podcast_id').eq('podcast_id', podcastId).maybeSingle();
+  if (religious) throw new HttpError(422, 'Pas de résumé automatique pour les contenus religieux.');
+
   const { data: cached } = await admin.from('episode_summaries').select('summary, source').eq('episode_id', episodeId).maybeSingle();
   if (cached) return json(cached);
 

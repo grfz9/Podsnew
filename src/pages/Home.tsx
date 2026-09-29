@@ -1,16 +1,16 @@
 import { Link } from 'react-router';
-import { Play } from 'lucide-react';
+import { BookOpen, Mic, Play } from 'lucide-react';
 import { getAnyPodcast } from '../api/catalog';
 import { getTopPodcasts } from '../api/itunes';
 import { GENRES, getGenre } from '../api/genres';
 import { latestNativePodcasts } from '../api/native';
-import { getFeed } from '../api/social';
-import { ActivityItem } from '../components/Activity';
 import { EpisodeList } from '../components/EpisodeRow';
 import { PodcastRow } from '../components/PodcastCard';
 import { ErrorState, Section, Spinner } from '../components/common';
 import { buildDailyMix, excludeKnown, recommendationSeeds, type Seed } from '../lib/recommend';
 import { useAuth } from '../store/auth';
+import { useModeration } from '../store/moderation';
+import { PrayerCard } from './Prayer';
 import { useLibrary } from '../store/library';
 import { usePlayer } from '../store/player';
 import type { Episode } from '../types';
@@ -20,17 +20,40 @@ import { useAsync } from '../utils/hooks';
 const FEATURED_GENRES = [1489, 1303, 1487];
 
 function TopRow({ country, genreId, title }: { country: string; genreId?: number; title: string }) {
-  const { data, error, loading, reload } = useAsync((signal) => getTopPodcasts(country, genreId, 20, signal), [country, genreId]);
+  const { filterPodcasts } = useModeration();
+  const { data, error, loading, reload } = useAsync((signal) => getTopPodcasts(country, genreId, 30, signal), [country, genreId]);
   return (
     <Section title={title} action={<Link to={genreId ? `/genre/${genreId}` : '/genre/top'} className="see-all">Tout afficher</Link>}>
-      {loading && !data ? <Spinner /> : error ? <ErrorState error={error} onRetry={reload} /> : <PodcastRow podcasts={data ?? []} ranked={!genreId} />}
+      {loading && !data ? <Spinner /> : error ? <ErrorState error={error} onRetry={reload} /> : <PodcastRow podcasts={filterPodcasts(data ?? []).slice(0, 20)} />}
+    </Section>
+  );
+}
+
+/** Podcasts islamiques validés par la modération. */
+function IslamicPodcasts() {
+  const { validated, loading } = useModeration();
+  if (loading && !validated.length) return null;
+  return (
+    <Section title="Podcasts islamiques" action={<Link to="/islam" className="see-all">Tout afficher</Link>}>
+      {validated.length ? (
+        <PodcastRow podcasts={validated.slice(0, 12)} />
+      ) : (
+        <p className="muted">
+          Les podcasts sont ajoutés un par un après vérification.{' '}
+          <Link to="/islam" className="link">
+            Proposer un podcast
+          </Link>
+        </p>
+      )}
     </Section>
   );
 }
 
 function ContinueListening() {
   const { history, progress } = useLibrary();
+  const { allowsEpisode } = useModeration();
   const inProgress = history.filter((e) => {
+    if (!allowsEpisode(e)) return false;
     const p = progress[e.id];
     return p && !p.completed && p.position > 5;
   });
@@ -56,8 +79,9 @@ function useSubscriptionEpisodes() {
 
 function NewFromSubscriptions({ episodes, loading }: { episodes?: Episode[]; loading: boolean }) {
   const { subscriptions, progress } = useLibrary();
+  const { filterEpisodes } = useModeration();
   if (subscriptions.length === 0) return null;
-  const unplayed = (episodes ?? []).filter((e) => !progress[e.id]?.completed).slice(0, 5);
+  const unplayed = filterEpisodes(episodes ?? []).filter((e) => !progress[e.id]?.completed).slice(0, 5);
   return (
     <Section title="Nouveaux épisodes de vos abonnements">
       {loading && !episodes ? <Spinner /> : unplayed.length ? <EpisodeList episodes={unplayed} showPodcast /> : <p className="muted">Vous avez écouté tous les derniers épisodes.</p>}
@@ -89,8 +113,9 @@ function DailyMix({ fromSubscriptions, discoveryPodcasts }: { fromSubscriptions?
     return results.flatMap((r) => (r.status === 'fulfilled' ? r.value.episodes.slice(0, 1) : []));
   }, [discoveryPodcasts.slice(0, 3).join(','), country]);
 
+  const { filterEpisodes } = useModeration();
   if (!fromSubscriptions?.length && !discovery.data?.length) return null;
-  const mix = buildDailyMix({ fromSubscriptions: fromSubscriptions ?? [], discovery: discovery.data ?? [], progress });
+  const mix = buildDailyMix({ fromSubscriptions: filterEpisodes(fromSubscriptions ?? []), discovery: filterEpisodes(discovery.data ?? []), progress });
   if (mix.length < 3) return null;
   const discoveries = mix.filter((e) => !library.isSubscribed(e.podcastId)).length;
 
@@ -112,45 +137,42 @@ function DailyMix({ fromSubscriptions, discoveryPodcasts }: { fromSubscriptions?
   );
 }
 
-function FriendsActivity() {
-  const auth = useAuth();
-  const feed = useAsync(() => (auth.userId ? getFeed(auth.userId, 5) : Promise.resolve([])), [auth.userId]);
-  if (!auth.userId || !feed.data?.length) return null;
-  return (
-    <Section title="Activité de vos amis" action={<Link to="/friends" className="see-all">Tout afficher</Link>}>
-      <div className="activity-list">
-        {feed.data.map((row) => (
-          <ActivityItem key={row.id} row={row} />
-        ))}
-      </div>
-    </Section>
-  );
-}
-
 function NativeCreators() {
   const auth = useAuth();
+  const { filterPodcasts } = useModeration();
   const { data } = useAsync(() => (auth.enabled ? latestNativePodcasts(12) : Promise.resolve([])), [auth.enabled]);
-  if (!data?.length) return null;
+  const list = filterPodcasts(data ?? []);
+  if (!list.length) return null;
   return (
-    <Section title="Publiés sur Podsnew" action={<Link to="/studio" className="see-all">Publier le vôtre</Link>}>
-      <PodcastRow podcasts={data} />
+    <Section title="Publiés sur Podsal" action={<Link to="/studio" className="see-all">Publier le vôtre</Link>}>
+      <PodcastRow podcasts={list} />
     </Section>
   );
 }
 
 export function Home() {
   const library = useLibrary();
+  const { filterPodcasts } = useModeration();
   const subs = useSubscriptionEpisodes();
   const seeds = recommendationSeeds(library.state.stats, library.subscriptions, 2);
   const recs = useRecommendations(seeds);
-  const discoveryIds = (recs.data ?? []).flatMap((r) => r.podcasts.slice(0, 2).map((p) => p.id));
+  const recRows = (recs.data ?? []).map((r) => ({ ...r, podcasts: filterPodcasts(r.podcasts) })).filter((r) => r.podcasts.length > 0);
+  const discoveryIds = recRows.flatMap((r) => r.podcasts.slice(0, 2).map((p) => p.id));
 
   return (
     <div className="page">
       <h1 className="page__title">Accueil</h1>
 
+      <PrayerCard />
+
       <div className="quick-genres">
-        {GENRES.slice(0, 8).map((g) => (
+        <Link to="/coran" className="quick-genre quick-genre--main">
+          <BookOpen size={18} /> Coran
+        </Link>
+        <Link to="/islam" className="quick-genre quick-genre--main">
+          <Mic size={18} /> Podcasts islamiques
+        </Link>
+        {GENRES.slice(0, 6).map((g) => (
           <Link key={g.id} to={`/genre/${g.id}`} className="quick-genre" style={{ background: g.color }}>
             {g.name}
           </Link>
@@ -158,10 +180,10 @@ export function Home() {
       </div>
 
       <ContinueListening />
+      <IslamicPodcasts />
       <DailyMix fromSubscriptions={subs.data} discoveryPodcasts={discoveryIds} />
       <NewFromSubscriptions episodes={subs.data} loading={subs.loading} />
-      <FriendsActivity />
-      {(recs.data ?? []).map(({ seed, podcasts }) => (
+      {recRows.map(({ seed, podcasts }) => (
         <Section
           key={seed.podcast.id}
           title={`Parce que vous écoutez ${seed.podcast.title}`}
@@ -171,7 +193,7 @@ export function Home() {
         </Section>
       ))}
       <NativeCreators />
-      <TopRow country={library.country} title="Top podcasts" />
+      <TopRow country={library.country} title="Podcasts populaires" />
       {FEATURED_GENRES.map((id) => (
         <TopRow key={id} country={library.country} genreId={id} title={getGenre(id)!.name} />
       ))}

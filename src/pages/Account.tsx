@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
-import { ChartColumn, Cloud, CloudOff, FileUp, ListMusic, LogOut, Mic, Users } from 'lucide-react';
+import { ChartColumn, Clock, Cloud, CloudOff, FileUp, ListMusic, LogOut, Mic, ShieldCheck, Users } from 'lucide-react';
+import { useModeration } from '../store/moderation';
 import { isUsernameAvailable } from '../api/social';
 import { EmptyState, Tabs } from '../components/common';
 import { useAuth } from '../store/auth';
@@ -60,8 +61,8 @@ function AuthForms() {
         }}
       />
       <p className="small muted">
-        Avec un compte, vos abonnements, votre progression et vos statistiques sont synchronisés entre vos appareils, et vous pouvez suivre vos amis,
-        laisser des avis et publier votre propre podcast.
+        Avec un compte, vos abonnements, playlists, progression et statistiques sont synchronisés entre vos appareils ; vous pouvez partager vos
+        playlists avec vos amis, proposer des podcasts islamiques et publier votre propre podcast.
       </p>
       <form onSubmit={submit} className="form">
         <label>
@@ -110,6 +111,7 @@ function AuthForms() {
 
 function ProfileSettings() {
   const auth = useAuth();
+  const { isAdmin } = useModeration();
   const [displayName, setDisplayName] = useState(auth.profile?.display_name ?? '');
   const [saved, setSaved] = useState(false);
   const p = auth.profile;
@@ -153,9 +155,20 @@ function ProfileSettings() {
         <Link to="/friends" className="account-link">
           <Users size={20} /> Amis
         </Link>
+        <Link to="/priere" className="account-link">
+          <Clock size={20} /> Horaires de prière
+        </Link>
+        <Link to="/library?tab=playlists" className="account-link">
+          <ListMusic size={20} /> Playlists
+        </Link>
         <Link to="/studio" className="account-link">
           <Mic size={20} /> Studio créateur
         </Link>
+        {isAdmin && (
+          <Link to="/moderation" className="account-link">
+            <ShieldCheck size={20} /> Modération
+          </Link>
+        )}
         <Link to="/queue" className="account-link">
           <ListMusic size={20} /> File d'attente
         </Link>
@@ -184,13 +197,7 @@ function ProfileSettings() {
           </button>
           {saved && <span className="small ok-text">Enregistré</span>}
         </form>
-        <label className="setting">
-          <span>
-            Partager mon activité d'écoute
-            <span className="small muted"> — visible par les personnes qui vous suivent</span>
-          </span>
-          <input type="checkbox" className="switch" checked={p?.share_activity ?? false} onChange={(e) => void auth.updateProfile({ share_activity: e.target.checked })} />
-        </label>
+
         <button className="btn btn--outline" onClick={() => void auth.signOut()}>
           <LogOut size={16} /> Se déconnecter
         </button>
@@ -206,9 +213,12 @@ export function AccountPage() {
       <div className="page">
         <h1 className="page__title">Compte</h1>
         <EmptyState icon={<Cloud size={32} />} title="Les comptes ne sont pas activés sur cette installation">
-          Podsnew fonctionne entièrement sur cet appareil : abonnements, progression, téléchargements et statistiques y sont conservés.
+          Podsal fonctionne entièrement sur cet appareil : abonnements, progression, téléchargements et statistiques y sont conservés.
         </EmptyState>
         <nav className="account-links">
+          <Link to="/priere" className="account-link">
+            <Clock size={20} /> Horaires de prière
+          </Link>
           <Link to="/stats" className="account-link">
             <ChartColumn size={20} /> Statistiques d'écoute
           </Link>

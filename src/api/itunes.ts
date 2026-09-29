@@ -23,6 +23,7 @@ export interface RawPodcast {
   feedUrl?: string;
   trackCount?: number;
   releaseDate?: string;
+  collectionExplicitness?: string;
 }
 
 export interface RawEpisode {
@@ -40,6 +41,8 @@ export interface RawEpisode {
   artworkUrl600?: string;
   artworkUrl160?: string;
   genres?: { name: string; id: string }[];
+  trackExplicitness?: string;
+  collectionExplicitness?: string;
 }
 
 interface RawChartEntry {
@@ -70,6 +73,7 @@ export function mapPodcast(raw: RawPodcast): Podcast {
     feedUrl: raw.feedUrl,
     episodeCount: raw.trackCount,
     lastRelease: raw.releaseDate,
+    explicit: raw.collectionExplicitness === 'explicit',
   };
 }
 
@@ -87,6 +91,7 @@ export function mapEpisode(raw: RawEpisode, fallbackArtwork = '', fallbackGenre?
     artwork: raw.artworkUrl600 || fallbackArtwork,
     guid: raw.episodeGuid,
     genre: raw.genres?.[0]?.name ?? fallbackGenre,
+    explicit: raw.trackExplicitness === 'explicit' || raw.collectionExplicitness === 'explicit',
   };
 }
 
@@ -152,7 +157,7 @@ export async function searchPodcasts(term: string, country: string, signal?: Abo
   return data.results
     .filter((r) => r.collectionId)
     .map(mapPodcast)
-    .filter((p) => !isMusicPodcast(p));
+    .filter((p) => !isMusicPodcast(p) && !p.explicit);
 }
 
 export async function searchEpisodes(term: string, country: string, signal?: AbortSignal): Promise<Episode[]> {
@@ -161,7 +166,7 @@ export async function searchEpisodes(term: string, country: string, signal?: Abo
   return data.results
     .filter((r) => !isMusicEpisode(r))
     .map((r) => mapEpisode(r))
-    .filter((e): e is Episode => e !== null);
+    .filter((e): e is Episode => e !== null && !e.explicit);
 }
 
 /** Classement des podcasts les plus écoutés, éventuellement par catégorie (sans musique). */
@@ -172,7 +177,17 @@ export function getTopPodcasts(country: string, genreId?: number, limit = 30, si
     const data = await getJson<{ feed: { entry?: RawChartEntry | RawChartEntry[] } }>(url);
     const entries = data.feed.entry;
     if (!entries) return [];
-    return (Array.isArray(entries) ? entries : [entries]).map(mapChartEntry).filter((p) => !isMusicPodcast(p));
+    const chart = (Array.isArray(entries) ? entries : [entries]).map(mapChartEntry);
+    // Le classement ne donne que la catégorie principale : on complète (sous-catégories,
+    // contenu explicite, flux RSS) pour pouvoir filtrer correctement.
+    const details = await lookupPodcasts(chart.map((p) => p.id), country).catch(() => [] as Podcast[]);
+    const byId = new Map(details.map((d) => [d.id, d]));
+    return chart
+      .map((p) => {
+        const d = byId.get(p.id);
+        return d ? { ...p, genreIds: d.genreIds ?? p.genreIds, explicit: d.explicit, feedUrl: d.feedUrl, genre: p.genre ?? d.genre } : p;
+      })
+      .filter((p) => !isMusicPodcast(p) && !p.explicit);
   }, signal);
 }
 
@@ -188,7 +203,7 @@ export function getPodcast(
     const rawPodcast = data.results.find((r): r is RawPodcast => r.wrapperType !== 'podcastEpisode');
     if (!rawPodcast) throw new Error('Podcast introuvable');
     const podcast = mapPodcast(rawPodcast);
-    if (isMusicPodcast(podcast)) throw new Error("Podsnew est réservé aux podcasts parlés : ce contenu musical n'est pas disponible.");
+    if (isMusicPodcast(podcast)) throw new Error("Podsal est réservé aux podcasts parlés : ce contenu musical n'est pas disponible.");
     const episodes = data.results
       .filter((r): r is RawEpisode => r.wrapperType === 'podcastEpisode')
       .map((r) => mapEpisode(r, podcast.artwork, podcast.genre))

@@ -3,6 +3,7 @@ import { ChevronDown, ListMusic, Play, Trash, X } from 'lucide-react';
 import { Artwork, EmptyState } from '../components/common';
 import { usePlayer } from '../store/player';
 import { formatDuration } from '../utils/format';
+import { podcastPath } from '../lib/paths';
 
 export function QueuePage() {
   const player = usePlayer();
@@ -19,7 +20,7 @@ export function QueuePage() {
             <Artwork src={current.artwork} alt={current.podcastTitle} size={56} />
             <div className="queue-item__text">
               <div className="queue-item__title">{current.title}</div>
-              <Link to={`/podcast/${current.podcastId}`} className="small muted">
+              <Link to={podcastPath(current.podcastId)} className="small muted">
                 {current.podcastTitle}
               </Link>
             </div>

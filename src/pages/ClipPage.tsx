@@ -6,6 +6,7 @@ import { CLIP_MAX } from '../components/EpisodeExtras';
 import { useEpisode } from '../lib/useEpisode';
 import { usePlayer, usePlayerTime } from '../store/player';
 import { formatTime } from '../utils/format';
+import { podcastPath } from '../lib/paths';
 
 /** Page d'un extrait partagé : lit uniquement le passage choisi. */
 export function ClipPage() {
@@ -40,7 +41,7 @@ export function ClipPage() {
         Extrait · {formatTime(start)} – {formatTime(end)}
       </p>
       <h1>{episode.title}</h1>
-      <Link to={`/podcast/${episode.podcastId}`} className="muted">
+      <Link to={podcastPath(episode.podcastId)} className="muted">
         {episode.podcastTitle}
       </Link>
       {note && <blockquote className="clip-page__note">{note}</blockquote>}

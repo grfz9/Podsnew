@@ -1,4 +1,4 @@
-/* Service worker de Podsnew : fonctionnement hors-ligne, épisodes téléchargés, notifications. */
+/* Service worker de Podsal : fonctionnement hors-ligne, épisodes téléchargés, notifications. */
 const SHELL_CACHE = 'podsnew-shell-v1';
 const API_CACHE = 'podsnew-api-v1';
 const AUDIO_CACHE = 'podsnew-audio-v1'; // même nom que src/lib/downloads.ts
@@ -126,7 +126,7 @@ async function checkNewEpisodes() {
   for (const { podcast, episode } of fresh.slice(0, 5)) {
     await self.registration.showNotification(podcast.title, {
       body: episode.trackName,
-      icon: podcast.artwork || undefined,
+      icon: new URL('favicon.svg', self.registration.scope).href,
       tag: `episode-${episode.trackId}`,
       data: { url: `${self.registration.scope}#/podcast/${podcast.id}` },
     });

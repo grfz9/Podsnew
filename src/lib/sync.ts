@@ -1,7 +1,7 @@
-import type { Clip, DeviceStats, Episode, EpisodeProgress, Podcast } from '../types';
+import type { Clip, DeviceStats, Episode, EpisodeProgress, Playlist, Podcast } from '../types';
 
 /** Collections dont la dernière version l'emporte lors d'une synchronisation. */
-export const LIST_KEYS = ['subscriptions', 'savedEpisodes', 'history', 'clips'] as const;
+export const LIST_KEYS = ['subscriptions', 'savedEpisodes', 'history', 'clips', 'playlists'] as const;
 export type ListKey = (typeof LIST_KEYS)[number];
 
 export interface SyncedData {
@@ -9,6 +9,7 @@ export interface SyncedData {
   savedEpisodes: Episode[];
   history: Episode[];
   clips: Clip[];
+  playlists: Playlist[];
   progress: Record<string, EpisodeProgress>;
   stats: Record<string, DeviceStats>;
   /** Date de dernière modification de chaque collection. */
