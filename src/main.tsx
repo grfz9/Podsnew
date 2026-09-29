@@ -1,0 +1,65 @@
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { HashRouter, Route, Routes } from 'react-router';
+import { Layout } from './components/Layout';
+import { AccountPage } from './pages/Account';
+import { ClipPage } from './pages/ClipPage';
+import { EpisodePage } from './pages/EpisodePage';
+import { FriendsPage, ProfilePage } from './pages/Friends';
+import { GenrePage } from './pages/Genre';
+import { Home } from './pages/Home';
+import { ImportPage } from './pages/Import';
+import { LibraryPage } from './pages/Library';
+import { PodcastPage } from './pages/PodcastPage';
+import { QueuePage } from './pages/Queue';
+import { SearchPage } from './pages/Search';
+import { StatsPage } from './pages/Stats';
+import { StudioPage, StudioPodcastPage } from './pages/Studio';
+import { AuthProvider } from './store/auth';
+import { DownloadsProvider } from './store/downloads';
+import { LibraryProvider } from './store/library';
+import { PlayerProvider } from './store/player';
+import './styles.css';
+
+// Service worker : fonctionnement hors-ligne et épisodes téléchargés (build de production uniquement).
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => undefined);
+  });
+}
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <LibraryProvider>
+      <AuthProvider>
+        <DownloadsProvider>
+          <PlayerProvider>
+            {/* HashRouter : fonctionne sur n'importe quel hébergement statique et dans l'application native. */}
+            <HashRouter>
+              <Routes>
+                <Route element={<Layout />}>
+                  <Route index element={<Home />} />
+                  <Route path="search" element={<SearchPage />} />
+                  <Route path="library" element={<LibraryPage />} />
+                  <Route path="queue" element={<QueuePage />} />
+                  <Route path="genre/:id" element={<GenrePage />} />
+                  <Route path="podcast/:id" element={<PodcastPage />} />
+                  <Route path="podcast/:podcastId/episode/:episodeId" element={<EpisodePage />} />
+                  <Route path="clip" element={<ClipPage />} />
+                  <Route path="stats" element={<StatsPage />} />
+                  <Route path="import" element={<ImportPage />} />
+                  <Route path="friends" element={<FriendsPage />} />
+                  <Route path="u/:username" element={<ProfilePage />} />
+                  <Route path="account" element={<AccountPage />} />
+                  <Route path="studio" element={<StudioPage />} />
+                  <Route path="studio/:id" element={<StudioPodcastPage />} />
+                  <Route path="*" element={<Home />} />
+                </Route>
+              </Routes>
+            </HashRouter>
+          </PlayerProvider>
+        </DownloadsProvider>
+      </AuthProvider>
+    </LibraryProvider>
+  </StrictMode>,
+);

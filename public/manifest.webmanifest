@@ -1,0 +1,10 @@
+{
+  "name": "Podsnew",
+  "short_name": "Podsnew",
+  "description": "Écoutez vos podcasts préférés.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#121212",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

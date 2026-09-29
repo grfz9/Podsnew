@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Podsnew</string>
+    <string name="title_activity_main">Podsnew</string>
+    <string name="package_name">app.podsnew</string>
+    <string name="custom_url_scheme">app.podsnew</string>
+</resources>
