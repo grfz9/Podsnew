@@ -96,10 +96,20 @@ function idbKv(mode, fn) {
     };
     open.onerror = () => reject(open.error);
     open.onsuccess = () => {
-      const tx = open.result.transaction('kv', mode);
+      const db = open.result;
+      // Connexion fermée dès la lecture finie : une connexion laissée ouverte bloque les mises à niveau
+      // de la base par l'appli (nouvelle version avec un magasin en plus).
+      db.onversionchange = () => db.close();
+      const tx = db.transaction('kv', mode);
       const req = fn(tx.objectStore('kv'));
-      tx.oncomplete = () => resolve(req && req.result);
-      tx.onerror = () => reject(tx.error);
+      tx.oncomplete = () => {
+        db.close();
+        resolve(req && req.result);
+      };
+      tx.onerror = () => {
+        db.close();
+        reject(tx.error);
+      };
     };
   });
 }
