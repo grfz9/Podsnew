@@ -1016,3 +1016,30 @@ a.playlist-card:hover { background: var(--bg-hover); }
 .segmented__item--active { background: var(--bg-hover); color: var(--text); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06); }
 .choose-username { margin-bottom: 20px; }
 .choose-username .form { margin: 10px 0 0; }
+
+/* ---------- Mes fichiers (audio et vidéo importés) ---------- */
+.local-files { display: flex; flex-direction: column; gap: 12px; border-radius: var(--radius-lg); transition: box-shadow 0.2s; }
+.local-files--drag { box-shadow: 0 0 0 2px var(--accent); }
+.local-files__bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+.local-files__limit { padding: 10px 12px; border-radius: var(--radius); background: rgba(241, 227, 189, 0.08); color: #f1e3bd; }
+.local-files__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.local-file { display: flex; align-items: center; gap: 14px; padding: 12px; border-bottom: 1px solid var(--line); border-radius: var(--radius); transition: background 0.15s; }
+.local-file:hover { background: var(--bg-hover); }
+.local-file--current .local-file__title { color: var(--accent); }
+.local-file__icon { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 10px; background: #1f5f73; color: #fff; }
+.local-file__icon--video { background: #7a2e2e; }
+.local-file__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.local-file__title { display: flex; align-items: center; gap: 6px; text-align: left; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.local-file__title:hover { text-decoration: underline; }
+.local-file__meta { font-size: 13px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.local-file__actions { display: flex; gap: 2px; flex-shrink: 0; }
+.local-file__rename { display: flex; align-items: center; gap: 4px; }
+.local-file__rename input { flex: 1; min-width: 0; padding: 6px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text); font: inherit; }
+.local-video { position: relative; width: 100%; max-width: 720px; margin: 0 auto; aspect-ratio: 16 / 9; border-radius: var(--radius-lg); overflow: hidden; background: #000; box-shadow: 0 16px 40px -18px rgba(0, 0, 0, 0.9); }
+.local-video video { width: 100%; height: 100%; object-fit: contain; display: block; }
+.local-video__fullscreen { position: absolute; right: 8px; bottom: 8px; background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(8px); }
+@media (max-width: 767px) {
+  .local-file { gap: 10px; padding: 10px 6px; }
+  .local-file__icon { display: none; }
+  .local-file__actions .icon-btn:first-child { display: none; }
+}

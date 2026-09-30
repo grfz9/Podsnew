@@ -24,6 +24,8 @@ import { currentChapterIndex, useEpisodeExtras } from '../lib/useEpisode';
 import { Artwork, NowPlaying } from './common';
 import { episodePath } from './EpisodeRow';
 import { podcastPath } from '../lib/paths';
+import { isLocalId } from '../lib/localFiles';
+import { LocalVideo } from './LocalVideo';
 
 function ProgressBar() {
   const { seek } = usePlayer();
@@ -239,7 +241,9 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
   const { time } = usePlayerTime();
   const navigate = useNavigate();
   const ep = player.current;
-  const podcast = useAsync(() => (ep ? getAnyPodcast(ep.podcastId, country, 200) : Promise.resolve(null)), [ep?.podcastId, country]);
+  const local = !!ep && isLocalId(ep.id);
+  // Fichier importé : pas de podcast à charger (ni chapitres, ni transcription).
+  const podcast = useAsync(() => (ep && !local ? getAnyPodcast(ep.podcastId, country, 200) : Promise.resolve(null)), [ep?.podcastId, local, country]);
   const extras = useEpisodeExtras(podcast.data?.podcast, ep ?? undefined);
   const chapterIndex = currentChapterIndex(extras.chapters, time);
   const chapter = chapterIndex >= 0 ? extras.chapters[chapterIndex] : null;
@@ -268,13 +272,17 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
             <ListMusic size={22} />
           </button>
         </div>
-        <Artwork
-          src={chapter?.img || ep.artwork}
-          alt={ep.podcastTitle}
-          podcastId={ep.podcastId}
-          genre={ep.genre}
-          className={`full-player__art ${player.isPlaying ? '' : 'full-player__art--paused'}`}
-        />
+        {ep.mediaKind === 'video' ? (
+          <LocalVideo episodeId={ep.id} title={ep.title} />
+        ) : (
+          <Artwork
+            src={chapter?.img || ep.artwork}
+            alt={ep.podcastTitle}
+            podcastId={ep.podcastId}
+            genre={ep.genre}
+            className={`full-player__art ${player.isPlaying ? '' : 'full-player__art--paused'}`}
+          />
+        )}
         <div className="full-player__meta">
           {chapter && <p className="full-player__chapter">Chapitre {chapterIndex + 1} · {chapter.title}</p>}
           <h2>
@@ -292,9 +300,11 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
         <div className="full-player__extras">
           <RateButton />
           <SleepButton />
-          <button className="ctrl-btn" onClick={() => go(`${episodePath(ep)}?clip=1`)} aria-label="Créer un extrait">
-            <Scissors size={14} /> Extrait
-          </button>
+          {!local && (
+            <button className="ctrl-btn" onClick={() => go(`${episodePath(ep)}?clip=1`)} aria-label="Créer un extrait">
+              <Scissors size={14} /> Extrait
+            </button>
+          )}
           {extras.transcript && (
             <button className="ctrl-btn" onClick={() => go(episodePath(ep))} aria-label="Transcription">
               <FileText size={14} /> Texte
