@@ -7,7 +7,8 @@ import type { ParsedSegment } from '../_shared/podcast.ts';
 
 const MODEL = 'claude-opus-5-5';
 /** Nombre de nouveaux résumés qu'un utilisateur peut demander par 24 h (maîtrise des coûts). */
-const DAILY_LIMIT = 20;
+const DAILY_LIMIT_FREE = 3;
+const DAILY_LIMIT_PREMIUM = 20;
 /** Au-delà (≈ 350 000 jetons), on résume à partir de la description plutôt que de la transcription. */
 const MAX_TRANSCRIPT_CHARS = 1_200_000;
 
@@ -77,7 +78,16 @@ serve(async (req) => {
     .select('episode_id', { count: 'exact', head: true })
     .eq('requested_by', user.id)
     .gte('created_at', since);
-  if ((count ?? 0) >= DAILY_LIMIT) throw new HttpError(429, 'Limite de résumés atteinte pour aujourd’hui. Réessayez demain.');
+  const { data: sub } = await admin.from('subscriptions').select('status, current_period_end').eq('user_id', user.id).maybeSingle();
+  const premium = !!sub && ['active', 'trialing', 'past_due'].includes(sub.status) && (!sub.current_period_end || new Date(sub.current_period_end) > new Date());
+  if ((count ?? 0) >= (premium ? DAILY_LIMIT_PREMIUM : DAILY_LIMIT_FREE)) {
+    throw new HttpError(
+      429,
+      premium
+        ? 'Limite de résumés atteinte pour aujourd’hui. Réessayez demain.'
+        : `Limite de ${DAILY_LIMIT_FREE} résumés par jour atteinte. Podsal+ en offre ${DAILY_LIMIT_PREMIUM} par jour.`,
+    );
+  }
 
   const { podcast, episode } = await loadEpisode(admin, podcastId, episodeId, country);
 

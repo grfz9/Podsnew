@@ -86,7 +86,7 @@ export function PodcastPage() {
   return (
     <div className="page page--flush">
       <header className="podcast-hero">
-        <Artwork src={podcast.artwork} alt={podcast.title} className="podcast-hero__art" />
+        <Artwork alt={podcast.title} className="podcast-hero__art" podcastId={podcast.id} genre={podcast.genre} genreIds={podcast.genreIds} />
         <div className="podcast-hero__info">
           <span className="small">
             {moderation.isValidated(podcast.id) ? (

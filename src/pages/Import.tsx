@@ -106,7 +106,7 @@ export function ImportPage() {
                   onChange={(e) => setRows((prev) => prev.map((x, j) => (j === i ? { ...x, selected: e.target.checked } : x)))}
                   aria-label={`Importer ${r.feed.title}`}
                 />
-                <Artwork src={r.match?.artwork} alt={r.feed.title} size={44} />
+                <Artwork alt={r.feed.title} size={44} podcastId={r.match?.id} genre={r.match?.genre} genreIds={r.match?.genreIds} />
                 <div className="import-row__text">
                   <strong>{r.match?.title ?? r.feed.title ?? r.feed.feedUrl}</strong>
                   <span className="small muted">

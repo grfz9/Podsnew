@@ -4,7 +4,7 @@ import { episodePath, podcastPath } from './paths';
 import { nextPrayer, prayerTimes } from './prayer';
 import { SURAHS } from '../data/surahs';
 import { ayahAt, BASMALA, parseMoshafName, parseSurahEpisodeId, stripBasmala, surahEpisode, type Moshaf } from '../api/quran';
-import { coverInitial } from '../components/common';
+import { starPath } from '../components/Cover';
 
 const state = (validated: string[] = [], blocked: string[] = []): PolicyState => ({ validated: new Set(validated), blocked: new Set(blocked) });
 
@@ -97,10 +97,23 @@ describe('horaires de prière', () => {
   });
 });
 
-describe('couvertures neutres', () => {
-  it('prend la première lettre significative du titre', () => {
-    expect(coverInitial('Les Pieds sur terre')).toBe('P');
-    expect(coverInitial("l'histoire")).toBe('L');
-    expect(coverInitial('« Rappels »')).toBe('R');
+describe('couvertures géométriques', () => {
+  it('trace une étoile à huit branches fermée', () => {
+    const d = starPath(50, 50, 10, 7);
+    expect(d.startsWith('M50.00 40.00')).toBe(true);
+    expect(d.split('L')).toHaveLength(16);
+    expect(d.endsWith('Z')).toBe(true);
+  });
+});
+
+describe('numéros de téléphone', () => {
+  it('convertit au format international', async () => {
+    const { normalizePhone } = await import('../utils/phone');
+    expect(normalizePhone('06 12 34 56 78')).toBe('+33612345678');
+    expect(normalizePhone('+33 6 12 34 56 78')).toBe('+33612345678');
+    expect(normalizePhone('0032 470 12 34 56')).toBe('+32470123456');
+    expect(normalizePhone('06.12.34.56.78')).toBe('+33612345678');
+    expect(normalizePhone('12')).toBeNull();
+    expect(normalizePhone('abc')).toBeNull();
   });
 });
