@@ -79,7 +79,11 @@ serve(async (req) => {
     .eq('requested_by', user.id)
     .gte('created_at', since);
   const { data: sub } = await admin.from('subscriptions').select('status, current_period_end').eq('user_id', user.id).maybeSingle();
-  const premium = !!sub && ['active', 'trialing', 'past_due'].includes(sub.status) && (!sub.current_period_end || new Date(sub.current_period_end) > new Date());
+  const { data: adminRow } = await admin.from('admins').select('user_id').eq('user_id', user.id).maybeSingle();
+  // Les administrateurs ont Podsal+ inclus.
+  const premium =
+    !!adminRow ||
+    (!!sub && ['active', 'trialing', 'past_due'].includes(sub.status) && (!sub.current_period_end || new Date(sub.current_period_end) > new Date()));
   if ((count ?? 0) >= (premium ? DAILY_LIMIT_PREMIUM : DAILY_LIMIT_FREE)) {
     throw new HttpError(
       429,
