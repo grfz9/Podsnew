@@ -25,7 +25,7 @@ function star(cx: number, cy: number, outer: number, inner: number): string {
 }
 
 /** Voile sombre pour la lisibilité (du plus clair en haut au plus sombre en bas). */
-const veil = (top: number, bottom: number) => `linear-gradient(180deg, rgba(8,11,11,${top}), rgba(8,11,11,${bottom}))`;
+export const veil = (top: number, bottom: number) => `linear-gradient(180deg, rgba(8,11,11,${top}), rgba(8,11,11,${bottom}))`;
 
 const STARS_FIELD = svg(
   Array.from({ length: 70 }, (_, i) => {
@@ -149,4 +149,48 @@ export const DEFAULT_WALLPAPER = WALLPAPERS[0];
 
 export function getWallpaper(id: string | undefined): Wallpaper {
   return WALLPAPERS.find((w) => w.id === id) ?? DEFAULT_WALLPAPER;
+}
+
+/** Image importée par l'utilisateur (Podsal+), pour le fond principal comme pour le menu. */
+export const CUSTOM_WALLPAPER_ID = 'custom';
+
+export function customBackground(url: string): string {
+  return `${veil(0.35, 0.6)}, url("${url}") center / cover no-repeat, #0d1111`;
+}
+
+/**
+ * Menu de gauche : couleur d'origine, quelques teintes unies propres au menu (gratuites),
+ * puis les mêmes fonds que la page (gratuits et Podsal+).
+ */
+export const SIDEBAR_DEFAULT: Wallpaper = { id: 'uni', name: 'Uni', premium: false, background: '#090c0c' };
+export const SIDEBAR_WALLPAPERS: Wallpaper[] = [
+  SIDEBAR_DEFAULT,
+  { id: 'foret', name: 'Vert profond', premium: false, background: 'linear-gradient(180deg, #17403a 0%, #0e2723 55%, #091614 100%)' },
+  { id: 'ocean', name: 'Bleu nuit', premium: false, background: 'linear-gradient(180deg, #17304f 0%, #0d1c31 55%, #080f1b 100%)' },
+  { id: 'terre', name: 'Terre', premium: false, background: 'linear-gradient(180deg, #46301d 0%, #291c11 55%, #170f09 100%)' },
+  ...WALLPAPERS,
+];
+
+/** Voile léger dans le menu : le texte y est petit et doit rester lisible. */
+export function sidebarBackground(background: string): string {
+  return `linear-gradient(180deg, rgba(9,12,12,0.25), rgba(9,12,12,0.55)), ${background}`;
+}
+
+/**
+ * Fond à afficher selon le réglage et l'abonnement : un fond Podsal+ ou une image importée
+ * reviennent au fond par défaut quand l'abonnement prend fin.
+ */
+export function resolveBackground(
+  slot: 'main' | 'sidebar',
+  settingId: string | undefined,
+  isPremium: boolean,
+  customUrl: string | undefined,
+): { id: string; background: string } {
+  const fallback = slot === 'main' ? DEFAULT_WALLPAPER : SIDEBAR_DEFAULT;
+  if (settingId === CUSTOM_WALLPAPER_ID) {
+    return isPremium && customUrl ? { id: CUSTOM_WALLPAPER_ID, background: customBackground(customUrl) } : fallback;
+  }
+  const list = slot === 'main' ? WALLPAPERS : SIDEBAR_WALLPAPERS;
+  const chosen = list.find((w) => w.id === settingId) ?? fallback;
+  return chosen.premium && !isPremium ? fallback : chosen;
 }
