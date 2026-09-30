@@ -91,7 +91,13 @@ export function PremiumPage() {
       {params.get('paiement') === 'annule' && <p className="small muted">Paiement annulé : rien n'a été prélevé.</p>}
       {waiting && <p className="small">Paiement reçu, activation de Podsal+…</p>}
 
-      {premium.isPremium && sub ? (
+      {premium.viaAdmin ? (
+        <section className="premium-status">
+          <p>
+            <Check size={16} /> <strong>Podsal+ est inclus</strong> avec votre compte administrateur.
+          </p>
+        </section>
+      ) : premium.isPremium && sub ? (
         <section className="premium-status">
           <p>
             <Check size={16} /> <strong>Podsal+ est actif</strong>

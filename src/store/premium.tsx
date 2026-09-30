@@ -2,12 +2,16 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { Capacitor } from '@capacitor/core';
 import { getSubscription, isActive, type SubscriptionRow } from '../api/billing';
 import { useAuth } from './auth';
+import { useModeration } from './moderation';
 
 /** Téléchargements hors-ligne sans abonnement. */
 export const FREE_DOWNLOADS = 10;
 
 interface PremiumValue {
+  /** Abonnement actif, ou compte administrateur (Podsal+ inclus). */
   isPremium: boolean;
+  /** Podsal+ offert parce que le compte est administrateur (sans abonnement payé). */
+  viaAdmin: boolean;
   subscription: SubscriptionRow | null;
   loading: boolean;
   /** Le paiement se fait sur le web : Apple et Google imposent leurs propres achats dans les applications natives. */
@@ -19,6 +23,7 @@ const PremiumContext = createContext<PremiumValue | null>(null);
 
 export function PremiumProvider({ children }: { children: ReactNode }) {
   const { userId } = useAuth();
+  const { isAdmin } = useModeration();
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -50,10 +55,17 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [refresh]);
 
-  const value = useMemo<PremiumValue>(
-    () => ({ isPremium: isActive(subscription), subscription, loading, canPurchase: !Capacitor.isNativePlatform(), refresh }),
-    [subscription, loading, refresh],
-  );
+  const value = useMemo<PremiumValue>(() => {
+    const paid = isActive(subscription);
+    return {
+      isPremium: paid || isAdmin,
+      viaAdmin: isAdmin && !paid,
+      subscription,
+      loading,
+      canPurchase: !Capacitor.isNativePlatform(),
+      refresh,
+    };
+  }, [subscription, isAdmin, loading, refresh]);
   return <PremiumContext.Provider value={value}>{children}</PremiumContext.Provider>;
 }
 
