@@ -33,13 +33,19 @@ export interface Settings {
     favorites: number[];
   };
   prayer: PrayerSettings;
-  /** Fond d'écran de l'application (voir src/data/wallpapers.ts). */
+  /** Fond d'écran de l'application (voir src/data/wallpapers.ts ; « custom » = image importée). */
   wallpaper: string;
+  /** Fond du menu de gauche (« uni » = couleur d'origine). */
+  sidebarWallpaper: string;
+  /** Ordre des épisodes sur la page d'un podcast : « oldest » = ordre de lecture (épisode 1 en premier). */
+  episodeOrder: 'oldest' | 'newest';
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   notifications: false,
   wallpaper: 'halo',
+  sidebarWallpaper: 'uni',
+  episodeOrder: 'oldest',
   quran: { translation: 'rashid', showArabic: true, favorites: [] },
   prayer: {
     enabled: false,

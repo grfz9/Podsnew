@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router';
-import { ArrowUpDown, Check, Pause, Play, Plus, Rss, Search, Share2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { ArrowUpDown, Check, ImageMinus, ImagePlus, Pause, Play, Plus, Rss, Search, Share2 } from 'lucide-react';
 import { getAnyPodcast } from '../api/catalog';
 import { EpisodeList } from '../components/EpisodeRow';
 import { Artwork, EmptyState, ErrorState, Spinner, Tabs, shareLink } from '../components/common';
 import { ModerationTools } from '../components/ModerationTools';
 import { useModeration } from '../store/moderation';
 import { ShieldCheck } from 'lucide-react';
+import { useCustomImages } from '../store/customImages';
 import { useLibrary } from '../store/library';
+import { usePremium } from '../store/premium';
 import { usePlayer } from '../store/player';
 import type { Podcast } from '../types';
 import { stripHtml } from '../utils/format';
@@ -21,11 +23,17 @@ export function PodcastPage() {
   const library = useLibrary();
   const player = usePlayer();
   const moderation = useModeration();
+  const images = useCustomImages();
+  const { isPremium } = usePremium();
+  const navigate = useNavigate();
+  const coverInput = useRef<HTMLInputElement>(null);
   const { data, error, loading, reload } = useAsync((signal) => getAnyPodcast(id, library.country, 200, signal), [id, library.country]);
 
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
-  const [oldestFirst, setOldestFirst] = useState(false);
+  // Ordre de lecture par défaut (épisode 1 en premier) ; le choix est retenu pour tous les podcasts.
+  const oldestFirst = library.settings.episodeOrder === 'oldest';
+  const toggleOrder = () => library.setSettings({ episodeOrder: oldestFirst ? 'newest' : 'oldest' });
   const [notice, setNotice] = useState<string | null>(null);
 
   // Infos déjà connues (carte cliquée ou abonnement) pour un affichage immédiat.
@@ -43,8 +51,25 @@ export function PodcastPage() {
         return p && !p.completed && p.position > 0;
       });
     }
+    // Les épisodes arrivent du plus récent au plus ancien.
     return oldestFirst ? [...list].reverse() : list;
   }, [data, query, filter, oldestFirst, library.progress]);
+
+  // Bouton lecture : en ordre de lecture, l'épisode en cours ou celui qui suit le dernier écouté ;
+  // sinon, le plus récent non écouté.
+  const latest = useMemo(() => {
+    const all = data?.episodes ?? [];
+    if (!oldestFirst) return all.find((e) => !library.progress[e.id]?.completed) ?? all[0];
+    const chrono = [...all].reverse();
+    const inProgress = chrono.find((e) => {
+      const p = library.progress[e.id];
+      return p && !p.completed && p.position > 0;
+    });
+    if (inProgress) return inProgress;
+    let lastDone = -1;
+    chrono.forEach((e, i) => library.progress[e.id]?.completed && (lastDone = i));
+    return chrono[lastDone + 1] ?? chrono.find((e) => !library.progress[e.id]?.completed) ?? chrono[0];
+  }, [data, oldestFirst, library.progress]);
 
   // Un podcast refusé a peut-être été validé ou rétabli depuis le chargement de l'appli : on relit la liste une fois.
   const refused = !!data && !!podcast && !moderation.allowsPodcast(podcast);
@@ -78,8 +103,16 @@ export function PodcastPage() {
   }
 
   const subscribed = library.isSubscribed(podcast.id);
-  const latest = data?.episodes.find((e) => !library.progress[e.id]?.completed) ?? data?.episodes[0];
   const latestIsPlaying = latest && player.current?.id === latest.id && player.isPlaying;
+  const hasCover = isPremium && images.hasCover(podcast.id);
+  const changeCover = async (file: File | null) => {
+    try {
+      await images.setCover(podcast.id, file);
+      setNotice(file ? 'Pochette personnalisée enregistrée sur cet appareil.' : 'Pochette d’origine rétablie.');
+    } catch (e) {
+      setNotice((e as Error).message);
+    }
+  };
   // On garde dans les abonnements une version légère (sans liste d'épisodes).
   const toggleSubscription = () => library.toggleSubscription({ ...podcast, description: podcast.description?.slice(0, 1000) });
 
@@ -111,8 +144,8 @@ export function PodcastPage() {
           <button
             className="play-btn play-btn--big"
             onClick={() => (latestIsPlaying ? player.pause() : player.play(latest))}
-            aria-label={latestIsPlaying ? 'Pause' : 'Lire le dernier épisode non écouté'}
-            title="Lire le dernier épisode non écouté"
+            aria-label={latestIsPlaying ? 'Pause' : oldestFirst ? 'Lire la suite' : 'Lire le dernier épisode non écouté'}
+            title={oldestFirst ? `Lire la suite : ${latest.title}` : 'Lire le dernier épisode non écouté'}
           >
             {latestIsPlaying ? <Pause size={26} fill="currentColor" /> : <Play size={26} fill="currentColor" />}
           </button>
@@ -129,6 +162,30 @@ export function PodcastPage() {
             <Rss size={20} />
           </a>
         )}
+        <button
+          className="icon-btn"
+          onClick={() => (isPremium ? coverInput.current?.click() : navigate('/premium'))}
+          aria-label="Personnaliser la pochette"
+          title={isPremium ? 'Choisir votre propre pochette' : 'Pochette personnalisée : avec Podsal+'}
+        >
+          <ImagePlus size={20} />
+        </button>
+        {hasCover && (
+          <button className="icon-btn" onClick={() => changeCover(null)} aria-label="Rétablir la pochette d’origine" title="Rétablir la pochette d’origine">
+            <ImageMinus size={20} />
+          </button>
+        )}
+        <input
+          ref={coverInput}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = '';
+            if (file) void changeCover(file);
+          }}
+        />
         {notice && <span className="small muted">{notice}</span>}
       </div>
 
@@ -149,10 +206,15 @@ export function PodcastPage() {
           value={filter}
           onChange={setFilter}
         />
-        <button className="btn btn--ghost btn--small" onClick={() => setOldestFirst((v) => !v)}>
-          <ArrowUpDown size={14} /> {oldestFirst ? 'Plus anciens' : 'Plus récents'}
+        <button className="btn btn--ghost btn--small" onClick={toggleOrder} title="Changer l'ordre des épisodes">
+          <ArrowUpDown size={14} /> {oldestFirst ? 'Ordre de lecture' : 'Plus récents d’abord'}
         </button>
       </div>
+      {oldestFirst && data && (data.podcast.episodeCount ?? 0) > data.episodes.length && (
+        <p className="small muted pad">
+          Seuls les {data.episodes.length} épisodes les plus récents sont disponibles : la liste commence donc au milieu de la série.
+        </p>
+      )}
 
       {loading && !data ? (
         <Spinner />

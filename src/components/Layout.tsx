@@ -4,7 +4,8 @@ import { BookOpen, ChartColumn, Clock, House, Library, ListMusic, Mic, Search, S
 import { useModeration } from '../store/moderation';
 import { PlaylistDialogProvider } from './Playlists';
 import { AppMark, Wordmark } from './Wordmark';
-import { DEFAULT_WALLPAPER, getWallpaper } from '../data/wallpapers';
+import { resolveBackground, sidebarBackground } from '../data/wallpapers';
+import { useCustomImages } from '../store/customImages';
 import { usePremium } from '../store/premium';
 import { useAuth } from '../store/auth';
 import { useLibrary } from '../store/library';
@@ -76,9 +77,10 @@ function AccountLink() {
 export function Layout() {
   const { subscriptions, settings } = useLibrary();
   const { isPremium } = usePremium();
-  // Un fond réservé à Podsal+ revient au fond par défaut quand l'abonnement prend fin.
-  const chosen = getWallpaper(settings.wallpaper);
-  const wallpaper = chosen.premium && !isPremium ? DEFAULT_WALLPAPER : chosen;
+  // Un fond réservé à Podsal+ (ou une image importée) revient au fond par défaut quand l'abonnement prend fin.
+  const images = useCustomImages();
+  const wallpaper = resolveBackground('main', settings.wallpaper, isPremium, images.wallpaperUrl('main'));
+  const sidebarBg = resolveBackground('sidebar', settings.sidebarWallpaper, isPremium, images.wallpaperUrl('sidebar'));
   const { isAdmin } = useModeration();
   const { current } = usePlayer();
   const [expanded, setExpanded] = useState(false);
@@ -97,7 +99,11 @@ export function Layout() {
     <PlaylistDialogProvider>
       <div className={`app ${current ? 'app--with-player' : ''}`}>
         <BackgroundTasks />
-        <aside className="sidebar">
+        <aside
+          className="sidebar"
+          data-wallpaper={sidebarBg.id}
+          style={sidebarBg.id === 'uni' ? undefined : { background: sidebarBackground(sidebarBg.background) }}
+        >
           <Link to="/" className="brand" aria-label="Podsal, accueil">
             <span className="brand__mark">
               <AppMark title="" />
