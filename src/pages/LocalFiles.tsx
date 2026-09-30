@@ -1,7 +1,8 @@
-import { useRef, useState, type DragEvent } from 'react';
+import { useEffect, useRef, useState, type DragEvent } from 'react';
 import { Link } from 'react-router';
 import { Check, Film, FolderOpen, ListPlus, Music, Pause, Pencil, Play, Trash2, Upload, X } from 'lucide-react';
 import { EmptyState, NowPlaying, formatBytes } from '../components/common';
+import { DB_BLOCKED_EVENT, isDbBlocked } from '../lib/idb';
 import { ACCEPTED_FILES, type LocalFile } from '../lib/localFiles';
 import { useLibrary } from '../store/library';
 import { FREE_LOCAL_FILES, useLocalFiles } from '../store/localFiles';
@@ -25,6 +26,14 @@ export function LocalFilesPanel() {
   const [editing, setEditing] = useState<{ id: string; title: string } | null>(null);
 
   const limitReached = local.remaining <= 0;
+
+  // Une ancienne version de Podsal ouverte dans un autre onglet empêche la mise à jour du stockage.
+  const [dbBlocked, setDbBlocked] = useState(isDbBlocked);
+  useEffect(() => {
+    const onBlocked = () => setDbBlocked(true);
+    window.addEventListener(DB_BLOCKED_EVENT, onBlocked);
+    return () => window.removeEventListener(DB_BLOCKED_EVENT, onBlocked);
+  }, []);
 
   const importFiles = async (list: FileList | null) => {
     if (!list?.length) return;
@@ -112,13 +121,21 @@ export function LocalFilesPanel() {
           permet d’en importer autant que vous voulez.
         </p>
       )}
+      {dbBlocked && local.loading && (
+        <p className="small local-files__limit">
+          Podsal est ouvert dans un autre onglet ou une autre fenêtre avec une ancienne version. Fermez-les puis rechargez cette page pour
+          terminer la mise à jour.
+        </p>
+      )}
       {errors.map((message) => (
         <p key={message} className="small error-text">
           {message}
         </p>
       ))}
 
-      {local.loading ? null : local.files.length === 0 ? (
+      {local.loading ? (
+        !dbBlocked && <p className="small muted">Chargement…</p>
+      ) : local.files.length === 0 ? (
         <EmptyState icon={<FolderOpen size={32} />} title="Aucun fichier">
           Importez un audio (MP3, M4A…) ou une vidéo (MP4…) enregistré sur votre appareil pour l’écouter dans Podsal, même écran éteint.
           {!isPremium && ` Jusqu’à ${FREE_LOCAL_FILES} fichiers sans abonnement.`}

@@ -11,6 +11,14 @@ const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
+/** Émis quand une ancienne version de l'appli, ouverte ailleurs, empêche la mise à niveau de la base. */
+export const DB_BLOCKED_EVENT = 'podsal:db-blocked';
+let blocked = false;
+
+export function isDbBlocked(): boolean {
+  return blocked;
+}
+
 export function openDb(): Promise<IDBDatabase> {
   if (typeof indexedDB === 'undefined') return Promise.reject(new Error('IndexedDB indisponible'));
   dbPromise ??= new Promise((resolve, reject) => {
@@ -22,7 +30,12 @@ export function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
       if (!db.objectStoreNames.contains('files')) db.createObjectStore('files', { keyPath: 'id' });
     };
+    req.onblocked = () => {
+      blocked = true;
+      window.dispatchEvent(new Event(DB_BLOCKED_EVENT));
+    };
     req.onsuccess = () => {
+      blocked = false;
       const db = req.result;
       // Une autre fenêtre de l'appli met la base à jour : on ferme pour ne pas la bloquer (réouverte au besoin).
       db.onversionchange = () => {
