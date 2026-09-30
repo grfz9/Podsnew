@@ -1,15 +1,17 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { BookOpen, ChartColumn, Check, Download, Image, ImagePlus, ScrollText } from 'lucide-react';
+import { BookOpen, ChartColumn, Check, Download, FolderOpen, Image, ImagePlus, ScrollText } from 'lucide-react';
 import { openBillingPortal, PLANS, startCheckout, type Plan } from '../api/billing';
 import { AppMark } from '../components/Wordmark';
 import { useAuth } from '../store/auth';
 import { FREE_DOWNLOADS, usePremium } from '../store/premium';
+import { FREE_LOCAL_FILES } from '../store/localFiles';
 
 const BENEFITS = [
   { icon: Image, title: 'Tous les fonds d’écran', text: 'Étoiles dorées, arcades, coupole, zellige… ou votre propre image, pour la page comme pour le menu.' },
   { icon: ImagePlus, title: 'Pochettes personnalisées', text: 'Choisissez l’image de chaque podcast de votre bibliothèque.' },
   { icon: Download, title: 'Téléchargements illimités', text: `Sans abonnement : ${FREE_DOWNLOADS} épisodes ou sourates hors-ligne.` },
+  { icon: FolderOpen, title: 'Vos audios et vidéos, sans limite', text: `Importez vos MP3, MP4… et écoutez-les en arrière-plan. Sans abonnement : ${FREE_LOCAL_FILES} fichiers.` },
   { icon: ChartColumn, title: 'Statistiques avancées', text: 'Historique complet, catégories, heures d’écoute, bilan de l’année et export.' },
   { icon: ScrollText, title: '20 résumés par jour', text: 'Pour les podcasts généraux (jamais sur le religieux). Sans abonnement : 3 par jour.' },
 ];

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Link } from 'react-router';
-import { ChartColumn, Clock, Cloud, CloudOff, FileUp, Image, ListMusic, LogOut, Mail, Mic, ShieldCheck, Smartphone, Sparkle, Users } from 'lucide-react';
+import { ChartColumn, Clock, Cloud, CloudOff, FileUp, FolderOpen, Image, ListMusic, LogOut, Mail, Mic, ShieldCheck, Smartphone, Sparkle, Users } from 'lucide-react';
 import { normalizePhone } from '../utils/phone';
 import { usePremium } from '../store/premium';
 import { useModeration } from '../store/moderation';
@@ -311,6 +311,9 @@ function ProfileSettings() {
         <Link to="/fonds-ecran" className="account-link">
           <Image size={20} /> Fonds d'écran
         </Link>
+        <Link to="/fichiers" className="account-link">
+          <FolderOpen size={20} /> Mes fichiers audio et vidéo
+        </Link>
         <Link to="/stats" className="account-link">
           <ChartColumn size={20} /> Statistiques d'écoute
         </Link>
@@ -380,6 +383,9 @@ export function AccountPage() {
         <nav className="account-links">
           <Link to="/fonds-ecran" className="account-link">
             <Image size={20} /> Fonds d'écran
+          </Link>
+          <Link to="/fichiers" className="account-link">
+            <FolderOpen size={20} /> Mes fichiers audio et vidéo
           </Link>
           <Link to="/priere" className="account-link">
             <Clock size={20} /> Horaires de prière

@@ -5,6 +5,7 @@ import { nextPrayer, prayerTimes } from './prayer';
 import { SURAHS } from '../data/surahs';
 import { ayahAt, BASMALA, parseMoshafName, parseSurahEpisodeId, stripBasmala, surahEpisode, type Moshaf } from '../api/quran';
 import { monogram, starPath } from '../components/Cover';
+import { isLocalId, mediaKindOf, titleFromName, toEpisode } from './localFiles';
 
 const state = (validated: string[] = [], blocked: string[] = []): PolicyState => ({ validated: new Set(validated), blocked: new Set(blocked) });
 
@@ -132,5 +133,23 @@ describe('monogram', () => {
     expect(monogram('Small Talk - Konbini')).toBe('ST');
     expect(monogram('UNBX, le podcast tech')).toBe('UNBX');
     expect(monogram('')).toBe('•');
+  });
+});
+
+describe('fichiers importés', () => {
+  it('reconnaît les audios et les vidéos, par type ou par extension', () => {
+    expect(mediaKindOf({ name: 'cours.mp3', type: 'audio/mpeg' })).toBe('audio');
+    expect(mediaKindOf({ name: 'rappel.MP4', type: '' })).toBe('video');
+    expect(mediaKindOf({ name: 'note.m4a', type: '' })).toBe('audio');
+    expect(mediaKindOf({ name: 'photo.jpg', type: 'image/jpeg' })).toBeNull();
+  });
+  it('fait un titre lisible et renvoie vers « Mes fichiers »', () => {
+    expect(titleFromName('cours_tafsir-01.mp3')).toBe('cours tafsir-01');
+    expect(titleFromName('.mp3')).toBe('Fichier sans nom');
+    const episode = toEpisode({ id: 'file-1', title: 'Cours', kind: 'video', mime: 'video/mp4', size: 10, duration: 60, createdAt: 0 });
+    expect(isLocalId(episode.id)).toBe(true);
+    expect(episode.mediaKind).toBe('video');
+    expect(episodePath(episode)).toBe('/fichiers');
+    expect(podcastPath(episode.podcastId)).toBe('/fichiers');
   });
 });

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
-import { BookOpen, ChartColumn, Clock, House, Library, ListMusic, Mic, Search, ShieldCheck, Sparkle, User, Users, WifiOff } from 'lucide-react';
+import { BookOpen, ChartColumn, Clock, FolderOpen, House, Library, ListMusic, Mic, Search, ShieldCheck, Sparkle, User, Users, WifiOff } from 'lucide-react';
 import { useModeration } from '../store/moderation';
 import { PlaylistDialogProvider } from './Playlists';
 import { AppMark, Wordmark } from './Wordmark';
@@ -14,6 +14,7 @@ import { Artwork } from './common';
 import { BackgroundTasks, useOnline } from './Background';
 import { FullPlayer, PlayerBar } from './Player';
 import { podcastPath } from '../lib/paths';
+import { EXPAND_PLAYER_EVENT } from '../pages/LocalFiles';
 
 const SIDEBAR_NAV = [
   { to: '/', label: 'Accueil', icon: House, end: true },
@@ -21,6 +22,7 @@ const SIDEBAR_NAV = [
   { to: '/islam', label: 'Podcasts islamiques', icon: Mic },
   { to: '/search', label: 'Rechercher', icon: Search },
   { to: '/library', label: 'Bibliothèque', icon: Library },
+  { to: '/fichiers', label: 'Mes fichiers', icon: FolderOpen },
   { to: '/priere', label: 'Prière', icon: Clock },
   { to: '/queue', label: "File d'attente", icon: ListMusic },
   { to: '/friends', label: 'Amis', icon: Users },
@@ -89,6 +91,13 @@ export function Layout() {
   const closePlayer = useCallback(() => setExpanded(false), []);
 
   useKeyboardShortcuts();
+
+  // « Mes fichiers » : une vidéo lancée s'ouvre dans le grand lecteur.
+  useEffect(() => {
+    const onExpand = () => setExpanded(true);
+    window.addEventListener(EXPAND_PLAYER_EVENT, onExpand);
+    return () => window.removeEventListener(EXPAND_PLAYER_EVENT, onExpand);
+  }, []);
 
   // Remonte en haut de page à chaque navigation.
   useEffect(() => {

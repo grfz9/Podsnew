@@ -13,6 +13,7 @@ import { usePersistentState } from '../utils/hooks';
 import { isFinished, resumePosition } from '../utils/progress';
 import * as Q from '../utils/queue';
 import { localUrlFor } from '../lib/downloads';
+import { isLocalId } from '../lib/localFiles';
 import { isNativeId, trackNativePlay } from '../api/native';
 import { useLibrary } from './library';
 
@@ -47,6 +48,8 @@ interface PlayerValue {
   sleep: SleepTimer;
   /** Extrait en cours de lecture (s'arrête automatiquement à la fin). */
   segment: { start: number; end: number } | null;
+  /** Élément audio du lecteur (la vidéo d'un fichier importé se cale dessus). */
+  mediaElement: HTMLAudioElement | null;
 
   play: (episode: Episode, startAt?: number) => void;
   playSegment: (episode: Episode, start: number, end: number) => void;
@@ -68,6 +71,8 @@ interface PlayerValue {
   setVolume: (volume: number) => void;
   toggleMute: () => void;
   setSleep: (minutes: number | 'episode' | null) => void;
+  /** Change le titre affiché d'un épisode (fichier importé renommé), en cours de lecture ou dans la file. */
+  retitle: (episodeId: string, title: string) => void;
 }
 
 interface TimeValue {
@@ -184,12 +189,20 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setError(null);
       setTime(pendingSeek.current);
       setDuration(episode.duration);
-      // Fichier téléchargé si disponible, sinon lecture en streaming.
-      audio.src = localUrlFor(episode.id) ?? episode.audioUrl;
+      // Fichier téléchargé ou importé si disponible, sinon lecture en streaming.
+      const local = isLocalId(episode.id);
+      const src = localUrlFor(episode.id) ?? episode.audioUrl;
+      update({ current: episode });
+      if (!src) {
+        audio.removeAttribute('src');
+        setError(local ? 'Ce fichier n’est plus sur cet appareil.' : 'Impossible de lire cet épisode.');
+        return;
+      }
+      audio.src = src;
       audio.defaultPlaybackRate = rate;
       audio.playbackRate = rate;
-      update({ current: episode });
-      libraryRef.current.addToHistory(episode);
+      // Les fichiers importés restent sur l'appareil : ils ne vont pas dans l'historique synchronisé.
+      if (!local) libraryRef.current.addToHistory(episode);
       if (autoplay) {
         setIsBuffering(true);
         audio.play().catch(() => setIsBuffering(false));
@@ -362,6 +375,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       if (!audio.src) return;
       setIsBuffering(false);
       setIsPlaying(false);
+      if (currentRef.current && isLocalId(currentRef.current.id)) {
+        setError('Impossible de lire ce fichier : son format n’est peut-être pas pris en charge par cet appareil.');
+        return;
+      }
       setError(navigator.onLine ? 'Impossible de lire cet épisode. Le fichier audio est peut-être indisponible.' : 'Vous êtes hors-ligne et cet épisode n’est pas téléchargé.');
     };
 
@@ -461,6 +478,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       muted,
       sleep,
       segment,
+      mediaElement: audioRef.current,
       play,
       playSegment,
       repeat,
@@ -489,6 +507,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         update({ volume: Math.max(0, Math.min(1, v)) });
       },
       toggleMute: () => setMuted((m) => !m),
+      retitle: (id, title) =>
+        update((p) => ({
+          current: p.current?.id === id ? { ...p.current, title } : p.current,
+          queue: p.queue.map((e) => (e.id === id ? { ...e, title } : e)),
+        })),
       setSleep: (m) =>
         setSleepState(m === null ? null : m === 'episode' ? { kind: 'episode' } : { kind: 'minutes', endsAt: Date.now() + m * 60_000 }),
     }),

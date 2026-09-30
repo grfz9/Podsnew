@@ -8,6 +8,7 @@ import { EpisodeList, EpisodeRow } from '../components/EpisodeRow';
 import { PodcastGrid } from '../components/PodcastCard';
 import { clipPath } from '../components/EpisodeExtras';
 import { Artwork, EmptyState, Tabs, formatBytes, shareLink } from '../components/common';
+import { LocalFilesPanel } from './LocalFiles';
 import { PremiumTeaser } from '../components/Premium';
 import { FREE_DOWNLOADS, usePremium } from '../store/premium';
 import { buildOpml } from '../lib/opml';
@@ -21,6 +22,7 @@ const TABS = [
   { id: 'subscriptions', label: 'Abonnements' },
   { id: 'playlists', label: 'Playlists' },
   { id: 'downloads', label: 'Téléchargements' },
+  { id: 'files', label: 'Mes fichiers' },
   { id: 'saved', label: 'Favoris' },
   { id: 'clips', label: 'Extraits' },
   { id: 'history', label: 'Historique' },
@@ -257,6 +259,8 @@ export function LibraryPage() {
       {tab === 'playlists' && <Playlists />}
 
       {tab === 'downloads' && <Downloads />}
+
+      {tab === 'files' && <LocalFilesPanel />}
 
       {tab === 'saved' &&
         (library.savedEpisodes.length ? (

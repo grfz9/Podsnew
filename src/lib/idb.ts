@@ -4,9 +4,10 @@
  *  - downloads   : épisodes téléchargés (métadonnées + fichier audio)
  *  - transcripts : transcriptions déjà chargées (recherche hors-ligne)
  *  - kv          : petites valeurs utiles au service worker (abonnements, pays…)
+ *  - files       : fichiers audio et vidéo importés par l'utilisateur (« Mes fichiers »)
  */
 const DB_NAME = 'podsnew';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -19,8 +20,17 @@ export function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('downloads')) db.createObjectStore('downloads', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('transcripts')) db.createObjectStore('transcripts', { keyPath: 'episodeId' });
       if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+      if (!db.objectStoreNames.contains('files')) db.createObjectStore('files', { keyPath: 'id' });
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      const db = req.result;
+      // Une autre fenêtre de l'appli met la base à jour : on ferme pour ne pas la bloquer (réouverte au besoin).
+      db.onversionchange = () => {
+        db.close();
+        dbPromise = null;
+      };
+      resolve(db);
+    };
     req.onerror = () => {
       dbPromise = null;
       reject(req.error);

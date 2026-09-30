@@ -29,6 +29,19 @@ export function localUrlFor(episodeId: string): string | undefined {
   return localUrls.get(episodeId);
 }
 
+/** Fichiers importés (« Mes fichiers ») : lus par le lecteur comme un épisode téléchargé. */
+export function registerLocalUrl(id: string, url: string) {
+  const previous = localUrls.get(id);
+  if (previous?.startsWith('blob:') && previous !== url) URL.revokeObjectURL(previous);
+  localUrls.set(id, url);
+}
+
+export function unregisterLocalUrl(id: string) {
+  const url = localUrls.get(id);
+  if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
+  localUrls.delete(id);
+}
+
 function register(record: DownloadRecord) {
   if (record.mode === 'blob' && record.blob) {
     localUrls.set(record.id, URL.createObjectURL(record.blob));

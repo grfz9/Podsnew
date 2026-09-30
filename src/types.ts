@@ -30,6 +30,8 @@ export interface Episode {
   guid?: string;
   genre?: string;
   explicit?: boolean;
+  /** Fichier importé par l'utilisateur (« Mes fichiers ») : audio seul ou vidéo. */
+  mediaKind?: 'audio' | 'video';
 }
 
 export interface EpisodeProgress {

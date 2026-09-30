@@ -86,7 +86,8 @@ self.addEventListener('fetch', (event) => {
 
 function idbKv(mode, fn) {
   return new Promise((resolve, reject) => {
-    const open = indexedDB.open('podsnew', 1);
+    // Sans numéro de version : on ouvre la base telle que l'appli l'a créée (elle peut être plus récente).
+    const open = indexedDB.open('podsnew');
     open.onupgradeneeded = () => {
       const db = open.result;
       if (!db.objectStoreNames.contains('downloads')) db.createObjectStore('downloads', { keyPath: 'id' });
