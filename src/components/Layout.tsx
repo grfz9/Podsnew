@@ -37,9 +37,12 @@ const MOBILE_NAV = [
   { to: '/account', label: 'Compte', icon: User },
 ];
 
-/** Raccourcis clavier : espace = lecture/pause, ← / → = reculer / avancer. */
-function useKeyboardShortcuts() {
-  const { toggle, skip, current } = usePlayer();
+/**
+ * Raccourcis clavier : espace = lecture/pause, ← / → = reculer / avancer, M = couper le son,
+ * ↑ / ↓ = volume (grand lecteur ouvert, pour ne pas gêner le défilement des pages).
+ */
+function useKeyboardShortcuts(expanded: boolean) {
+  const { toggle, skip, current, volume, setVolume, toggleMute } = usePlayer();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -52,11 +55,16 @@ function useKeyboardShortcuts() {
         skip(-SKIP_BACK);
       } else if (e.key === 'ArrowRight' && !target.closest('[role="listitem"]')) {
         skip(SKIP_FORWARD);
+      } else if (e.key.toLowerCase() === 'm') {
+        toggleMute();
+      } else if (expanded && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        e.preventDefault();
+        setVolume(Math.round((volume + (e.key === 'ArrowUp' ? 0.1 : -0.1)) * 10) / 10);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [toggle, skip, current]);
+  }, [toggle, skip, current, expanded, volume, setVolume, toggleMute]);
 }
 
 function AccountLink() {
@@ -90,7 +98,7 @@ export function Layout() {
   const online = useOnline();
   const closePlayer = useCallback(() => setExpanded(false), []);
 
-  useKeyboardShortcuts();
+  useKeyboardShortcuts(expanded);
 
   // « Mes fichiers » : une vidéo lancée s'ouvre dans le grand lecteur.
   useEffect(() => {

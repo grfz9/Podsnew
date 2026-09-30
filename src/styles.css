@@ -1043,3 +1043,28 @@ a.playlist-card:hover { background: var(--bg-hover); }
   .local-file__icon { display: none; }
   .local-file__actions .icon-btn:first-child { display: none; }
 }
+
+/* ---------- Lecteur : volume, vidéo en plein écran ---------- */
+.volume--full { width: 100%; max-width: 320px; margin: 4px auto 14px; gap: 8px; }
+.volume--full .slider { flex: 1; }
+.volume__value { min-width: 44px; text-align: right; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.full-player__content--video { max-width: 860px; }
+/* Garde le format de la vidéo (verticale ou horizontale) sans dépasser 62 % de la hauteur de l'écran. */
+.local-video { aspect-ratio: var(--ratio, 16 / 9); width: min(100%, calc(62vh * var(--ratio, 1.78))); max-width: none; margin: 0 auto 20px; }
+.local-video video { cursor: pointer; }
+.local-video--fullscreen { max-height: none; width: 100%; height: 100%; border-radius: 0; margin: 0; aspect-ratio: auto; }
+.local-video--idle, .local-video--idle video { cursor: none; }
+.local-video__overlay {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 48px 28px 22px; display: flex; flex-direction: column; gap: 6px;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.4) 70%, transparent); transition: opacity 0.3s;
+}
+.local-video__title { margin: 0; font-weight: 700; font-size: 16px; }
+.local-video__overlay .progress { max-width: none; }
+.local-video__row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.local-video__extras { display: flex; align-items: center; gap: 10px; }
+.local-video__extras .volume--full { margin: 0; width: 220px; }
+.local-video--fullscreen .local-video__fullscreen { top: 16px; right: 16px; bottom: auto; transition: opacity 0.3s; }
+.local-video--idle .local-video__overlay, .local-video--idle .local-video__fullscreen { opacity: 0; pointer-events: none; }
+@media (max-width: 1100px) { .volume.volume--full { display: flex; } }
+/* Plein écran de secours (sans API plein écran) : la vidéo couvre toute la fenêtre de l'appli. */
+.local-video--pseudo { position: fixed; inset: 0; z-index: 300; background: #000; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }

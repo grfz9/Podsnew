@@ -9,6 +9,7 @@ import {
   Moon,
   Pause,
   Play,
+  Repeat,
   RotateCcw,
   RotateCw,
   SkipForward,
@@ -163,11 +164,23 @@ function SleepButton() {
   );
 }
 
-function VolumeControl() {
+/** iPhone et iPad : le volume se règle uniquement avec les boutons de l'appareil (le curseur n'aurait aucun effet). */
+const FIXED_VOLUME =
+  typeof navigator !== 'undefined' &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+
+function VolumeControl({ full = false }: { full?: boolean }) {
   const { volume, muted, setVolume, toggleMute } = usePlayer();
   const v = muted ? 0 : volume;
+  if (full && FIXED_VOLUME) {
+    return (
+      <button className="ctrl-btn" onClick={toggleMute} aria-label={muted ? 'Réactiver le son' : 'Couper le son'}>
+        {muted ? <VolumeX size={14} /> : <Volume2 size={14} />} {muted ? 'Son coupé' : 'Son'}
+      </button>
+    );
+  }
   return (
-    <div className="volume">
+    <div className={`volume ${full ? 'volume--full' : ''}`} title="Volume (↑ / ↓, M pour couper)">
       <button className="icon-btn" onClick={toggleMute} aria-label={muted ? 'Réactiver le son' : 'Couper le son'}>
         {v === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
       </button>
@@ -182,7 +195,25 @@ function VolumeControl() {
         onChange={(e) => setVolume(Number(e.target.value))}
         aria-label="Volume"
       />
+      {full && <span className="volume__value">{Math.round(v * 100)} %</span>}
     </div>
+  );
+}
+
+/** Relecture en boucle de l'épisode ou du fichier en cours. */
+function RepeatButton() {
+  const { current, repeat, setRepeat } = usePlayer();
+  if (!current) return null;
+  const on = repeat?.episodeId === current.id && repeat.remaining === Infinity && repeat.end === undefined;
+  return (
+    <button
+      className={`ctrl-btn ${on ? 'ctrl-btn--active' : ''}`}
+      onClick={() => setRepeat(on ? null : { episodeId: current.id, remaining: Infinity, start: 0 })}
+      aria-pressed={on}
+      title="Relire en boucle"
+    >
+      <Repeat size={14} /> Répéter
+    </button>
   );
 }
 
@@ -262,7 +293,7 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="full-player" role="dialog" aria-modal="true" aria-label="Lecteur">
-      <div className="full-player__content">
+      <div className={`full-player__content ${ep.mediaKind === 'video' ? 'full-player__content--video' : ''}`}>
         <div className="full-player__top">
           <button className="icon-btn" onClick={onClose} aria-label="Fermer le lecteur">
             <ChevronDown size={28} />
@@ -273,7 +304,22 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         {ep.mediaKind === 'video' ? (
-          <LocalVideo episodeId={ep.id} title={ep.title} />
+          <LocalVideo
+            episodeId={ep.id}
+            title={ep.title}
+            controls={
+              <>
+                <ProgressBar />
+                <div className="local-video__row">
+                  <Controls />
+                  <span className="local-video__extras">
+                    <VolumeControl full />
+                    <RateButton />
+                  </span>
+                </div>
+              </>
+            }
+          />
         ) : (
           <Artwork
             src={chapter?.img || ep.artwork}
@@ -297,9 +343,11 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
         {player.error && <p className="player-bar__error">{player.error}</p>}
         <ProgressBar />
         <Controls large />
+        <VolumeControl full />
         <div className="full-player__extras">
           <RateButton />
           <SleepButton />
+          <RepeatButton />
           {!local && (
             <button className="ctrl-btn" onClick={() => go(`${episodePath(ep)}?clip=1`)} aria-label="Créer un extrait">
               <Scissors size={14} /> Extrait
