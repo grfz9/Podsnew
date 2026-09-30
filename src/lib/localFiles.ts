@@ -141,3 +141,45 @@ export async function deleteLocalFile(id: string): Promise<void> {
   unregisterLocalUrl(id);
   await idbDelete('files', id);
 }
+
+/* ---------- Groupes ---------- */
+
+/** Groupe de fichiers (sur l'appareil). `remoteId` : groupe publié sur le profil (visible par les amis). */
+export interface FileGroup {
+  id: string;
+  name: string;
+  fileIds: string[];
+  createdAt: number;
+  /** Dernière modification (nom, fichiers, ordre, titres) : sert à savoir si la publication est à jour. */
+  updatedAt: number;
+  remoteId?: string;
+  publishedAt?: number;
+}
+
+const GROUPS_KEY = 'file-groups';
+
+export async function loadGroups(): Promise<FileGroup[]> {
+  try {
+    return (await idbGet<FileGroup[]>('kv', GROUPS_KEY)) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveGroups(groups: FileGroup[]): Promise<void> {
+  await idbPut('kv', groups, GROUPS_KEY);
+}
+
+/** Fichier complet (pour l'envoyer lors d'une publication). */
+export async function getLocalFileBlob(id: string): Promise<Blob | undefined> {
+  return (await idbGet<LocalFileRecord>('files', id))?.blob;
+}
+
+export function newGroupId(): string {
+  return `group-${crypto.randomUUID()}`;
+}
+
+/** La publication ne reflète plus le groupe (fichiers, ordre, noms modifiés depuis). */
+export function isPublicationOutdated(group: FileGroup): boolean {
+  return !!group.remoteId && (group.publishedAt ?? 0) < group.updatedAt;
+}

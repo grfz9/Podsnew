@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type DragEvent } from 'react';
 import { Link } from 'react-router';
-import { Check, Film, FolderOpen, ListPlus, Music, Pause, Pencil, Play, Trash2, Upload, X } from 'lucide-react';
-import { EmptyState, NowPlaying, formatBytes } from '../components/common';
+import { Check, Film, FolderOpen, FolderPlus, ListPlus, Music, Pause, Pencil, Play, Plus, Trash2, Upload, X } from 'lucide-react';
+import { EmptyState, NowPlaying, Tabs, formatBytes } from '../components/common';
+import { FileGroups } from '../components/FileGroups';
+import { usePlayLocal } from '../components/playLocal';
 import { DB_BLOCKED_EVENT, isDbBlocked } from '../lib/idb';
 import { ACCEPTED_FILES, type LocalFile } from '../lib/localFiles';
 import { useLibrary } from '../store/library';
@@ -10,11 +12,62 @@ import { usePlayer } from '../store/player';
 import { usePremium } from '../store/premium';
 import { formatDuration, formatTime } from '../utils/format';
 
-/** Demande au lecteur de s'ouvrir en grand (pour voir une vidéo). */
-export const EXPAND_PLAYER_EVENT = 'podsal:expand-player';
+/** Choix des groupes d'un fichier (cases à cocher), avec création d'un groupe. */
+function GroupPicker({ fileId, onClose }: { fileId: string; onClose: () => void }) {
+  const local = useLocalFiles();
+  const [name, setName] = useState('');
+  return (
+    <div className="group-picker" role="dialog" aria-label="Groupes">
+      <div className="group-picker__head">
+        <strong>Ajouter à un groupe</strong>
+        <button className="icon-btn" onClick={onClose} aria-label="Fermer">
+          <X size={16} />
+        </button>
+      </div>
+      {local.groups.map((g) => (
+        <label key={g.id} className="group-picker__item">
+          <input type="checkbox" checked={g.fileIds.includes(fileId)} onChange={() => local.toggleInGroup(g.id, fileId)} />
+          <span>{g.name}</span>
+        </label>
+      ))}
+      <form
+        className="group-picker__new"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!name.trim()) return;
+          local.createGroup(name, [fileId]);
+          setName('');
+        }}
+      >
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nouveau groupe" aria-label="Nom du nouveau groupe" maxLength={80} />
+        <button className="icon-btn" type="submit" aria-label="Créer le groupe" disabled={!name.trim()}>
+          <Plus size={16} />
+        </button>
+      </form>
+    </div>
+  );
+}
 
-/** « Mes fichiers » : audio et vidéo importés depuis l'appareil. */
+/** « Mes fichiers » : audio et vidéo importés depuis l'appareil, rangés en groupes. */
 export function LocalFilesPanel() {
+  const [view, setView] = useState<'files' | 'groups'>('files');
+  const local = useLocalFiles();
+  return (
+    <>
+      <Tabs
+        tabs={[
+          { id: 'files', label: `Fichiers (${local.files.length})` },
+          { id: 'groups', label: `Groupes (${local.groups.length})` },
+        ]}
+        value={view}
+        onChange={setView}
+      />
+      {view === 'files' ? <FilesView /> : <FileGroups />}
+    </>
+  );
+}
+
+function FilesView() {
   const local = useLocalFiles();
   const player = usePlayer();
   const library = useLibrary();
@@ -24,8 +77,11 @@ export function LocalFilesPanel() {
   const [errors, setErrors] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
   const [editing, setEditing] = useState<{ id: string; title: string } | null>(null);
+  const [picking, setPicking] = useState<string | null>(null);
+  const playFile = usePlayLocal();
 
   const limitReached = local.remaining <= 0;
+  const groupCount = (fileId: string) => local.groups.filter((g) => g.fileIds.includes(fileId)).length;
 
   // Une ancienne version de Podsal ouverte dans un autre onglet empêche la mise à jour du stockage.
   const [dbBlocked, setDbBlocked] = useState(isDbBlocked);
@@ -47,14 +103,6 @@ export function LocalFilesPanel() {
     e.preventDefault();
     setDragging(false);
     if (!limitReached && !busy) void importFiles(e.dataTransfer.files);
-  };
-
-  const playFile = (file: LocalFile) => {
-    const episode = local.episodes.find((e) => e.id === file.id);
-    if (!episode) return;
-    if (player.current?.id === file.id) player.toggle();
-    else player.play(episode);
-    if (file.kind === 'video') window.dispatchEvent(new Event(EXPAND_PLAYER_EVENT));
   };
 
   const remove = async (file: LocalFile) => {
@@ -189,9 +237,19 @@ export function LocalFilesPanel() {
                     {progress?.completed
                       ? ' · Écouté'
                       : progress && progress.position > 0 && ` · Reprise à ${formatTime(progress.position)}`}
+                    {groupCount(file.id) > 0 && ` · ${groupCount(file.id)} groupe${groupCount(file.id) > 1 ? 's' : ''}`}
                   </span>
                 </div>
                 <span className="local-file__actions">
+                  <button
+                    className={`icon-btn ${picking === file.id ? 'icon-btn--active' : ''}`}
+                    onClick={() => setPicking(picking === file.id ? null : file.id)}
+                    aria-label="Ajouter à un groupe"
+                    aria-expanded={picking === file.id}
+                    title="Ajouter à un groupe"
+                  >
+                    <FolderPlus size={18} />
+                  </button>
                   <button className="icon-btn" onClick={() => player.enqueue(local.episodes.find((e) => e.id === file.id)!)} aria-label="Ajouter à la file d'attente" title="Ajouter à la file d'attente">
                     <ListPlus size={18} />
                   </button>
@@ -202,13 +260,14 @@ export function LocalFilesPanel() {
                     <Trash2 size={18} />
                   </button>
                 </span>
+                {picking === file.id && <GroupPicker fileId={file.id} onClose={() => setPicking(null)} />}
               </li>
             );
           })}
         </ul>
       )}
       <p className="small muted">
-        Les fichiers restent sur cet appareil : ils ne sont envoyés nulle part et ne sont pas synchronisés avec vos autres appareils.
+        Les fichiers restent sur cet appareil : ils ne sont envoyés nulle part, sauf ceux des groupes que vous publiez pour vos amis.
       </p>
     </section>
   );

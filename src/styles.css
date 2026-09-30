@@ -1068,3 +1068,47 @@ a.playlist-card:hover { background: var(--bg-hover); }
 @media (max-width: 1100px) { .volume.volume--full { display: flex; } }
 /* Plein écran de secours (sans API plein écran) : la vidéo couvre toute la fenêtre de l'appli. */
 .local-video--pseudo { position: fixed; inset: 0; z-index: 300; background: #000; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+
+/* ---------- Mes fichiers : groupes ---------- */
+.local-file { position: relative; }
+.icon-btn--active { color: var(--accent); }
+.btn--active { border-color: var(--accent); color: var(--accent); }
+.group-picker {
+  position: absolute; right: 8px; top: calc(100% - 6px); z-index: 20; width: min(280px, calc(100vw - 32px)); padding: 10px;
+  display: flex; flex-direction: column; gap: 4px; border-radius: var(--radius-lg); background: var(--bg-elevated); border: 1px solid var(--border);
+  box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.9);
+}
+.group-picker__head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+.group-picker__item { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: var(--radius); cursor: pointer; font-size: 14px; min-width: 0; }
+.group-picker__item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.group-picker__item:hover { background: var(--bg-hover); }
+.group-picker__new, .file-groups__new { display: flex; gap: 6px; align-items: center; margin-top: 4px; }
+.group-picker__new input, .file-groups__new input {
+  flex: 1; min-width: 0; padding: 7px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--text); font: inherit; font-size: 14px;
+}
+.file-groups { display: flex; flex-direction: column; gap: 14px; }
+.file-groups__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.file-group { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: var(--radius-lg); background: var(--bg-card); border: 1px solid var(--line); }
+.file-group__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; text-align: left; }
+.file-group__name { display: flex; align-items: center; gap: 8px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-group__name svg { color: #e2c485; flex-shrink: 0; }
+.file-group__badge { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; color: var(--text-muted); background: var(--bg-hover); }
+.file-group__badge--public { color: #062220; background: var(--accent); }
+.file-group-detail { display: flex; flex-direction: column; gap: 14px; }
+.file-group-detail__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.file-group-detail__title { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 22px; }
+.file-group-detail__title > svg { color: #e2c485; }
+.file-group-detail__add { padding: 10px; border-radius: var(--radius-lg); background: var(--bg-elevated); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 2px; }
+.file-group-publication { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 14px; border-radius: var(--radius-lg); background: rgba(108, 196, 180, 0.07); border: 1px solid rgba(108, 196, 180, 0.2); }
+.file-group-publication p { margin: 0; }
+.local-files__list:is(ol) { list-style: none; }
+.shared-groups { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
+.shared-group__items { margin-top: 4px; }
+.moderation-group { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+.moderation-group--hidden { opacity: 0.65; }
+.moderation-group p { margin: 0; }
+@media (max-width: 767px) {
+  .file-group { gap: 10px; padding: 10px; }
+  .file-group__badge { display: none; }
+  .local-file__actions--group .icon-btn:first-child { display: inline-flex; }
+}
