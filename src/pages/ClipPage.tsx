@@ -36,7 +36,7 @@ export function ClipPage() {
 
   return (
     <div className="page clip-page">
-      <Artwork src={episode.artwork} alt={episode.podcastTitle} className="clip-page__art" />
+      <Artwork alt={episode.podcastTitle} className="clip-page__art" podcastId={episode.podcastId} genre={episode.genre} />
       <p className="small muted">
         Extrait · {formatTime(start)} – {formatTime(end)}
       </p>

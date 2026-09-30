@@ -8,7 +8,8 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const key = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_ANON_KEY) as string | undefined;
 
-export const supabase: SupabaseClient | null = url && key ? createClient(url, key) : null;
+// Flux PKCE : au retour de Google ou d'Apple, le code arrive dans « ?code= », avant le « # » du routeur.
+export const supabase: SupabaseClient | null = url && key ? createClient(url, key, { auth: { flowType: 'pkce' } }) : null;
 
 export const backendEnabled = supabase !== null;
 
@@ -40,6 +41,8 @@ export interface Profile {
   id: string;
   username: string;
   display_name: string | null;
+  /** Faux pour un pseudo provisoire (compte créé avec Google, Apple ou un téléphone). */
+  username_set?: boolean;
   created_at: string;
 }
 

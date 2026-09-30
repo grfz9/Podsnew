@@ -44,7 +44,7 @@ export function EpisodePage() {
   return (
     <div className="page">
       <header className="episode-hero">
-        <Artwork src={episode.artwork} alt={episode.podcastTitle} className="episode-hero__art" />
+        <Artwork alt={episode.podcastTitle} className="episode-hero__art" podcastId={episode.podcastId} genre={episode.genre} />
         <div className="episode-hero__info">
           <Link to={podcastPath(episode.podcastId)} className="episode-hero__podcast">
             {episode.podcastTitle}

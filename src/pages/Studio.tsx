@@ -186,7 +186,7 @@ function StudioHome() {
         <div className="studio-list">
           {data.map((p) => (
             <Link key={p.id} to={`/studio/${p.id}`} className="studio-item">
-              <Artwork src={p.cover_url ?? undefined} alt={p.title} size={72} />
+              <Artwork alt={p.title} size={72} genreIds={[String(p.category_id)]} />
               <div>
                 <strong>{p.title}</strong>
                 <div className="small muted">
@@ -315,7 +315,7 @@ function StudioPodcast() {
   return (
     <div className="page">
       <header className="episode-hero">
-        <Artwork src={p.cover_url ?? undefined} alt={p.title} className="episode-hero__art" />
+        <Artwork alt={p.title} className="episode-hero__art" genreIds={[String(p.category_id)]} />
         <div className="episode-hero__info">
           <Link to="/studio" className="episode-hero__podcast">
             Studio

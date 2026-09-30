@@ -8,7 +8,7 @@ export function PodcastCard({ podcast, rank, index = 0 }: { podcast: Podcast; ra
   return (
     <Link to={podcastPath(podcast.id)} className="card" state={{ podcast }} style={{ '--i': Math.min(index, 12) } as CSSProperties}>
       <div className="card__art">
-        <Artwork src={podcast.artwork} alt={podcast.title} />
+        <Artwork alt={podcast.title} podcastId={podcast.id} genre={podcast.genre} genreIds={podcast.genreIds} />
         {rank !== undefined && <span className="card__rank">{rank}</span>}
       </div>
       <div className="card__title" title={podcast.title}>

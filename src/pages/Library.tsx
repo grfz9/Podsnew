@@ -8,6 +8,8 @@ import { EpisodeList, EpisodeRow } from '../components/EpisodeRow';
 import { PodcastGrid } from '../components/PodcastCard';
 import { clipPath } from '../components/EpisodeExtras';
 import { Artwork, EmptyState, Tabs, formatBytes, shareLink } from '../components/common';
+import { PremiumTeaser } from '../components/Premium';
+import { FREE_DOWNLOADS, usePremium } from '../store/premium';
 import { buildOpml } from '../lib/opml';
 import { notificationsSupported, registerBackgroundCheck, requestNotificationPermission } from '../lib/notifications';
 import { useDownloads } from '../store/downloads';
@@ -61,6 +63,7 @@ function Playlists() {
 
 function Downloads() {
   const { downloads, usage, remove } = useDownloads();
+  const { isPremium } = usePremium();
   if (!downloads.length) {
     return (
       <EmptyState icon={<Download size={32} />} title="Aucun épisode téléchargé">
@@ -72,10 +75,16 @@ function Downloads() {
   return (
     <>
       <p className="small muted">
-        {downloads.length} épisode{downloads.length > 1 ? 's' : ''}
+        {downloads.length}
+        {!isPremium && ` sur ${FREE_DOWNLOADS}`} épisode{downloads.length > 1 ? 's' : ''}
         {total > 0 && ` · ${formatBytes(total)}`}
         {usage && usage.quota > 0 && ` · espace utilisé par l'application : ${formatBytes(usage.used)} sur ${formatBytes(usage.quota)} disponibles`}
       </p>
+      {!isPremium && downloads.length >= FREE_DOWNLOADS && (
+        <PremiumTeaser title="Téléchargements illimités avec Podsal+">
+          Sans abonnement, {FREE_DOWNLOADS} épisodes ou sourates peuvent être gardés hors-ligne.
+        </PremiumTeaser>
+      )}
       <div className="episode-list">
         {downloads.map((d) => (
           <EpisodeRow key={d.id} episode={d.episode} showPodcast />
@@ -106,7 +115,7 @@ function Clips() {
         const path = clipPath(c.episode, c.start, c.end, c.note);
         return (
           <article key={c.id} className="queue-item">
-            <Artwork src={c.episode.artwork} alt={c.episode.podcastTitle} size={48} />
+            <Artwork alt={c.episode.podcastTitle} size={48} podcastId={c.episode.podcastId} genre={c.episode.genre} />
             <div className="queue-item__text">
               <Link to={path} className="queue-item__title">
                 {c.episode.title}

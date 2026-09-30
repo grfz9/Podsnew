@@ -112,7 +112,7 @@ Le backend utilise [Supabase](https://supabase.com) : base Postgres avec sécuri
    ```
 3. Déployez les fonctions serveur :
    ```bash
-   npx supabase functions deploy proxy transcript summarize rss
+   npx supabase functions deploy proxy transcript summarize rss billing stripe-webhook
    ```
 4. Pour les résumés automatiques (podcasts non religieux uniquement), ajoutez une clé de l'API Claude (console.anthropic.com) :
    ```bash
@@ -122,7 +122,44 @@ Le backend utilise [Supabase](https://supabase.com) : base Postgres avec sécuri
 5. Copiez `.env.example` en `.env.local` et renseignez l'URL du projet et sa clé publique (tableau de bord Supabase → *Project Settings* → *API Keys*).
 6. Dans *Authentication* → *URL Configuration*, ajoutez l'adresse de votre site aux URL de redirection (confirmation d'e-mail et mot de passe oublié).
 
-Pour développer avec un Supabase local (Docker requis) : `npx supabase start`, puis utilisez l'URL et la clé affichées.
+Pour développer avec un Supabase local (Docker requis) : `npx supabase start`, puis utilisez l'URL et la clé affichées. En local, le numéro de test `06 12 34 56 78` reçoit toujours le code SMS `123456` (aucun SMS envoyé).
+
+### Connexion avec Google, Apple ou un téléphone
+
+L'écran de connexion propose : Google, Apple, e-mail + mot de passe, téléphone + mot de passe (confirmé par un code SMS). Chaque méthode s'active dans le tableau de bord Supabase → *Authentication* → *Sign In / Providers* :
+
+- **Google** : dans [Google Cloud Console](https://console.cloud.google.com/apis/credentials), créez un « ID client OAuth » de type *Application Web*, avec comme URI de redirection autorisée `https://<projet>.supabase.co/auth/v1/callback`. Collez l'ID client et le code secret dans le fournisseur *Google* de Supabase.
+- **Apple** (compte Apple Developer requis, 99 €/an) : créez un *Services ID* (identifiant de connexion), une clé *Sign in with Apple* et notez votre *Team ID* ; le tableau de bord Supabase génère le secret à partir de ces éléments. URL de retour : la même que pour Google.
+- **Téléphone** : créez un compte [Twilio](https://www.twilio.com), un *Messaging Service*, puis collez *Account SID*, *Auth Token* et *Messaging Service SID* dans le fournisseur *Phone* de Supabase (cochez « Enable phone signup » et « Confirm phone »). Chaque SMS est facturé par Twilio (quelques centimes).
+
+Les comptes créés avec Google, Apple ou un téléphone reçoivent un pseudo provisoire ; la page Compte invite à choisir le sien. Dans l'application Android / iOS, les boutons Google et Apple sont masqués (ils demandent une configuration native) : e-mail et téléphone y fonctionnent.
+
+### Abonnement Podsal+ (Stripe)
+
+2,99 € par mois ou 24,99 € par an. Le Coran, les horaires de prière et les podcasts islamiques restent gratuits ; Podsal+ ajoute :
+
+| Avantage | Sans abonnement | Podsal+ |
+|---|---|---|
+| Fonds d'écran | 3 fonds | les 8 fonds |
+| Téléchargements hors-ligne | 10 épisodes ou sourates | illimités |
+| Statistiques | mois et année, podcasts préférés | + historique complet, catégories, heures d'écoute, bilan de l'année, export CSV |
+| Résumés automatiques (podcasts généraux) | 3 par jour | 20 par jour |
+
+Mise en place :
+
+1. Sur [dashboard.stripe.com](https://dashboard.stripe.com), créez un produit « Podsal+ » avec deux prix récurrents : 2,99 € par mois et 24,99 € par an. Notez leurs identifiants (`price_…`).
+2. Activez l'espace client (*Settings* → *Billing* → *Customer portal*) pour que les abonnés puissent résilier ou changer de carte.
+3. Créez un webhook (*Developers* → *Webhooks*) vers `https://<projet>.supabase.co/functions/v1/stripe-webhook`, avec les événements `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `customer.subscription.paused`, `customer.subscription.resumed`. Notez son secret de signature (`whsec_…`).
+4. Enregistrez les secrets :
+   ```bash
+   npx supabase secrets set STRIPE_SECRET_KEY=sk_live_... STRIPE_WEBHOOK_SECRET=whsec_... \
+     STRIPE_PRICE_MONTHLY=price_... STRIPE_PRICE_YEARLY=price_... APP_URLS=https://votre-site.fr
+   ```
+   `APP_URLS` liste les adresses de l'application (séparées par des virgules) vers lesquelles Stripe peut renvoyer après le paiement.
+
+Commencez avec les clés de test (`sk_test_…`) et la carte `4242 4242 4242 4242`. L'abonnement n'est enregistré que par le webhook (signature vérifiée) : l'application ne peut pas s'accorder Podsal+ elle-même.
+
+Dans les applications Android et iOS, Apple et Google imposent leurs propres systèmes d'achat pour un abonnement numérique : le bouton « S'abonner » y est masqué. Il faudra ajouter les achats intégrés (par exemple avec RevenueCat) avant la publication sur les stores ; les abonnés du web retrouvent leurs avantages sur mobile en se connectant.
 
 ### Fonctions serveur
 
@@ -130,8 +167,10 @@ Pour développer avec un Supabase local (Docker requis) : `npx supabase start`, 
 |---|---|
 | `proxy` | Récupère flux RSS, chapitres et transcriptions quand l'hébergeur du podcast bloque le navigateur (utilisateurs connectés, adresses internes refusées, 8 Mo max). |
 | `transcript` | Récupère la transcription d'un épisode et l'ajoute à l'index de recherche. |
-| `summarize` | Rédige le résumé d'un épisode avec Claude (modèle `claude-opus-5-5`). Refuse le Coran et les podcasts islamiques. Chaque épisode n'est résumé qu'une fois ; 20 nouveaux résumés par utilisateur et par jour. |
+| `summarize` | Rédige le résumé d'un épisode avec Claude (modèle `claude-opus-5-5`). Refuse le Coran et les podcasts islamiques. Chaque épisode n'est résumé qu'une fois ; 3 nouveaux résumés par jour (20 avec Podsal+). |
 | `rss` | Flux RSS public des podcasts publiés dans le studio. |
+| `billing` | Ouvre le paiement Stripe (Podsal+) ou l'espace client pour gérer l'abonnement. |
+| `stripe-webhook` | Reçoit les événements Stripe (signature vérifiée) et tient à jour la table `subscriptions`. |
 
 ## Application mobile (Capacitor)
 
@@ -150,6 +189,7 @@ Pour la version mobile, définissez les variables Supabase **avant** le build, p
 - **Texte arabe** : édition Uthmani selon la lecture de Hafs. Pour une récitation dans une autre riwaya, l'application le signale.
 - **Minutage des versets** (surlignage, répétition d'un passage) : fourni par mp3quran.net pour une partie des récitations seulement ; sinon, seule la sourate entière peut être répétée.
 - **Horaires de prière** : calculés, ils peuvent différer de quelques minutes de ceux de votre mosquée ; vérifiez-les et choisissez la méthode en conséquence.
+- **Mawaqit** : l'API de Mawaqit est privée (réservée à leurs propres applications et partenaires) ; Podsal ne peut donc pas afficher les horaires d'une mosquée Mawaqit sans un accord avec eux (contact : voir mawaqit.net).
 - **Podcasts généraux** : le filtrage repose sur la catégorie et le marquage « explicite » déclarés par les éditeurs. Un podcast peut contenir un générique musical : l'administrateur peut alors le masquer.
 - **Transcriptions et chapitres** : uniquement quand l'éditeur les publie dans son flux RSS.
 - **Téléchargements** : certains hébergeurs refusent les téléchargements depuis un navigateur ; l'épisode est alors conservé dans le cache de l'application installée.
@@ -175,7 +215,11 @@ brand/          logo fourni (branding.pdf) et script qui en tire favicon, icône
 
 ## Identité visuelle
 
-Le logo (`brand/branding.pdf`) est un mot-symbole « Podsal » blanc cassé (`#f5f1ec`) sur vert-bleu (`#2f4f4f`). Il est repris dans la barre latérale, sur l'accueil mobile, dans le favicon (initiale « P »), les icônes de l'application web et des applications Android / iOS, et les écrans de démarrage. Les éléments interactifs utilisent une teinte claire du même vert-bleu (`#6cc4b4`).
+Le logo (`brand/branding.pdf`) est un mot-symbole « Podsal » blanc cassé (`#f5f1ec`) sur vert-bleu (`#2f4f4f`). Comme un mot entier est illisible dans une icône carrée, l'application a aussi un **symbole** : une arche de mihrab contenant des ondes sonores. Le symbole sert d'icône (favicon, application web, Android, iOS) ; symbole et mot-symbole apparaissent ensemble dans la barre latérale, sur l'accueil mobile et sur l'écran de démarrage. Les éléments interactifs utilisent une teinte claire du même vert-bleu (`#6cc4b4`).
+
+**Couvertures** : aucune pochette d'origine n'est affichée (beaucoup représentent des personnes). Chaque podcast reçoit une couverture dessinée en géométrie pure (`src/components/Cover.tsx`) : arche de mihrab dorée pour le Coran, rosaces et pavages d'étoiles à huit branches pour les podcasts islamiques (plusieurs palettes), icône de la catégorie pour les autres podcasts.
+
+**Fonds d'écran** (page « Fonds d'écran », depuis Compte) : vert-bleu, nuit étoilée, dunes, puis avec Podsal+ étoiles dorées, arcades, coupole au crépuscule, aube, zellige (`src/data/wallpapers.ts`). Uniquement géométrie, architecture et paysages.
 
 Interface : police Inter, surfaces sombres teintées de vert-bleu, barre de navigation et mini-lecteur en verre dépoli sur mobile, tuiles de catégories avec icône et reflet de leur couleur. Les animations restent courtes et ne dépendent jamais du défilement : apparition des pages et des cartes, retour visuel à l'appui, barres « en cours de lecture », pochette qui se réduit quand la lecture est en pause, progression vers la prochaine prière. Elles sont toutes désactivées si le système demande de réduire les animations.
 

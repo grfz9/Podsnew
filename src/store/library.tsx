@@ -33,10 +33,13 @@ export interface Settings {
     favorites: number[];
   };
   prayer: PrayerSettings;
+  /** Fond d'écran de l'application (voir src/data/wallpapers.ts). */
+  wallpaper: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   notifications: false,
+  wallpaper: 'halo',
   quran: { translation: 'rashid', showArabic: true, favorites: [] },
   prayer: {
     enabled: false,

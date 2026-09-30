@@ -105,6 +105,11 @@ export function ModerationProvider({ children }: { children: ReactNode }) {
   return <ModerationContext.Provider value={value}>{children}</ModerationContext.Provider>;
 }
 
+/** Même chose, sans erreur hors du fournisseur (couvertures affichées partout). */
+export function useModerationOptional(): ModerationValue | null {
+  return useContext(ModerationContext);
+}
+
 export function useModeration(): ModerationValue {
   const ctx = useContext(ModerationContext);
   if (!ctx) throw new Error('useModeration doit être utilisé dans <ModerationProvider>');

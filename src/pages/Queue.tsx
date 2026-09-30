@@ -17,7 +17,7 @@ export function QueuePage() {
         <>
           <h2 className="section-title">En cours de lecture</h2>
           <div className="queue-item queue-item--current">
-            <Artwork src={current.artwork} alt={current.podcastTitle} size={56} />
+            <Artwork alt={current.podcastTitle} size={56} podcastId={current.podcastId} genre={current.genre} />
             <div className="queue-item__text">
               <div className="queue-item__title">{current.title}</div>
               <Link to={podcastPath(current.podcastId)} className="small muted">
@@ -45,7 +45,7 @@ export function QueuePage() {
         <ol className="queue">
           {queue.map((ep, i) => (
             <li key={ep.id} className="queue-item">
-              <Artwork src={ep.artwork} alt={ep.podcastTitle} size={48} />
+              <Artwork alt={ep.podcastTitle} size={48} podcastId={ep.podcastId} genre={ep.genre} />
               <div className="queue-item__text">
                 <div className="queue-item__title">{ep.title}</div>
                 <div className="small muted">

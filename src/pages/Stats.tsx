@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { ChartColumn, Share2 } from 'lucide-react';
+import { ChartColumn, Download, Share2 } from 'lucide-react';
 import { BarChart, RankedBars } from '../components/BarChart';
 import { Artwork, EmptyState, Tabs, shareText } from '../components/common';
 import { dayKey, summarize, type StatsSummary } from '../lib/stats';
 import { useLibrary } from '../store/library';
+import { usePremium } from '../store/premium';
+import { PremiumTeaser } from '../components/Premium';
 import { podcastPath } from '../lib/paths';
 
 type PeriodId = 'year' | 'month' | 'all';
@@ -68,8 +70,20 @@ function yearRecap(year: number, s: StatsSummary): string {
     .join(' ');
 }
 
+/** Export CSV du temps d'écoute par jour (Podsal+). */
+function exportCsv(byDay: { day: string; seconds: number }[]) {
+  const rows = ['date;minutes', ...byDay.map((d) => `${d.day};${Math.round(d.seconds / 60)}`)];
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'podsal-temps-d-ecoute.csv';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
 export function StatsPage() {
   const library = useLibrary();
+  const { isPremium } = usePremium();
   const [period, setPeriod] = useState<PeriodId>('year');
   const [notice, setNotice] = useState<string | null>(null);
   const now = new Date();
@@ -114,57 +128,8 @@ export function StatsPage() {
   const periodLabel = period === 'year' ? `en ${year}` : period === 'month' ? `en ${MONTHS_LONG[now.getMonth()]}` : 'depuis le début';
   const yearSummary = period === 'year' ? s : summarize(library.state.stats, { from: `${year}-01-01`, to: `${year}-12-31` });
 
-  return (
-    <div className="page">
-      <h1 className="page__title">Statistiques d'écoute</h1>
-      <Tabs
-        tabs={[
-          { id: 'year', label: `Année ${year}` },
-          { id: 'month', label: MONTHS_LONG[now.getMonth()].replace(/^./, (c) => c.toUpperCase()) },
-          { id: 'all', label: 'Depuis le début' },
-        ]}
-        value={period}
-        onChange={setPeriod}
-      />
-
-      <div className="tiles">
-        <Tile label={`Temps d'écoute ${periodLabel}`} value={formatListening(s.totalSeconds)} detail={`${s.activeDays} jour${s.activeDays > 1 ? 's' : ''} d'écoute`} />
-        <Tile label="Épisodes terminés" value={s.completed.toLocaleString('fr-FR')} />
-        <Tile label="Podcasts différents" value={s.podcasts.length.toLocaleString('fr-FR')} />
-        <Tile label="Série en cours" value={`${all.currentStreak} jour${all.currentStreak > 1 ? 's' : ''}`} detail={`Record : ${all.bestStreak} jour${all.bestStreak > 1 ? 's' : ''}`} />
-      </div>
-
-      <BarChart
-        title={period === 'month' ? 'Temps d’écoute par jour' : 'Temps d’écoute par mois'}
-        bars={bars}
-        format={axisMinutes}
-        labelEvery={period === 'month' ? 5 : 1}
-        unit={timeUnit(Math.max(...bars.map((b) => b.value)))}
-      />
-
-      <div className="stats-columns">
-        <section>
-          <h2 className="section-title">Podcasts les plus écoutés</h2>
-          <RankedBars
-            format={formatListening}
-            items={s.podcasts.slice(0, 5).map((p) => ({
-              key: p.item.id,
-              value: p.seconds,
-              label: (
-                <Link to={podcastPath(p.item.id)} className="ranked__link">
-                  <Artwork src={p.item.artwork} alt={p.item.title} size={32} />
-                  {p.item.title}
-                </Link>
-              ),
-            }))}
-          />
-        </section>
-        <section>
-          <h2 className="section-title">Catégories</h2>
-          <RankedBars format={formatListening} items={s.genres.slice(0, 5).map((g) => ({ key: g.item, value: g.seconds, label: g.item }))} />
-        </section>
-      </div>
-
+  const advanced = isPremium ? (
+    <>
       <BarChart
         title="Heures d'écoute dans la journée (depuis le début)"
         bars={all.hours.map((value, h) => ({ label: `${h} h`, name: `${h} h – ${h + 1} h`, value }))}
@@ -173,7 +138,6 @@ export function StatsPage() {
         height={120}
         unit={timeUnit(Math.max(...all.hours))}
       />
-
       {yearSummary.totalSeconds >= 60 && (
         <section className="recap">
           <h2 className="section-title">Votre année {year}</h2>
@@ -183,6 +147,82 @@ export function StatsPage() {
           </button>
           {notice && <p className="small muted">{notice}</p>}
         </section>
+      )}
+    </>
+  ) : (
+    <PremiumTeaser title="Statistiques avancées">
+      Catégories préférées, heures d'écoute dans la journée, bilan de votre année à partager et export de vos données.
+    </PremiumTeaser>
+  );
+
+  return (
+    <div className="page">
+      <div className="page__header">
+        <h1 className="page__title">Statistiques d'écoute</h1>
+        {isPremium && (
+          <button className="btn btn--outline btn--small" onClick={() => exportCsv([...all.byDay].sort((a, b) => a.day.localeCompare(b.day)))}>
+            <Download size={14} /> Exporter (CSV)
+          </button>
+        )}
+      </div>
+      <Tabs
+        tabs={[
+          { id: 'year', label: `Année ${year}` },
+          { id: 'month', label: MONTHS_LONG[now.getMonth()].replace(/^./, (c) => c.toUpperCase()) },
+          { id: 'all', label: isPremium ? 'Depuis le début' : 'Depuis le début · Podsal+' },
+        ]}
+        value={period}
+        onChange={setPeriod}
+      />
+
+      {period === 'all' && !isPremium ? (
+        <PremiumTeaser title="Tout votre historique d'écoute">
+          Avec Podsal+ : l'historique depuis votre premier jour, les catégories et heures d'écoute, le bilan de l'année et l'export.
+        </PremiumTeaser>
+      ) : (
+        <>
+          <div className="tiles">
+            <Tile label={`Temps d'écoute ${periodLabel}`} value={formatListening(s.totalSeconds)} detail={`${s.activeDays} jour${s.activeDays > 1 ? 's' : ''} d'écoute`} />
+            <Tile label="Épisodes terminés" value={s.completed.toLocaleString('fr-FR')} />
+            <Tile label="Podcasts différents" value={s.podcasts.length.toLocaleString('fr-FR')} />
+            <Tile label="Série en cours" value={`${all.currentStreak} jour${all.currentStreak > 1 ? 's' : ''}`} detail={`Record : ${all.bestStreak} jour${all.bestStreak > 1 ? 's' : ''}`} />
+          </div>
+
+          <BarChart
+            title={period === 'month' ? 'Temps d’écoute par jour' : 'Temps d’écoute par mois'}
+            bars={bars}
+            format={axisMinutes}
+            labelEvery={period === 'month' ? 5 : 1}
+            unit={timeUnit(Math.max(...bars.map((b) => b.value)))}
+          />
+
+          <div className="stats-columns">
+            <section>
+              <h2 className="section-title">Podcasts les plus écoutés</h2>
+              <RankedBars
+                format={formatListening}
+                items={s.podcasts.slice(0, 5).map((p) => ({
+                  key: p.item.id,
+                  value: p.seconds,
+                  label: (
+                    <Link to={podcastPath(p.item.id)} className="ranked__link">
+                      <Artwork alt={p.item.title} size={32} podcastId={p.item.id} genre={p.item.genre} />
+                      {p.item.title}
+                    </Link>
+                  ),
+                }))}
+              />
+            </section>
+            {isPremium && (
+              <section>
+                <h2 className="section-title">Catégories</h2>
+                <RankedBars format={formatListening} items={s.genres.slice(0, 5).map((g) => ({ key: g.item, value: g.seconds, label: g.item }))} />
+              </section>
+            )}
+          </div>
+
+          {advanced}
+        </>
       )}
     </div>
   );

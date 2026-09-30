@@ -95,35 +95,69 @@ logo = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {fmt(lw)} {fmt(lh
         f'<g fill="{CREAM}" transform="translate({fmt(pad_x - FX0)} {fmt(pad_y - FY0)})">{glyph_paths()}</g></svg>')
 open(f'{ROOT}/public/logo.svg', 'w').write(logo)
 
-# 2. Favicon : initiale « P » de la même police.
-open(f'{ROOT}/public/favicon.svg', 'w').write(square_svg(64, 0.36, rounded=12, only='P', box=bb['P']).replace(' width="64" height="64"', '', 1))
+# 2. Symbole de l'application (format carré) : arche de mihrab et ondes sonores.
+#    Le mot-symbole seul est illisible en petit carré : il reste pour la barre latérale et l'écran de démarrage.
+ARCH = 'M22 88 V50 C22 33 36 22 50 12 C64 22 78 33 78 50 V88'
+BARS = list(zip([34, 42, 50, 58, 66], [16, 30, 44, 30, 16]))
 
-# 3. Icônes de l'application web (le système applique son propre masque).
+
+def mark_paths(color=CREAM):
+    bars = ''.join(f'<line x1="{x}" y1="{62 - h / 2}" x2="{x}" y2="{62 + h / 2}"/>' for x, h in BARS)
+    return (f'<path d="{ARCH}" fill="none" stroke="{color}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>'
+            f'<g stroke="{color}" stroke-width="5" stroke-linecap="round">{bars}</g>')
+
+
+def mark_svg(size, ratio=0.62, rounded=0, bg=TEAL, circle=False):
+    k = size * ratio / 100
+    off = (size - 100 * k) / 2
+    if circle:
+        shape = f'<circle cx="{size / 2}" cy="{size / 2}" r="{size / 2}" fill="{bg}"/>'
+    else:
+        shape = f'<rect width="{size}" height="{size}" rx="{fmt(rounded)}" fill="{bg}"/>' if bg else ''
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}" width="{size}" height="{size}">'
+            f'{shape}<g transform="translate({fmt(off)} {fmt(off)}) scale({fmt(k)})">{mark_paths()}</g></svg>')
+
+
+def splash_svg(w, h):
+    """Symbole au centre, mot-symbole en dessous."""
+    m = min(w, h) * 0.22
+    k = m / 100
+    mx, my = (w - m) / 2, h / 2 - m * 0.75
+    tw = m * 1.35
+    g, th = placed(bb['full'], (w - tw) / 2, my + m + m * 0.18, tw)
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}"><rect width="{w}" height="{h}" fill="{TEAL}"/>'
+            f'<g transform="translate({fmt(mx)} {fmt(my)}) scale({fmt(k)})">{mark_paths()}</g>{g}</svg>')
+
+
+open(f'{ROOT}/public/favicon.svg', 'w').write(mark_svg(64, 0.7, rounded=14).replace(' width="64" height="64"', '', 1))
+open(f'{ROOT}/public/mark.svg', 'w').write(mark_svg(512, 0.62, rounded=112).replace(' width="512" height="512"', '', 1))
+
+# 3. Icônes de l'application web (le système applique son propre masque ; zone sûre de 80 %).
 for size in (192, 512):
-    png(square_svg(size, 0.66), f'{ROOT}/public/icons/icon-{size}.png', alpha=False)
-png(square_svg(180, 0.7), f'{ROOT}/public/icons/apple-touch-icon.png', alpha=False)
+    png(mark_svg(size, 0.56), f'{ROOT}/public/icons/icon-{size}.png', alpha=False)
+png(mark_svg(180, 0.62), f'{ROOT}/public/icons/apple-touch-icon.png', alpha=False)
 
-# 4. Android : icônes classiques, rondes et premier plan des icônes adaptatives.
+# 4. Android : icônes classiques, rondes et premier plan des icônes adaptatives (zone sûre 66/108).
 dens = {'mdpi': 48, 'hdpi': 72, 'xhdpi': 96, 'xxhdpi': 144, 'xxxhdpi': 192}
 res = f'{ROOT}/android/app/src/main/res'
 for d, size in dens.items():
-    png(square_svg(size, 0.7, rounded=size * 0.12), f'{res}/mipmap-{d}/ic_launcher.png')
-    png(circle_svg(size, 0.66), f'{res}/mipmap-{d}/ic_launcher_round.png')
+    png(mark_svg(size, 0.64, rounded=size * 0.2), f'{res}/mipmap-{d}/ic_launcher.png')
+    png(mark_svg(size, 0.6, circle=True), f'{res}/mipmap-{d}/ic_launcher_round.png')
     fg = size * 108 // 48
-    png(square_svg(fg, 0.46, bg=None), f'{res}/mipmap-{d}/ic_launcher_foreground.png')
+    png(mark_svg(fg, 0.44, bg=None), f'{res}/mipmap-{d}/ic_launcher_foreground.png')
 open(f'{res}/values/ic_launcher_background.xml', 'w').write(
     '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#2F4F4F</color>\n</resources>')
 
 # Écrans de démarrage Android.
 for f in glob.glob(f'{res}/drawable*/splash.png'):
     p = pymupdf.Pixmap(f)
-    png(rect_svg(p.width, p.height, 0.4), f, alpha=False)
+    png(splash_svg(p.width, p.height), f, alpha=False)
 
-# 5. iOS : icône 1024 (sans transparence) et écran de démarrage.
+# 5. iOS : icône 1024 (sans transparence ni angles : iOS les arrondit) et écran de démarrage.
 ios = f'{ROOT}/ios/App/App/Assets.xcassets'
-png(square_svg(1024, 0.7), f'{ios}/AppIcon.appiconset/AppIcon-512@2x.png', alpha=False)
+png(mark_svg(1024, 0.62), f'{ios}/AppIcon.appiconset/AppIcon-512@2x.png', alpha=False)
 for f in glob.glob(f'{ios}/Splash.imageset/*.png'):
-    png(rect_svg(2732, 2732, 0.32), f, alpha=False)
+    png(splash_svg(2732, 2732), f, alpha=False)
 
 # 6. Composant React : mot-symbole en couleur courante.
 paths = ''.join(f'    <path transform="matrix({m})" d="{defs[g]}" />\n' for ch, g, m in uses)
@@ -133,8 +167,21 @@ tsx = f'''/**
  */
 export function Wordmark({{ className, title = 'Podsal' }}: {{ className?: string; title?: string }}) {{
   return (
-    <svg className={{className}} viewBox="{fmt(FX0)} {fmt(FY0)} {fmt(FX1 - FX0)} {fmt(FY1 - FY0)}" fill="currentColor" role="img" aria-label={{title}}>
+    <svg className={{className}} viewBox="{fmt(FX0)} {fmt(FY0)} {fmt(FX1 - FX0)} {fmt(FY1 - FY0)}" fill="currentColor" role={{title ? 'img' : undefined}} aria-label={{title || undefined}} aria-hidden={{title ? undefined : true}}>
 {paths}    </svg>
+  );
+}}
+'''
+bars_tsx = ''.join(f'        <line x1="{x}" y1="{62 - h / 2}" x2="{x}" y2="{62 + h / 2}" />\n' for x, h in BARS)
+tsx += f'''
+/** Symbole de l'application (arche de mihrab et ondes sonores), en couleur courante. */
+export function AppMark({{ className, title = 'Podsal' }}: {{ className?: string; title?: string }}) {{
+  return (
+    <svg className={{className}} viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeLinecap="round" role={{title ? 'img' : undefined}} aria-label={{title || undefined}} aria-hidden={{title ? undefined : true}}>
+      <path d="{ARCH}" strokeWidth={{7}} strokeLinejoin="round" />
+      <g strokeWidth={{5}}>
+{bars_tsx}      </g>
+    </svg>
   );
 }}
 '''

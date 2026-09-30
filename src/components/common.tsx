@@ -1,62 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { LoaderCircle, Star } from 'lucide-react';
 
-/** Couleurs des couvertures (tons sobres, sans violet). */
-const COVER_COLORS = ['#2f4f4f', '#0f5f73', '#1e3a8a', '#6b4f2a', '#4d6b1f', '#334155', '#7a2e2e', '#8a6d1f', '#23523a', '#3f4f5f'];
+export { Artwork } from './Cover';
 
-function hash(text: string): number {
-  let h = 0;
-  for (let i = 0; i < text.length; i++) h = (Math.imul(h, 31) + text.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}
-
-/** Première lettre significative d'un titre (ignore « Le », « La », « Les », « The »…). */
-export function coverInitial(title: string): string {
-  const words = title
-    .trim()
-    .split(/\s+/)
-    .map((w) => w.replace(/^[^\p{L}\p{N}]+/u, ''))
-    .filter(Boolean);
-  const skip = new Set(['le', 'la', 'les', 'the', 'un', 'une', 'des', 'du', 'de']);
-  const word = words.find((w) => !skip.has(w.toLowerCase())) ?? words[0] ?? '?';
-  return word.charAt(0).toUpperCase();
-}
-
-/**
- * Couverture neutre générée à partir du titre : aucune image de podcast n'est affichée
- * (beaucoup de pochettes représentent des personnes). Le paramètre `src` est ignoré volontairement.
- */
-export function Artwork({
-  alt,
-  size,
-  className = '',
-  kind = 'podcast',
-}: {
-  src?: string;
-  alt: string;
-  size?: number;
-  className?: string;
-  kind?: 'podcast' | 'quran';
-}) {
-  const color = kind === 'quran' ? '#2f4f4f' : COVER_COLORS[hash(alt) % COVER_COLORS.length];
-  const style = { background: color, ...(size ? { width: size, height: size } : {}) };
-  const fontSize = size ? Math.max(14, size * 0.42) : undefined;
-  return (
-    <div className={`artwork cover ${className}`} style={style} role="img" aria-label={alt}>
-      <svg className="cover__pattern" viewBox="0 0 100 100" aria-hidden>
-        {/* Étoile à huit branches (motif géométrique) */}
-        <g fill="none" stroke="currentColor" strokeWidth="1.2">
-          <rect x="22" y="22" width="56" height="56" />
-          <rect x="22" y="22" width="56" height="56" transform="rotate(45 50 50)" />
-          <circle cx="50" cy="50" r="12" />
-        </g>
-      </svg>
-      <span className="cover__letter" style={fontSize ? { fontSize } : undefined}>
-        {kind === 'quran' ? 'ق' : coverInitial(alt)}
-      </span>
-    </div>
-  );
-}
 
 export function Spinner({ label = 'Chargement…' }: { label?: string }) {
   return (

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
-import { BookOpen, ChartColumn, Clock, House, Library, ListMusic, Mic, Search, ShieldCheck, User, Users, WifiOff } from 'lucide-react';
+import { BookOpen, ChartColumn, Clock, House, Library, ListMusic, Mic, Search, ShieldCheck, Sparkle, User, Users, WifiOff } from 'lucide-react';
 import { useModeration } from '../store/moderation';
 import { PlaylistDialogProvider } from './Playlists';
-import { Wordmark } from './Wordmark';
+import { AppMark, Wordmark } from './Wordmark';
+import { DEFAULT_WALLPAPER, getWallpaper } from '../data/wallpapers';
+import { usePremium } from '../store/premium';
 import { useAuth } from '../store/auth';
 import { useLibrary } from '../store/library';
 import { SKIP_BACK, SKIP_FORWARD, usePlayer } from '../store/player';
@@ -72,7 +74,11 @@ function AccountLink() {
 }
 
 export function Layout() {
-  const { subscriptions } = useLibrary();
+  const { subscriptions, settings } = useLibrary();
+  const { isPremium } = usePremium();
+  // Un fond réservé à Podsal+ revient au fond par défaut quand l'abonnement prend fin.
+  const chosen = getWallpaper(settings.wallpaper);
+  const wallpaper = chosen.premium && !isPremium ? DEFAULT_WALLPAPER : chosen;
   const { isAdmin } = useModeration();
   const { current } = usePlayer();
   const [expanded, setExpanded] = useState(false);
@@ -93,7 +99,10 @@ export function Layout() {
         <BackgroundTasks />
         <aside className="sidebar">
           <Link to="/" className="brand" aria-label="Podsal, accueil">
-            <Wordmark className="brand__wordmark" />
+            <span className="brand__mark">
+              <AppMark title="" />
+            </span>
+            <Wordmark className="brand__wordmark" title="" />
           </Link>
           <nav className="sidebar__nav">
             {SIDEBAR_NAV.map(({ to, label, icon: Icon, end }) => (
@@ -102,6 +111,10 @@ export function Layout() {
                 {label}
               </NavLink>
             ))}
+            <NavLink to="/premium" className="nav-link nav-link--premium">
+              <Sparkle size={22} />
+              {isPremium ? 'Podsal+ · actif' : 'Podsal+'}
+            </NavLink>
             {isAdmin && (
               <NavLink to="/moderation" className="nav-link">
                 <ShieldCheck size={22} />
@@ -114,7 +127,7 @@ export function Layout() {
             {subscriptions.length === 0 && <p className="small muted">Abonnez-vous à des podcasts pour les retrouver ici.</p>}
             {subscriptions.map((p) => (
               <NavLink key={p.id} to={podcastPath(p.id)} className="sub-link">
-                <Artwork alt={p.title} size={40} />
+                <Artwork alt={p.title} size={40} podcastId={p.id} genre={p.genre} genreIds={p.genreIds} />
                 <span>
                   <span className="sub-link__title">{p.title}</span>
                   <span className="sub-link__author">{p.author}</span>
@@ -125,7 +138,7 @@ export function Layout() {
           <AccountLink />
         </aside>
 
-        <main className="main">
+        <main className="main" data-wallpaper={wallpaper.id} style={wallpaper.id === 'halo' ? undefined : { background: wallpaper.background }}>
           {!online && (
             <div className="offline-banner" role="status">
               <WifiOff size={16} /> Hors-ligne : les épisodes téléchargés restent disponibles dans la Bibliothèque.

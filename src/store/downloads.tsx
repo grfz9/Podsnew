@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Episode } from '../types';
 import { deleteDownload, downloadEpisode, loadDownloads, type DownloadInfo } from '../lib/downloads';
+import { FREE_DOWNLOADS, usePremium } from './premium';
 
 export type DownloadStatus =
   | { state: 'none' }
@@ -25,6 +26,7 @@ export function DownloadsProvider({ children }: { children: ReactNode }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [usage, setUsage] = useState<DownloadsValue['usage']>(null);
   const controllers = useRef(new Map<string, AbortController>());
+  const { isPremium } = usePremium();
 
   const refreshUsage = useCallback(() => {
     navigator.storage
@@ -41,6 +43,10 @@ export function DownloadsProvider({ children }: { children: ReactNode }) {
   const download = useCallback(
     (episode: Episode) => {
       if (controllers.current.has(episode.id)) return;
+      if (!isPremium && downloads.length + controllers.current.size >= FREE_DOWNLOADS) {
+        setErrors((e) => ({ ...e, [episode.id]: `Limite de ${FREE_DOWNLOADS} téléchargements atteinte : supprimez-en un, ou passez à Podsal+ (illimité).` }));
+        return;
+      }
       const controller = new AbortController();
       controllers.current.set(episode.id, controller);
       setErrors(({ [episode.id]: _, ...rest }) => rest);
@@ -56,7 +62,7 @@ export function DownloadsProvider({ children }: { children: ReactNode }) {
           refreshUsage();
         });
     },
-    [refreshUsage],
+    [refreshUsage, isPremium, downloads.length],
   );
 
   const cancel = useCallback((id: string) => controllers.current.get(id)?.abort(), []);

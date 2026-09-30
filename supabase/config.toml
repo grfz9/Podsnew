@@ -254,18 +254,16 @@ otp_expiry = 3600
 # content_path = "./supabase/templates/password_changed_notification.html"
 
 [auth.sms]
-# Allow/disallow new user signups via SMS to your project.
-enable_signup = false
-# If enabled, users need to confirm their phone number before signing in.
-enable_confirmations = false
-# Template for sending OTP to users
-template = "Your code is {{ .Code }}"
+# Inscription par numéro de téléphone + mot de passe, confirmée par un code SMS (Twilio).
+enable_signup = true
+enable_confirmations = true
+template = "Votre code Podsal : {{ .Code }}"
 # Controls the minimum amount of time that must pass before sending another sms otp.
 max_frequency = "5s"
 
-# Use pre-defined map of phone number to OTP for testing.
-# [auth.sms.test_otp]
-# 4152127777 = "123456"
+# Numéro de test (développement local uniquement) : aucun SMS n'est envoyé, le code est toujours 123456.
+[auth.sms.test_otp]
+33612345678 = "123456"
 
 # Configure logged in session timeouts.
 # [auth.sessions]
@@ -285,10 +283,12 @@ max_frequency = "5s"
 # uri = "pg-functions://<database>/<schema>/<hook_name>"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
+# Identifiants Twilio : voir le README (« Connexion par téléphone »). En production, ils se règlent
+# dans le tableau de bord Supabase → Authentication → Sign In / Providers → Phone.
 [auth.sms.twilio]
-enabled = false
-account_sid = ""
-message_service_sid = ""
+enabled = true
+account_sid = "env(TWILIO_ACCOUNT_SID)"
+message_service_sid = "env(TWILIO_MESSAGE_SERVICE_SID)"
 # DO NOT commit your Twilio auth token to git. Use environment variable substitution instead:
 auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
 
@@ -318,6 +318,14 @@ max_frequency = "5s"
 # Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `bitbucket`,
 # `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,
 # `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
+# Connexion avec Google : en production, à régler dans le tableau de bord (voir le README).
+[auth.external.google]
+enabled = false
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+skip_nonce_check = true
+
+# Connexion avec Apple : en production, à régler dans le tableau de bord (voir le README).
 [auth.external.apple]
 enabled = false
 client_id = ""
@@ -426,4 +434,12 @@ verify_jwt = true
 
 # Flux RSS public des créateurs (lu par Apple Podcasts, Spotify…)
 [functions.rss]
+verify_jwt = false
+
+# Abonnement Podsal+ : ouverture du paiement Stripe (utilisateurs connectés)
+[functions.billing]
+verify_jwt = true
+
+# Appelé par Stripe (signature vérifiée dans la fonction)
+[functions.stripe-webhook]
 verify_jwt = false

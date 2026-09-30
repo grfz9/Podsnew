@@ -123,7 +123,7 @@ export function PlaylistView({ playlist, editable }: { playlist: Playlist; edita
       <ol className="queue">
         {playlist.items.map((ep, i) => (
           <li key={ep.id} className="queue-item">
-            <Artwork alt={ep.podcastTitle} size={48} kind={ep.podcastId.startsWith('quran-') ? 'quran' : 'podcast'} />
+            <Artwork alt={ep.podcastTitle} size={48} podcastId={ep.podcastId} genre={ep.genre} />
             <div className="queue-item__text">
               <Link to={episodePath(ep)} className="queue-item__title">
                 {ep.title}

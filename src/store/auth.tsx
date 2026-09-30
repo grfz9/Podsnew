@@ -16,6 +16,12 @@ interface AuthValue {
   syncStatus: SyncStatus;
   lastSyncedAt: number | null;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithProvider: (provider: 'google' | 'apple') => Promise<void>;
+  signInPhone: (phone: string, password: string) => Promise<void>;
+  /** Inscription par téléphone : un code est envoyé par SMS (à confirmer avec verifyPhone). */
+  signUpPhone: (phone: string, password: string, username: string, displayName: string) => Promise<void>;
+  verifyPhone: (phone: string, code: string) => Promise<void>;
+  setUsername: (username: string) => Promise<void>;
   /** Renvoie true si une confirmation par e-mail est nécessaire. */
   signUp: (email: string, password: string, username: string, displayName: string) => Promise<boolean>;
   resetPassword: (email: string) => Promise<void>;
@@ -124,13 +130,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       session,
       userId,
-      email: session?.user.email ?? null,
+      email: session?.user.email || (session?.user.phone ? `+${session.user.phone.replace(/^\+/, '')}` : null),
       profile,
       syncStatus,
       lastSyncedAt: library.state.sync.lastSyncedAt,
       signIn: async (email, password) => {
         const { error } = await supabase!.auth.signInWithPassword({ email, password });
         if (error) throw new Error(error.message === 'Invalid login credentials' ? 'E-mail ou mot de passe incorrect.' : error.message);
+      },
+      signInWithProvider: async (provider) => {
+        const { error } = await supabase!.auth.signInWithOAuth({ provider, options: { redirectTo: `${location.origin}${location.pathname}` } });
+        if (error) throw new Error(error.message);
+      },
+      signInPhone: async (phone, password) => {
+        const { error } = await supabase!.auth.signInWithPassword({ phone, password });
+        if (error) throw new Error(error.message === 'Invalid login credentials' ? 'Numéro ou mot de passe incorrect.' : error.message);
+      },
+      signUpPhone: async (phone, password, username, displayName) => {
+        const { error } = await supabase!.auth.signUp({
+          phone,
+          password,
+          options: { data: { username: username.toLowerCase(), display_name: displayName || username }, channel: 'sms' },
+        });
+        if (error) throw new Error(error.message);
+      },
+      verifyPhone: async (phone, code) => {
+        const { error } = await supabase!.auth.verifyOtp({ phone, token: code.trim(), type: 'sms' });
+        if (error) throw new Error(error.message.includes('expired') || error.message.includes('invalid') ? 'Code incorrect ou expiré.' : error.message);
+      },
+      setUsername: async (username) => {
+        const { error } = await supabase!.rpc('set_username', { p_username: username });
+        if (error) throw new Error(error.message);
+        setProfile((p) => (p ? { ...p, username: username.trim().toLowerCase(), username_set: true } : p));
       },
       signUp: async (email, password, username, displayName) => {
         const { data, error } = await supabase!.auth.signUp({

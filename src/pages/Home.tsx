@@ -7,7 +7,7 @@ import { latestNativePodcasts } from '../api/native';
 import { EpisodeList } from '../components/EpisodeRow';
 import { PodcastRow, SkeletonCards } from '../components/PodcastCard';
 import { ErrorState, Section, Spinner } from '../components/common';
-import { Wordmark } from '../components/Wordmark';
+import { AppMark, Wordmark } from '../components/Wordmark';
 import { GenreTile, Tile } from '../components/GenreTile';
 import { buildDailyMix, excludeKnown, recommendationSeeds, type Seed } from '../lib/recommend';
 import { useAuth } from '../store/auth';
@@ -165,8 +165,11 @@ export function Home() {
   return (
     <div className="page">
       <header className="home-head">
-        <div className="mobile-brand">
-          <Wordmark className="mobile-brand__wordmark" />
+        <div className="mobile-brand" aria-label="Podsal">
+          <span className="brand__mark">
+            <AppMark title="" />
+          </span>
+          <Wordmark className="mobile-brand__wordmark" title="" />
         </div>
         <h1 className="page__title home-head__title">As-salāmu ʿalaykum</h1>
         <p className="home-head__date">

@@ -108,7 +108,7 @@ export function EpisodeRow({ episode, showPodcast = false, excerpt, startAt }: P
     <article className={`episode ${isCurrent ? 'episode--current' : ''} ${progress?.completed ? 'episode--done' : ''}`}>
       {showPodcast && (
         <Link to={podcastPath(episode.podcastId)} className="episode__art" tabIndex={-1}>
-          <Artwork alt={episode.podcastTitle} size={72} kind={episode.podcastId.startsWith('quran-') ? 'quran' : 'podcast'} />
+          <Artwork alt={episode.podcastTitle} size={72} podcastId={episode.podcastId} genre={episode.genre} />
         </Link>
       )}
       <div className="episode__body">

@@ -199,7 +199,7 @@ export function PlayerBar({ onExpand }: { onExpand: () => void }) {
 
       <div className="player-bar__info" onClick={onExpand} role="button" tabIndex={0} aria-label="Ouvrir le lecteur">
         <span className="player-bar__art">
-          <Artwork src={ep.artwork} alt={ep.podcastTitle} size={56} kind={ep.podcastId.startsWith('quran-') ? 'quran' : 'podcast'} />
+          <Artwork alt={ep.podcastTitle} size={56} podcastId={ep.podcastId} genre={ep.genre} />
           {player.isPlaying && <NowPlaying />}
         </span>
         <div className="player-bar__text">
@@ -271,7 +271,8 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
         <Artwork
           src={chapter?.img || ep.artwork}
           alt={ep.podcastTitle}
-          kind={ep.podcastId.startsWith('quran-') ? 'quran' : 'podcast'}
+          podcastId={ep.podcastId}
+          genre={ep.genre}
           className={`full-player__art ${player.isPlaying ? '' : 'full-player__art--paused'}`}
         />
         <div className="full-player__meta">

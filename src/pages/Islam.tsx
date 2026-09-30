@@ -127,7 +127,7 @@ function ProposeForm({ initialId, onClose }: { initialId?: string; onClose: () =
       {selected ? (
         <form className="form" onSubmit={submit}>
           <div className="propose__selected">
-            <Artwork alt={selected.title} size={56} />
+            <Artwork alt={selected.title} size={56} kind="islamic" podcastId={selected.id} />
             <div>
               <strong>{selected.title}</strong>
               <div className="small muted">{selected.author}</div>
@@ -160,7 +160,7 @@ function ProposeForm({ initialId, onClose }: { initialId?: string; onClose: () =
           <ul className="import-list">
             {candidates.map((p) => (
               <li key={p.id} className="import-row">
-                <Artwork alt={p.title} size={44} />
+                <Artwork alt={p.title} size={44} kind="islamic" podcastId={p.id} />
                 <div className="import-row__text">
                   <strong>{p.title}</strong>
                   <span className="small muted">
@@ -190,7 +190,7 @@ function MySuggestions() {
       <ul className="import-list">
         {data.map((s) => (
           <li key={s.id} className="import-row">
-            <Artwork alt={s.title} size={40} />
+            <Artwork alt={s.title} size={40} kind="islamic" podcastId={s.podcast_id} />
             <div className="import-row__text">
               <strong>{s.title}</strong>
               <span className="small muted">
@@ -271,7 +271,7 @@ export function ModerationPage() {
           <ul className="import-list">
             {suggestions.data.map((s) => (
               <li key={s.id} className="import-row import-row--tall">
-                <Artwork alt={s.title} size={44} />
+                <Artwork alt={s.title} size={44} kind="islamic" podcastId={s.podcast_id} />
                 <div className="import-row__text">
                   <Link to={`/podcast/${s.podcast_id}`} className="link">
                     {s.title}
@@ -298,7 +298,7 @@ export function ModerationPage() {
         <ul className="import-list">
           {moderation.validated.map((p) => (
             <li key={p.id} className="import-row">
-              <Artwork alt={p.title} size={40} />
+              <Artwork alt={p.title} size={40} kind="islamic" podcastId={p.id} />
               <div className="import-row__text">
                 <Link to={`/podcast/${p.id}`} className="link">
                   {p.title}
@@ -336,7 +336,7 @@ export function ModerationPage() {
           <ul className="import-list">
             {(results.data ?? []).map((p) => (
               <li key={p.id} className="import-row">
-                <Artwork alt={p.title} size={40} />
+                <Artwork alt={p.title} size={40} kind="islamic" podcastId={p.id} />
                 <div className="import-row__text">
                   <Link to={`/podcast/${p.id}`} className="link">
                     {p.title}
@@ -363,7 +363,7 @@ export function ModerationPage() {
         <ul className="import-list">
           {moderation.blocked.map((b) => (
             <li key={b.podcast_id} className="import-row">
-              <Artwork alt={b.title} size={40} />
+              <Artwork alt={b.title} size={40} podcastId={b.podcast_id} />
               <div className="import-row__text">
                 <strong>{b.title}</strong>
                 <span className="small muted">masqué {formatReleaseDate(b.created_at).toLowerCase()}</span>
@@ -443,7 +443,7 @@ function FeedForm({ onValidated }: { onValidated: () => void }) {
       {error && <p className="small error-text">{error}</p>}
       {preview && (
         <div className="propose__selected">
-          <Artwork alt={preview.podcast.title} size={56} />
+          <Artwork alt={preview.podcast.title} size={56} kind="islamic" podcastId={preview.podcast.id} />
           <div>
             <Link to={`/podcast/${preview.podcast.id}`} className="link">
               <strong>{preview.podcast.title}</strong>
