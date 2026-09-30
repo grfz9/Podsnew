@@ -272,8 +272,8 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
   const { time } = usePlayerTime();
   const navigate = useNavigate();
   const ep = player.current;
-  const local = !!ep && isLocalId(ep.id);
-  // Fichier importé : pas de podcast à charger (ni chapitres, ni transcription).
+  // Fichier personnel (importé, ou publié par un ami) : pas de podcast à charger (ni chapitres, ni transcription).
+  const local = !!ep && (isLocalId(ep.id) || !!ep.mediaKind);
   const podcast = useAsync(() => (ep && !local ? getAnyPodcast(ep.podcastId, country, 200) : Promise.resolve(null)), [ep?.podcastId, local, country]);
   const extras = useEpisodeExtras(podcast.data?.podcast, ep ?? undefined);
   const chapterIndex = currentChapterIndex(extras.chapters, time);
@@ -306,6 +306,7 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
         {ep.mediaKind === 'video' ? (
           <LocalVideo
             episodeId={ep.id}
+            fallbackSrc={ep.audioUrl}
             title={ep.title}
             controls={
               <>

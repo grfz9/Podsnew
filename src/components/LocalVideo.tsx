@@ -18,7 +18,18 @@ const HIDE_CONTROLS_MS = 2500;
  * Sans plein écran du navigateur (iPhone, certaines WebView Android), la vidéo occupe tout
  * l'écran de l'appli : on garde ainsi nos commandes et le son, que le lecteur du système n'aurait pas.
  */
-export function LocalVideo({ episodeId, title, controls }: { episodeId: string; title: string; controls?: ReactNode }) {
+export function LocalVideo({
+  episodeId,
+  fallbackSrc,
+  title,
+  controls,
+}: {
+  episodeId: string;
+  /** Adresse à utiliser si le fichier n'est pas sur l'appareil (fichier publié par un ami). */
+  fallbackSrc?: string;
+  title: string;
+  controls?: ReactNode;
+}) {
   const { mediaElement: audio, toggle, isPlaying } = usePlayer();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -30,7 +41,7 @@ export function LocalVideo({ episodeId, title, controls }: { episodeId: string; 
   const [idle, setIdle] = useState(false);
   const idleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const clickTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const src = localUrlFor(episodeId);
+  const src = localUrlFor(episodeId) ?? (fallbackSrc || undefined);
 
   useEffect(() => {
     const video = videoRef.current;

@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router';
 import { Check, ListMusic, Search, UserCheck, UserMinus, UserPlus, Users, X } from 'lucide-react';
 import { addFriend, getFriendPlaylists, getFriendships, getProfile, removeFriend, searchProfiles, type Friendships } from '../api/social';
 import { PlaylistGrid, PlaylistView } from '../components/Playlists';
+import { FriendGroups } from '../components/SharedGroups';
 import { EmptyState, ErrorState, Spinner } from '../components/common';
 import type { Profile } from '../lib/supabase';
 import { useAuth } from '../store/auth';
@@ -235,10 +236,14 @@ export function ProfilePage() {
           <Link to="/library?tab=playlists" className="link">
             Bibliothèque
           </Link>
-          .
+          , et les groupes que vous publiez depuis{' '}
+          <Link to="/fichiers" className="link">
+            Mes fichiers
+          </Link>{' '}
+          sont visibles ici par vos amis.
         </p>
       ) : !isFriend ? (
-        <p className="muted">Ses playlists seront visibles lorsque vous serez amis (ajout mutuel).</p>
+        <p className="muted">Ses playlists et ses groupes seront visibles lorsque vous serez amis (ajout mutuel).</p>
       ) : playlists.loading && !playlists.data ? (
         <Spinner />
       ) : playlists.error ? (
@@ -259,6 +264,7 @@ export function ProfilePage() {
       ) : (
         <EmptyState icon={<ListMusic size={32} />} title={`${name} n'a pas encore de playlist`} />
       )}
+      {isFriend && !selected && p.id !== auth.userId && <FriendGroups ownerId={p.id} username={p.username} name={name} />}
     </div>
   );
 }

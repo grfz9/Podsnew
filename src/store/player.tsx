@@ -201,8 +201,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.src = src;
       audio.defaultPlaybackRate = rate;
       audio.playbackRate = rate;
-      // Les fichiers importés restent sur l'appareil : ils ne vont pas dans l'historique synchronisé.
-      if (!local) libraryRef.current.addToHistory(episode);
+      // Fichiers personnels (importés, ou publiés par un ami avec un lien temporaire) : pas dans l'historique synchronisé.
+      if (!episode.mediaKind) libraryRef.current.addToHistory(episode);
       if (autoplay) {
         setIsBuffering(true);
         audio.play().catch(() => setIsBuffering(false));
@@ -377,6 +377,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setIsPlaying(false);
       if (currentRef.current && isLocalId(currentRef.current.id)) {
         setError('Impossible de lire ce fichier : son format n’est peut-être pas pris en charge par cet appareil.');
+        return;
+      }
+      if (currentRef.current?.mediaKind) {
+        setError('Impossible de lire ce fichier : le lien a peut-être expiré. Rouvrez le groupe depuis le profil de votre ami.');
         return;
       }
       setError(navigator.onLine ? 'Impossible de lire cet épisode. Le fichier audio est peut-être indisponible.' : 'Vous êtes hors-ligne et cet épisode n’est pas téléchargé.');

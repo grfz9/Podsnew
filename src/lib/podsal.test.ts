@@ -5,7 +5,7 @@ import { nextPrayer, prayerTimes } from './prayer';
 import { SURAHS } from '../data/surahs';
 import { ayahAt, BASMALA, parseMoshafName, parseSurahEpisodeId, stripBasmala, surahEpisode, type Moshaf } from '../api/quran';
 import { monogram, starPath } from '../components/Cover';
-import { isLocalId, mediaKindOf, titleFromName, toEpisode } from './localFiles';
+import { isLocalId, isPublicationOutdated, mediaKindOf, titleFromName, toEpisode } from './localFiles';
 
 const state = (validated: string[] = [], blocked: string[] = []): PolicyState => ({ validated: new Set(validated), blocked: new Set(blocked) });
 
@@ -151,5 +151,18 @@ describe('fichiers importés', () => {
     expect(episode.mediaKind).toBe('video');
     expect(episodePath(episode)).toBe('/fichiers');
     expect(podcastPath(episode.podcastId)).toBe('/fichiers');
+  });
+});
+
+describe('groupes de fichiers', () => {
+  it('sait si la publication est à jour', () => {
+    const base = { id: 'g', name: 'Tafsir', fileIds: [], createdAt: 1, updatedAt: 10 };
+    expect(isPublicationOutdated(base)).toBe(false);
+    expect(isPublicationOutdated({ ...base, remoteId: 'r', publishedAt: 12 })).toBe(false);
+    expect(isPublicationOutdated({ ...base, remoteId: 'r', publishedAt: 5 })).toBe(true);
+  });
+  it('renvoie les fichiers d’un ami vers son profil', () => {
+    expect(podcastPath('shared:ali_92')).toBe('/u/ali_92');
+    expect(episodePath({ id: 'shared-1', podcastId: 'shared:ali_92' })).toBe('/u/ali_92');
   });
 });

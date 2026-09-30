@@ -14,7 +14,7 @@ import { Artwork } from './common';
 import { BackgroundTasks, useOnline } from './Background';
 import { FullPlayer, PlayerBar } from './Player';
 import { podcastPath } from '../lib/paths';
-import { EXPAND_PLAYER_EVENT } from '../pages/LocalFiles';
+import { EXPAND_PLAYER_EVENT } from './playLocal';
 
 const SIDEBAR_NAV = [
   { to: '/', label: 'Accueil', icon: House, end: true },
