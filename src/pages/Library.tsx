@@ -226,7 +226,7 @@ function Settings() {
         </span>
       </div>
       <p className="small muted">
-        Raccourcis clavier : <kbd>Espace</kbd> lecture/pause · <kbd>←</kbd> reculer de 15 s · <kbd>→</kbd> avancer de 30 s
+        Raccourcis clavier : <kbd>Espace</kbd> lecture/pause · <kbd>←</kbd> reculer de 15 s · <kbd>→</kbd> avancer de 30 s · <kbd>M</kbd> couper le son · <kbd>↑</kbd> <kbd>↓</kbd> volume (grand lecteur) · <kbd>F</kbd> plein écran (vidéo)
       </p>
     </section>
   );
