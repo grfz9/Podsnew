@@ -4,8 +4,8 @@
   "description": "Podcasts, Coran et rappels, dans le respect du Coran et de la Sunnah.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#121212",
-  "theme_color": "#2f4f4f",
+  "background_color": "#0d1111",
+  "theme_color": "#0d1111",
   "icons": [
     { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" },
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },

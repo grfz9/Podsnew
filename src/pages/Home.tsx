@@ -11,6 +11,7 @@ import { AppMark, Wordmark } from '../components/Wordmark';
 import { GenreTile } from '../components/GenreTile';
 import { MixCard, ResumeHero, useResumeEpisode } from '../components/HomeHero';
 import { Shortcuts, type Shortcut } from '../components/Shortcuts';
+import { Welcome } from '../components/Welcome';
 import { useLocalFiles } from '../store/localFiles';
 import { useDownloads } from '../store/downloads';
 import { buildDailyMix, excludeKnown, recommendationSeeds, type Seed } from '../lib/recommend';
@@ -174,6 +175,8 @@ export function Home() {
   const recRows = (recs.data ?? []).map((r) => ({ ...r, podcasts: filterPodcasts(r.podcasts) })).filter((r) => r.podcasts.length > 0);
   const discoveryIds = recRows.flatMap((r) => r.podcasts.slice(0, 2).map((p) => p.id));
   const resume = useResumeEpisode();
+  // Nouveau visiteur (aucune écoute, aucun abonnement) : présentation de Podsal.
+  const isNew = !library.subscriptions.length && !library.history.some((e) => !e.mediaKind);
   const name = auth.profile?.display_name || auth.profile?.username;
 
   return (
@@ -200,6 +203,7 @@ export function Home() {
         </p>
       </header>
 
+      {isNew && <Welcome />}
       {resume && <ResumeHero episode={resume} />}
       <PrayerCard />
       <QuickAccess />
