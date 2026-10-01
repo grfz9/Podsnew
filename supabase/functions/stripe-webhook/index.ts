@@ -44,7 +44,8 @@ async function saveSubscription(sub: StripeSubscription) {
 
 serve(async (req) => {
   if (req.method !== 'POST') throw new HttpError(405, 'Méthode non autorisée.');
-  const secret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+  // .trim() : un espace ou un retour à la ligne collé avec la clé ferait échouer toutes les signatures.
+  const secret = Deno.env.get('STRIPE_WEBHOOK_SECRET')?.trim();
   if (!secret) throw new HttpError(503, 'Webhook non configuré.');
   const payload = await req.text();
   if (!(await verifyStripeSignature(payload, req.headers.get('Stripe-Signature'), secret))) throw new HttpError(400, 'Signature invalide.');
