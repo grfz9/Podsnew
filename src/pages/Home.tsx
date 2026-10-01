@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { BookOpen, Mic, Play } from 'lucide-react';
+import { BookOpen, ChartColumn, Clock, Download, FolderOpen, Heart, LayoutGrid, Mic, User } from 'lucide-react';
 import { getAnyPodcast } from '../api/catalog';
 import { getTopPodcasts } from '../api/itunes';
 import { GENRES, getGenre } from '../api/genres';
@@ -8,13 +8,16 @@ import { EpisodeList } from '../components/EpisodeRow';
 import { PodcastRow, SkeletonCards } from '../components/PodcastCard';
 import { ErrorState, Section, Spinner } from '../components/common';
 import { AppMark, Wordmark } from '../components/Wordmark';
-import { GenreTile, Tile } from '../components/GenreTile';
+import { GenreTile } from '../components/GenreTile';
+import { MixCard, ResumeHero, useResumeEpisode } from '../components/HomeHero';
+import { Shortcuts, type Shortcut } from '../components/Shortcuts';
+import { useLocalFiles } from '../store/localFiles';
+import { useDownloads } from '../store/downloads';
 import { buildDailyMix, excludeKnown, recommendationSeeds, type Seed } from '../lib/recommend';
 import { useAuth } from '../store/auth';
 import { useModeration } from '../store/moderation';
 import { PrayerCard } from './Prayer';
 import { useLibrary } from '../store/library';
-import { usePlayer } from '../store/player';
 import type { Episode } from '../types';
 import { useAsync } from '../utils/hooks';
 import { hijriDate } from '../utils/format';
@@ -52,17 +55,17 @@ function IslamicPodcasts() {
   );
 }
 
-function ContinueListening() {
+function ContinueListening({ exclude }: { exclude?: string }) {
   const { history, progress } = useLibrary();
   const { allowsEpisode } = useModeration();
   const inProgress = history.filter((e) => {
-    if (!allowsEpisode(e)) return false;
+    if (!allowsEpisode(e) || e.id === exclude) return false;
     const p = progress[e.id];
     return p && !p.completed && p.position > 5;
   });
   if (inProgress.length === 0) return null;
   return (
-    <Section title="Reprendre l'écoute">
+    <Section title="Aussi en cours">
       <EpisodeList episodes={inProgress.slice(0, 3)} showPodcast />
     </Section>
   );
@@ -110,7 +113,6 @@ function useRecommendations(seeds: Seed[]) {
 function DailyMix({ fromSubscriptions, discoveryPodcasts }: { fromSubscriptions?: Episode[]; discoveryPodcasts: string[] }) {
   const library = useLibrary();
   const { progress, country } = library;
-  const player = usePlayer();
   const discovery = useAsync(async (signal) => {
     const results = await Promise.allSettled(discoveryPodcasts.slice(0, 3).map((id) => getAnyPodcast(id, country, 3, signal)));
     return results.flatMap((r) => (r.status === 'fulfilled' ? r.value.episodes.slice(0, 1) : []));
@@ -120,24 +122,7 @@ function DailyMix({ fromSubscriptions, discoveryPodcasts }: { fromSubscriptions?
   if (!fromSubscriptions?.length && !discovery.data?.length) return null;
   const mix = buildDailyMix({ fromSubscriptions: filterEpisodes(fromSubscriptions ?? []), discovery: filterEpisodes(discovery.data ?? []), progress });
   if (mix.length < 3) return null;
-  const discoveries = mix.filter((e) => !library.isSubscribed(e.podcastId)).length;
-
-  return (
-    <Section
-      title="Votre mix du jour"
-      action={
-        <button className="btn btn--primary btn--small" onClick={() => player.playAll(mix)}>
-          <Play size={14} fill="currentColor" /> Tout lire
-        </button>
-      }
-    >
-      <p className="small muted section__intro">
-        {mix.length} épisodes : {mix.length - discoveries} de vos abonnements
-        {discoveries > 0 && `, ${discoveries} découverte${discoveries > 1 ? 's' : ''} dans les catégories que vous écoutez`}. Renouvelé chaque jour.
-      </p>
-      <EpisodeList episodes={mix} showPodcast />
-    </Section>
-  );
+  return <MixCard mix={mix} subscribedCount={mix.filter((e) => library.isSubscribed(e.podcastId)).length} />;
 }
 
 function NativeCreators() {
@@ -153,42 +138,73 @@ function NativeCreators() {
   );
 }
 
+/** Raccourcis de l'accueil : ce qu'on cherche le plus souvent, à portée de pouce. */
+function QuickAccess() {
+  const library = useLibrary();
+  const { files } = useLocalFiles();
+  const { downloads } = useDownloads();
+  const items: Shortcut[] = [
+    { to: '/coran', label: 'Coran', icon: BookOpen, color: '#e2c485' },
+    { to: '/islam', label: 'Podcasts islamiques', icon: Mic, color: '#6cc4b4' },
+    { to: '/fichiers', label: 'Mes fichiers', icon: FolderOpen, color: '#f0997b', count: files.length },
+    { to: '/library?tab=downloads', label: 'Téléchargés', icon: Download, color: '#85b7eb', count: downloads.length },
+    { to: '/library?tab=saved', label: 'Favoris', icon: Heart, color: '#ed93b1', count: library.savedEpisodes.length },
+    { to: '/priere', label: 'Prière', icon: Clock, color: '#5dcaa5' },
+    { to: '/stats', label: 'Statistiques', icon: ChartColumn, color: '#afa9ec' },
+    { to: '/search', label: 'Catégories', icon: LayoutGrid, color: '#b4b2a9' },
+  ];
+  return <Shortcuts items={items} layout="row" label="Accès rapide" />;
+}
+
+function greeting(date = new Date()): string {
+  const h = date.getHours();
+  if (h < 5) return 'Bonne nuit';
+  if (h < 12) return 'Bonjour';
+  if (h < 18) return 'Bon après-midi';
+  return 'Bonsoir';
+}
+
 export function Home() {
   const library = useLibrary();
+  const auth = useAuth();
   const { filterPodcasts } = useModeration();
   const subs = useSubscriptionEpisodes();
   const seeds = recommendationSeeds(library.state.stats, library.subscriptions, 2);
   const recs = useRecommendations(seeds);
   const recRows = (recs.data ?? []).map((r) => ({ ...r, podcasts: filterPodcasts(r.podcasts) })).filter((r) => r.podcasts.length > 0);
   const discoveryIds = recRows.flatMap((r) => r.podcasts.slice(0, 2).map((p) => p.id));
+  const resume = useResumeEpisode();
+  const name = auth.profile?.display_name || auth.profile?.username;
 
   return (
-    <div className="page">
+    <div className="page home">
       <header className="home-head">
-        <div className="mobile-brand" aria-label="Podsal">
-          <span className="brand__mark">
-            <AppMark title="" />
-          </span>
-          <Wordmark className="mobile-brand__wordmark" title="" />
+        <div className="home-head__top">
+          <div className="mobile-brand" aria-label="Podsal">
+            <span className="brand__mark">
+              <AppMark title="" />
+            </span>
+            <Wordmark className="mobile-brand__wordmark" title="" />
+          </div>
+          <Link to="/account" className="home-head__me" aria-label={name ? `Mon espace (${name})` : 'Mon espace'}>
+            {name ? <span className="avatar avatar--small">{name.slice(0, 1).toUpperCase()}</span> : <User size={20} />}
+          </Link>
         </div>
         <h1 className="page__title home-head__title">As-salāmu ʿalaykum</h1>
         <p className="home-head__date">
-          <span>{new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}</span>
+          <span>
+            {greeting()}
+            {name ? ` ${name}` : ''} · {new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}
+          </span>
           {hijriDate() && <span className="home-head__hijri">{hijriDate()}</span>}
         </p>
       </header>
 
+      {resume && <ResumeHero episode={resume} />}
       <PrayerCard />
+      <QuickAccess />
 
-      <div className="quick-genres">
-        <Tile to="/coran" label="Coran" icon={BookOpen} color="var(--brand)" index={0} pattern />
-        <Tile to="/islam" label="Podcasts islamiques" icon={Mic} color="var(--brand)" index={1} pattern />
-        {GENRES.slice(0, 6).map((g, i) => (
-          <GenreTile key={g.id} genre={g} index={i + 2} />
-        ))}
-      </div>
-
-      <ContinueListening />
+      <ContinueListening exclude={resume?.id} />
       <IslamicPodcasts />
       <DailyMix fromSubscriptions={subs.data} discoveryPodcasts={discoveryIds} />
       <NewFromSubscriptions episodes={subs.data} loading={subs.loading} />
@@ -203,6 +219,13 @@ export function Home() {
       ))}
       <NativeCreators />
       <TopRow country={library.country} title="Podcasts populaires" />
+      <Section title="Explorer par catégorie" action={<Link to="/search" className="see-all">Tout afficher</Link>}>
+        <div className="quick-genres">
+          {GENRES.slice(0, 8).map((g, i) => (
+            <GenreTile key={g.id} genre={g} index={i} />
+          ))}
+        </div>
+      </Section>
       {FEATURED_GENRES.map((id) => (
         <TopRow key={id} country={library.country} genreId={id} title={getGenre(id)!.name} />
       ))}

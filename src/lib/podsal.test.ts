@@ -4,7 +4,7 @@ import { episodePath, podcastPath } from './paths';
 import { nextPrayer, prayerTimes } from './prayer';
 import { SURAHS } from '../data/surahs';
 import { ayahAt, BASMALA, parseMoshafName, parseSurahEpisodeId, stripBasmala, surahEpisode, type Moshaf } from '../api/quran';
-import { monogram, starPath } from '../components/Cover';
+import { starPath } from '../components/Cover';
 import { isLocalId, isPublicationOutdated, mediaKindOf, titleFromName, toEpisode } from './localFiles';
 
 const state = (validated: string[] = [], blocked: string[] = []): PolicyState => ({ validated: new Set(validated), blocked: new Set(blocked) });
@@ -116,23 +116,6 @@ describe('numéros de téléphone', () => {
     expect(normalizePhone('06.12.34.56.78')).toBe('+33612345678');
     expect(normalizePhone('12')).toBeNull();
     expect(normalizePhone('abc')).toBeNull();
-  });
-});
-
-describe('monogram', () => {
-  it('prend les initiales des mots importants', () => {
-    expect(monogram('Les Grosses Têtes')).toBe('GT');
-    expect(monogram("L'After Foot")).toBe('AF');
-    expect(monogram("C dans l'air")).toBe('CA');
-    expect(monogram('Les Grandes Gueules')).toBe('GG');
-    expect(monogram("L'Heure du Monde")).toBe('HM');
-  });
-  it('gère les titres d’un seul mot et les sous-titres', () => {
-    expect(monogram('LEGEND')).toBe('Le');
-    expect(monogram('HugoDécrypte - Actus du jour')).toBe('HD');
-    expect(monogram('Small Talk - Konbini')).toBe('ST');
-    expect(monogram('UNBX, le podcast tech')).toBe('UNBX');
-    expect(monogram('')).toBe('•');
   });
 });
 

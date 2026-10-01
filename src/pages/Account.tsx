@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Link } from 'react-router';
-import { ChartColumn, Clock, Cloud, CloudOff, FileUp, FolderOpen, Image, ListMusic, LogOut, Mail, Mic, ShieldCheck, Smartphone, Sparkle, Users } from 'lucide-react';
+import { ChartColumn, Clock, Cloud, CloudOff, FileUp, FolderOpen, Image, ListMusic, ListOrdered, LogOut, Mail, Mic, ShieldCheck, Smartphone, Sparkle, Users } from 'lucide-react';
+import { Shortcuts, type Shortcut } from '../components/Shortcuts';
 import { normalizePhone } from '../utils/phone';
 import { usePremium } from '../store/premium';
 import { useModeration } from '../store/moderation';
@@ -264,8 +265,6 @@ function ChooseUsername() {
 
 function ProfileSettings() {
   const auth = useAuth();
-  const { isAdmin } = useModeration();
-  const { isPremium } = usePremium();
   const [displayName, setDisplayName] = useState(auth.profile?.display_name ?? '');
   const [saved, setSaved] = useState(false);
   const p = auth.profile;
@@ -304,43 +303,7 @@ function ProfileSettings() {
         </button>
       </div>
 
-      <nav className="account-links">
-        <Link to="/premium" className="account-link account-link--premium">
-          <Sparkle size={20} /> {isPremium ? 'Podsal+ · actif' : 'Podsal+'}
-        </Link>
-        <Link to="/fonds-ecran" className="account-link">
-          <Image size={20} /> Fonds d'écran
-        </Link>
-        <Link to="/fichiers" className="account-link">
-          <FolderOpen size={20} /> Mes fichiers audio et vidéo
-        </Link>
-        <Link to="/stats" className="account-link">
-          <ChartColumn size={20} /> Statistiques d'écoute
-        </Link>
-        <Link to="/friends" className="account-link">
-          <Users size={20} /> Amis
-        </Link>
-        <Link to="/priere" className="account-link">
-          <Clock size={20} /> Horaires de prière
-        </Link>
-        <Link to="/library?tab=playlists" className="account-link">
-          <ListMusic size={20} /> Playlists
-        </Link>
-        <Link to="/studio" className="account-link">
-          <Mic size={20} /> Studio créateur
-        </Link>
-        {isAdmin && (
-          <Link to="/moderation" className="account-link">
-            <ShieldCheck size={20} /> Modération
-          </Link>
-        )}
-        <Link to="/queue" className="account-link">
-          <ListMusic size={20} /> File d'attente
-        </Link>
-        <Link to="/import" className="account-link">
-          <FileUp size={20} /> Importer des abonnements
-        </Link>
-      </nav>
+      <MeShortcuts />
 
       <section className="settings">
         <h2>Profil</h2>
@@ -371,34 +334,53 @@ function ProfileSettings() {
   );
 }
 
+/** Toutes les fonctions de l'appli, visibles d'un coup d'œil (onglet « Moi » sur téléphone). */
+function MeShortcuts() {
+  const { isAdmin } = useModeration();
+  const { isPremium } = usePremium();
+  const items: Shortcut[] = [
+    { to: '/premium', label: isPremium ? 'Podsal+ actif' : 'Podsal+', icon: Sparkle, color: '#e2c485' },
+    { to: '/fichiers', label: 'Mes fichiers', icon: FolderOpen, color: '#f0997b' },
+    { to: '/priere', label: 'Prière', icon: Clock, color: '#6cc4b4' },
+    { to: '/stats', label: 'Statistiques', icon: ChartColumn, color: '#afa9ec' },
+    { to: '/friends', label: 'Amis', icon: Users, color: '#85b7eb' },
+    { to: '/library?tab=playlists', label: 'Playlists', icon: ListMusic, color: '#ed93b1' },
+    { to: '/queue', label: "File d'attente", icon: ListOrdered, color: '#97c459' },
+    { to: '/fonds-ecran', label: "Fonds d'écran", icon: Image, color: '#5dcaa5' },
+    { to: '/studio', label: 'Studio créateur', icon: Mic, color: '#f09595' },
+    { to: '/import', label: 'Importer', icon: FileUp, color: '#b4b2a9' },
+  ];
+  if (isAdmin) items.push({ to: '/moderation', label: 'Modération', icon: ShieldCheck, color: '#d85a30' });
+  return <Shortcuts items={items} label="Fonctions de Podsal" />;
+}
+
 export function AccountPage() {
   const auth = useAuth();
   if (!auth.enabled) {
     return (
       <div className="page">
-        <h1 className="page__title">Compte</h1>
+        <h1 className="page__title">Moi</h1>
+        <MeShortcuts />
         <EmptyState icon={<Cloud size={32} />} title="Les comptes ne sont pas activés sur cette installation">
           Podsal fonctionne entièrement sur cet appareil : abonnements, progression, téléchargements et statistiques y sont conservés.
         </EmptyState>
-        <nav className="account-links">
-          <Link to="/fonds-ecran" className="account-link">
-            <Image size={20} /> Fonds d'écran
-          </Link>
-          <Link to="/fichiers" className="account-link">
-            <FolderOpen size={20} /> Mes fichiers audio et vidéo
-          </Link>
-          <Link to="/priere" className="account-link">
-            <Clock size={20} /> Horaires de prière
-          </Link>
-          <Link to="/stats" className="account-link">
-            <ChartColumn size={20} /> Statistiques d'écoute
-          </Link>
-          <Link to="/import" className="account-link">
-            <FileUp size={20} /> Importer des abonnements
-          </Link>
-        </nav>
       </div>
     );
   }
-  return <div className="page">{auth.loading ? null : auth.userId ? <ProfileSettings key={auth.profile?.id ?? 'chargement'} /> : <AuthForms />}</div>;
+  if (auth.loading) return <div className="page" />;
+  if (auth.userId) {
+    return (
+      <div className="page">
+        <ProfileSettings key={auth.profile?.id ?? 'chargement'} />
+      </div>
+    );
+  }
+  return (
+    <div className="page">
+      <h1 className="page__title">Moi</h1>
+      <MeShortcuts />
+      <h2 className="section-title account-login-title">Se connecter</h2>
+      <AuthForms />
+    </div>
+  );
 }
