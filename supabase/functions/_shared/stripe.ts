@@ -10,7 +10,7 @@ export { verifyStripeSignature } from './stripe-core.ts';
 const API = 'https://api.stripe.com/v1';
 
 export async function stripe<T>(method: 'GET' | 'POST', path: string, params?: Params): Promise<T> {
-  const key = Deno.env.get('STRIPE_SECRET_KEY');
+  const key = Deno.env.get('STRIPE_SECRET_KEY')?.trim();
   if (!key) throw new HttpError(503, "Le paiement n'est pas encore activé sur ce serveur.");
   const body = params ? encodeForm(params) : undefined;
   const url = method === 'GET' && body ? `${API}${path}?${body}` : `${API}${path}`;
