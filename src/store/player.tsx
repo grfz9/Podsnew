@@ -105,10 +105,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const { current, queue, rate, volume } = persisted;
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  if (!audioRef.current && typeof Audio !== 'undefined') {
-    audioRef.current = new Audio();
-    audioRef.current.preload = 'metadata';
+  if (!audioRef.current && typeof document !== 'undefined') {
+    // Élément attaché à la page et « intégré » : Safari (iPhone) garde mieux le son en arrière-plan
+    // qu'avec un élément créé hors du document.
+    const audio = document.createElement('audio');
+    audio.preload = 'metadata';
+    audio.setAttribute('playsinline', '');
+    audio.setAttribute('webkit-playsinline', '');
+    audio.hidden = true;
+    document.body.appendChild(audio);
+    audioRef.current = audio;
   }
+  /** L'utilisateur veut que ça joue : une pause qui ne vient pas de lui (système) est reprise au retour dans l'appli. */
+  const wantsPlay = useRef(false);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
@@ -270,7 +279,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     [play, update],
   );
 
-  const pause = useCallback(() => audioRef.current?.pause(), []);
+  const pause = useCallback(() => {
+    wantsPlay.current = false;
+    audioRef.current?.pause();
+  }, []);
 
   const toggle = useCallback(() => {
     const audio = audioRef.current;
@@ -281,6 +293,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     } else if (audio.paused) {
       void audio.play().catch(() => undefined);
     } else {
+      wantsPlay.current = false;
       audio.pause();
     }
   }, [load]);
@@ -309,6 +322,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (!audio) return;
 
     const onPlay = () => {
+      wantsPlay.current = true;
       setIsPlaying(true);
       lastTick.current = performance.now();
     };
@@ -337,6 +351,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
       const seg = segmentRef.current;
       if (seg && audio.currentTime >= seg.end) {
+        wantsPlay.current = false;
         audio.pause();
         setSegment(null);
       }
@@ -347,6 +362,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           audio.currentTime = rep.start;
         } else {
           setRepeat(null);
+          wantsPlay.current = false;
           audio.pause();
         }
       }
@@ -361,6 +377,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (rep) setRepeat(null);
+      wantsPlay.current = false;
       const ep = currentRef.current;
       if (ep) libraryRef.current.saveProgress(ep.id, audio.duration || ep.duration, audio.duration || ep.duration, true);
       setIsPlaying(false);
@@ -408,6 +425,44 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
   }, [next, persistProgress, flushListening, setRepeat]);
 
+  // Safari (iPhone) peut couper le son quand l'appli passe en arrière-plan : on reprend au retour.
+  useEffect(() => {
+    const onVisible = () => {
+      const audio = audioRef.current;
+      if (document.visibilityState !== 'visible' || !audio || !wantsPlay.current || !audio.paused || !audio.src) return;
+      void audio.play().catch(() => undefined);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('pageshow', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('pageshow', onVisible);
+    };
+  }, []);
+
+  // État et position de lecture pour l'écran verrouillé et le centre de contrôle.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !('mediaSession' in navigator)) return;
+    const sync = () => {
+      navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
+      if (Number.isFinite(audio.duration) && audio.duration > 0 && 'setPositionState' in navigator.mediaSession) {
+        try {
+          navigator.mediaSession.setPositionState({
+            duration: audio.duration,
+            playbackRate: audio.playbackRate || 1,
+            position: Math.min(audio.currentTime, audio.duration),
+          });
+        } catch {
+          /* valeurs refusées par le navigateur */
+        }
+      }
+    };
+    const events = ['play', 'pause', 'loadedmetadata', 'seeked', 'ratechange', 'ended'];
+    events.forEach((e) => audio.addEventListener(e, sync));
+    return () => events.forEach((e) => audio.removeEventListener(e, sync));
+  }, []);
+
   // Sauvegarde de la progression quand on quitte la page.
   useEffect(() => {
     const onHide = () => {
@@ -437,6 +492,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (sleep?.kind !== 'minutes') return;
     const t = setTimeout(() => {
+      wantsPlay.current = false;
       audioRef.current?.pause();
       setSleepState(null);
     }, Math.max(0, sleep.endsAt - Date.now()));

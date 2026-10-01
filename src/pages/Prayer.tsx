@@ -4,6 +4,7 @@ import { Clock, LocateFixed, MapPin } from 'lucide-react';
 import { CITIES, FIVE_PRAYERS, formatClock, formatCountdown, nextPrayer, PRAYER_METHODS, PRAYER_NAMES, prayerTimes, type PrayerKey } from '../lib/prayer';
 import { useLibrary, type PrayerSettings } from '../store/library';
 import { notificationsSupported, requestNotificationPermission } from '../lib/notifications';
+import { AdhanSettings } from '../components/AdhanSettings';
 
 /** Rafraîchit l'affichage chaque minute. */
 export function useMinuteClock(): Date {
@@ -176,7 +177,10 @@ export function PrayerPage() {
           </select>
         </label>
 
-        <h2>Pendant l'écoute</h2>
+        <h2>Adhan</h2>
+        <AdhanSettings prayer={p} set={set} />
+
+        <h2>À l'heure de la prière</h2>
         <label className="setting">
           <span>
             Mettre la lecture en pause à l'heure de la prière
@@ -188,7 +192,7 @@ export function PrayerPage() {
           <label className="setting">
             <span>
               Notification à l'heure de chaque prière
-              <span className="small muted"> — quand l'application est ouverte</span>
+              <span className="small muted"> — avec ou sans adhan</span>
             </span>
             <input type="checkbox" className="switch" checked={p.notify} onChange={(e) => toggleNotify(e.target.checked)} />
           </label>

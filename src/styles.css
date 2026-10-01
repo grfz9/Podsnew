@@ -1311,3 +1311,17 @@ html, body, .main { overflow-x: clip; }
   .welcome__text { font-size: 15px; }
   .welcome__actions .btn { flex: 1 1 auto; justify-content: center; }
 }
+
+/* ---------- Adhan ---------- */
+.adhan { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+.adhan__choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.adhan__choice, .adhan__prayer {
+  padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text-muted); font-weight: 700; font-size: 14px;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
+}
+.adhan__choice:active, .adhan__prayer:active { transform: scale(0.96); }
+.adhan__choice--on, .adhan__prayer--on { background: rgba(108, 196, 180, 0.14); border-color: var(--accent); color: var(--text); }
+.adhan__prayers { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.adhan__prayer { padding: 6px 10px; font-size: 13px; }
+.adhan__custom { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.adhan__credit { margin: 0; }
