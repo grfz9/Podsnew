@@ -1,17 +1,15 @@
-import { useId, type CSSProperties } from 'react';
-import { AudioLines } from 'lucide-react';
+import { useId, type CSSProperties, type ReactElement } from 'react';
 import { GENRES, isReligiousGenre, primaryGenreId } from '../api/genres';
 import { useCustomImagesOptional } from '../store/customImages';
 import { useModerationOptional } from '../store/moderation';
-import { genreIcon } from './GenreTile';
 
 /**
  * Couvertures générées : aucune image de podcast n'est affichée (beaucoup de pochettes représentent
  * des personnes), et aucune image n'est produite par IA. Tout est dessiné ici, en géométrie pure :
  * - Coran : arche de mihrab dorée sur fond vert-bleu ;
  * - podcasts islamiques : pavage d'étoiles à huit branches et rosace (ou arche), palettes variées ;
- * - autres podcasts : monogramme (initiales du titre) sur un dégradé de la couleur de sa catégorie,
- *   avec un motif et une nuance propres à chaque podcast.
+ * - autres podcasts : composition abstraite (formes géométriques, paysage stylisé) dans la teinte
+ *   de sa catégorie, propre à chaque podcast.
  * Le dessin dépend du titre : un même podcast garde toujours la même couverture.
  * Avec Podsal+, l'utilisateur peut remplacer la couverture par une image de son choix.
  */
@@ -122,36 +120,15 @@ function IslamicArt({ id, seed }: { id: string; seed: number }) {
   );
 }
 
-/** Mots ignorés pour les initiales (articles, liaisons). */
-const SMALL_WORDS = new Set(['le', 'la', 'les', 'l', 'un', 'une', 'des', 'du', 'de', 'd', 'et', 'en', 'au', 'aux', 'à', 'dans', 'sur', 'pour', 'avec', 'par', 'the', 'a', 'an', 'of', 'and', 'podcast']);
-
-/**
- * Initiales d'un titre de podcast : « Les Grosses Têtes » → « GT », « L'After Foot » → « AF »,
- * « LEGEND » → « Le », « C dans l'air » → « CA », « UNBX » → « UNBX ». Quatre lettres au plus.
- */
-export function monogram(title: string): string {
-  const words = title
-    .replace(/(,|\s[-–—|:(]).*$/, '') // on ignore le sous-titre (« HugoDécrypte - Actus du jour », « UNBX, le podcast… »)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .split(/[^A-Za-z0-9]+/)
-    .filter(Boolean);
-  const meaningful = words.filter((w) => !SMALL_WORDS.has(w.toLowerCase()));
-  const picked = meaningful.length ? meaningful : words;
-  if (!picked.length) return '•';
-  if (picked.length === 1) {
-    const w = picked[0];
-    // Sigle court en capitales (UNBX, RTL) : gardé en entier.
-    if (w.length <= 4 && w === w.toUpperCase()) return w;
-    // Mot en « CamelCase » (HugoDécrypte) : une lettre par partie.
-    const caps = w.match(/[A-Z0-9]/g);
-    if (caps && caps.length >= 2 && caps.length <= 3 && w !== w.toUpperCase()) return caps.join('');
-    return w.slice(0, 1).toUpperCase() + w.slice(1, 2).toLowerCase();
-  }
-  return picked
-    .slice(0, picked.length >= 3 && picked[2].length > 2 ? 3 : 2)
-    .map((w) => w[0].toUpperCase())
-    .join('');
+/** Générateur pseudo-aléatoire déterministe (mulberry32) : un même podcast garde toujours le même dessin. */
+function random(seed: number): () => number {
+  let a = seed >>> 0 || 1;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 function hexToHsl(hex: string): [number, number, number] {
@@ -169,77 +146,157 @@ function hexToHsl(hex: string): [number, number, number] {
   return [h * 60, s * 100, l * 100];
 }
 
-const hsl = (h: number, s: number, l: number) => `hsl(${((h % 360) + 360) % 360} ${Math.max(0, Math.min(100, s))}% ${Math.max(0, Math.min(100, l))}%)`;
+const hsl = (h: number, s: number, l: number) =>
+  `hsl(${Math.round(((h % 360) + 360) % 360)} ${Math.round(Math.max(0, Math.min(100, s)))}% ${Math.round(Math.max(0, Math.min(100, l)))}%)`;
 
-/** Motifs de fond (discrets) : chaque podcast en reçoit un, placé et orienté selon son titre. */
-function Pattern({ variant, seed }: { variant: number; seed: number }) {
-  const flip = seed % 2 === 0;
-  const corner = flip ? 100 : 0;
-  switch (variant) {
-    case 0:
-      return <>{[18, 30, 42, 54, 66, 78].map((r) => <circle key={r} cx={corner} cy="100" r={r} />)}</>;
-    case 1:
-      return <>{[0, 12, 24, 36, 48, 60, 72, 84, 96, 108].map((x) => <line key={x} x1={x - 30} y1={flip ? 100 : 0} x2={x + 30} y2={flip ? 0 : 100} />)}</>;
-    case 2:
-      return <path d={starPath(flip ? 78 : 22, 22, 30, 21)} />;
-    case 3:
-      return (
-        <>
-          {Array.from({ length: 36 }, (_, i) => (
-            <circle key={i} cx={8 + (i % 6) * 17} cy={8 + Math.floor(i / 6) * 17} r="1.6" fill="#fff" stroke="none" />
-          ))}
-        </>
-      );
-    case 4:
-      return <>{[20, 36, 52, 68, 84].map((y) => <path key={y} d={`M0 ${y} Q25 ${y - 10} 50 ${y} T100 ${y}`} />)}</>;
-    case 5:
-      return <>{[14, 26, 38, 50].map((r) => <rect key={r} x={50 - r} y={50 - r} width={r * 2} height={r * 2} rx="4" transform={`rotate(${flip ? 12 : -12} 50 50)`} />)}</>;
-    default:
-      return <path d={`M${flip ? 10 : 20} 100 V62 C${flip ? 10 : 20} 38 34 22 50 12 C66 22 ${flip ? 90 : 80} 38 ${flip ? 90 : 80} 62 V100`} />;
-  }
+interface Palette {
+  bg: string;
+  deep: string;
+  mid: string;
+  light: string;
+  accent: string;
 }
 
-const PATTERN_COUNT = 7;
-
-function GeneralArt({ id, color, seed, title, Badge }: { id: string; color: string; seed: number; title: string; Badge?: typeof AudioLines }) {
-  // Teinte de la catégorie, décalée et éclaircie ou assombrie selon le titre : deux podcasts
-  // de la même catégorie restent de la même famille de couleur sans être identiques.
+/** Couleurs d'une couverture : la teinte de la catégorie, décalée pour chaque podcast, plus une touche complémentaire. */
+function makePalette(color: string, r: () => number): Palette {
   const [h, s, l] = hexToHsl(color);
-  const hue = h + ((seed % 9) - 4) * 4;
-  const light = l + (((seed >> 4) % 5) - 2) * 4;
-  const from = hsl(hue, s, light + 6);
-  const to = hsl(hue + (seed % 2 ? 18 : -18), s * 0.9, light - 12);
-  const text = monogram(title);
-  const angle = (seed >> 6) % 4;
-  const [x1, y1, x2, y2] = [
-    [0, 0, 1, 1],
-    [1, 0, 0, 1],
-    [0, 1, 1, 0],
-    [0.5, 0, 0.5, 1],
-  ][angle];
+  const hue = h + (r() - 0.5) * 36;
+  const sat = Math.max(38, Math.min(82, s + (r() - 0.5) * 20));
+  const base = Math.max(24, Math.min(46, l + (r() - 0.5) * 14));
+  const dir = r() < 0.5 ? -1 : 1;
+  return {
+    bg: hsl(hue, sat, base),
+    deep: hsl(hue + dir * 10, sat, base - 13),
+    mid: hsl(hue + dir * 22, sat, base + 11),
+    light: hsl(hue + dir * 34, sat * 0.85, Math.min(base + 32, 84)),
+    accent: hsl(hue + 165 + r() * 30, sat * 0.75, Math.min(base + 26, 76)),
+  };
+}
+
+const pick = <T,>(r: () => number, list: T[]): T => list[Math.floor(r() * list.length)];
+const between = (r: () => number, min: number, max: number) => min + r() * (max - min);
+
+/**
+ * Compositions abstraites (inspirées du Bauhaus et des paysages) : aucune lettre, aucune personne.
+ * Chaque podcast reçoit une composition, des positions, des tailles et des couleurs qui lui sont propres.
+ */
+const COMPOSITIONS: ((r: () => number, p: Palette) => ReactElement)[] = [
+  // Bulles
+  (r, p) => (
+    <>
+      <circle cx={between(r, 55, 90)} cy={between(r, 10, 40)} r={between(r, 26, 40)} fill={p.mid} />
+      <circle cx={between(r, 5, 40)} cy={between(r, 60, 95)} r={between(r, 22, 34)} fill={p.deep} />
+      <circle cx={between(r, 35, 65)} cy={between(r, 40, 65)} r={between(r, 10, 18)} fill={p.light} />
+      <circle cx={between(r, 70, 90)} cy={between(r, 70, 90)} r={between(r, 4, 9)} fill={p.accent} />
+    </>
+  ),
+  // Vagues et soleil
+  (r, p) => {
+    const y = between(r, 52, 66);
+    const amp = between(r, 6, 14);
+    return (
+      <>
+        <circle cx={between(r, 20, 80)} cy={between(r, 18, 34)} r={between(r, 10, 16)} fill={p.light} />
+        <path d={`M0 ${y} Q25 ${y - amp} 50 ${y} T100 ${y} V100 H0Z`} fill={p.mid} />
+        <path d={`M0 ${y + 14} Q25 ${y + 14 + amp} 50 ${y + 14} T100 ${y + 14} V100 H0Z`} fill={p.deep} />
+        <path d={`M0 ${y + 28} Q25 ${y + 28 - amp} 50 ${y + 28} T100 ${y + 28} V100 H0Z`} fill={p.accent} opacity="0.85" />
+      </>
+    );
+  },
+  // Montagnes
+  (r, p) => {
+    const a = between(r, 20, 60);
+    const b = between(r, 50, 85);
+    const peak = between(r, 22, 34);
+    return (
+      <>
+        <circle cx={between(r, 65, 88)} cy={between(r, 14, 26)} r={between(r, 7, 12)} fill={p.accent} />
+        <polygon points={`-10,100 ${a},${peak} ${a + 60},100`} fill={p.mid} />
+        <polygon points={`${b - 55},100 ${b},${between(r, 42, 58)} 110,100`} fill={p.deep} />
+        <polygon points={`${a - 7},${peak + 9} ${a},${peak} ${a + 7},${peak + 9}`} fill={p.light} />
+      </>
+    );
+  },
+  // Anneaux
+  (r, p) => {
+    const cx = between(r, 30, 70);
+    const cy = between(r, 30, 70);
+    const colors = [p.deep, p.mid, p.light, p.accent];
+    return (
+      <>
+        {[46, 34, 22, 11].map((radius, i) => (
+          <circle key={radius} cx={cx} cy={cy} r={radius} fill={colors[i]} />
+        ))}
+      </>
+    );
+  },
+  // Moitiés et disque
+  (r, p) => {
+    const vertical = r() < 0.5;
+    const cut = between(r, 35, 65);
+    const along = between(r, 30, 70);
+    const cx = vertical ? cut : along;
+    const cy = vertical ? along : cut;
+    return (
+      <>
+        {vertical ? <rect x={cut} width={100 - cut} height="100" fill={p.deep} /> : <rect y={cut} width="100" height={100 - cut} fill={p.deep} />}
+        <circle cx={cx} cy={cy} r={between(r, 22, 30)} fill={p.light} />
+        <circle cx={cx} cy={cy} r={between(r, 7, 12)} fill={p.accent} />
+      </>
+    );
+  },
+  // Bandes diagonales
+  (r, p) => {
+    const angle = pick(r, [-35, -20, 20, 35]);
+    const colors = [p.deep, p.mid, p.light, p.accent, p.mid];
+    let x = -30;
+    const bands = colors.map((c, i) => {
+      const width = between(r, 10, 22);
+      const band = <rect key={i} x={x} y="-40" width={width} height="180" fill={c} />;
+      x += width + between(r, 4, 12);
+      return band;
+    });
+    return <g transform={`rotate(${angle} 50 50)`}>{bands}</g>;
+  },
+  // Blocs (Bauhaus)
+  (r, p) => {
+    const colors = [p.deep, p.mid, p.light, p.accent];
+    return (
+      <>
+        {[0, 1].flatMap((row) =>
+          [0, 1].map((col) => {
+            const c = pick(r, colors);
+            const x = col * 50;
+            const y = row * 50;
+            const shape = Math.floor(r() * 3);
+            const key = `${row}-${col}`;
+            if (shape === 0) return <rect key={key} x={x + 6} y={y + 6} width="38" height="38" rx="6" fill={c} />;
+            if (shape === 1) return <circle key={key} cx={x + 25} cy={y + 25} r="19" fill={c} />;
+            return <path key={key} d={`M${x} ${y + 50} A50 50 0 0 1 ${x + 50} ${y} V${y + 50}Z`} fill={c} transform={`rotate(${pick(r, [0, 90, 180, 270])} ${x + 25} ${y + 25})`} />;
+          }),
+        )}
+      </>
+    );
+  },
+  // Arcs
+  (r, p) => (
+    <>
+      <path d="M0 100 A100 100 0 0 1 100 0 V100Z" fill={p.deep} transform={`rotate(${pick(r, [0, 90, 180, 270])} 50 50)`} />
+      <circle cx={pick(r, [0, 100])} cy={pick(r, [0, 100])} r={between(r, 38, 52)} fill={p.mid} />
+      <circle cx={between(r, 35, 65)} cy={between(r, 35, 65)} r={between(r, 9, 15)} fill={p.light} />
+      <rect x={between(r, 10, 70)} y={between(r, 70, 86)} width={between(r, 16, 28)} height="5" rx="2.5" fill={p.accent} />
+    </>
+  ),
+];
+
+function AbstractArt({ color, seed }: { color: string; seed: number }) {
+  const r = random(seed);
+  const palette = makePalette(color, r);
+  const compose = COMPOSITIONS[Math.floor(r() * COMPOSITIONS.length)];
   return (
     <svg className="cover__art" viewBox="0 0 100 100" aria-hidden>
-      <defs>
-        <linearGradient id={`${id}-g`} x1={x1} y1={y1} x2={x2} y2={y2}>
-          <stop offset="0" stopColor={from} />
-          <stop offset="1" stopColor={to} />
-        </linearGradient>
-      </defs>
-      <rect width="100" height="100" fill={`url(#${id}-g)`} />
-      <g fill="none" stroke="#fff" strokeOpacity="0.13" strokeWidth="1" opacity={0.9}>
-        <Pattern variant={(seed >> 3) % PATTERN_COUNT} seed={seed} />
-      </g>
-      <text
-        className="cover__monogram"
-        x="50"
-        y="52"
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontSize={[48, 48, 38, 30, 24][Math.min(text.length, 4)]}
-      >
-        {text}
-      </text>
-      {Badge && <Badge x="76" y="76" width="16" height="16" strokeWidth={1.8} className="cover__badge" />}
+      <rect width="100" height="100" fill={palette.bg} />
+      {compose(r, palette)}
     </svg>
   );
 }
@@ -277,7 +334,6 @@ export function Artwork({
         : 'podcast');
   const genreId = primaryGenreId({ genre, genreIds });
   const genreColor = GENRES.find((g) => g.id === genreId)?.color ?? FALLBACK_COLORS[seed % FALLBACK_COLORS.length];
-  const Icon = genreId ? genreIcon(genreId) : AudioLines;
   const style: CSSProperties = size ? { width: size, height: size } : {};
   if (custom) {
     return <img className={`artwork cover cover--custom ${className}`} style={style} src={custom} alt={alt} draggable={false} />;
@@ -289,7 +345,7 @@ export function Artwork({
       ) : resolved === 'islamic' ? (
         <IslamicArt id={id} seed={seed} />
       ) : (
-        <GeneralArt id={id} color={genreColor} seed={seed} title={alt} Badge={size && size < 72 ? undefined : Icon} />
+        <AbstractArt color={genreColor} seed={seed} />
       )}
     </div>
   );

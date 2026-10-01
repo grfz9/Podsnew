@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { Bell, ChartColumn, Clock, Download, FileDown, FileUp, Heart, Library as LibraryIcon, ListMusic, Play, Scissors, Trash } from 'lucide-react';
+import { Bell, ChartColumn, Clock, Download, FileDown, FileUp, FolderOpen, Heart, History, Library as LibraryIcon, ListMusic, Play, Podcast, Scissors, Trash } from 'lucide-react';
 import { PlaylistGrid } from '../components/Playlists';
 import { COUNTRIES } from '../api/genres';
 import { lookupPodcasts } from '../api/itunes';
@@ -9,6 +9,8 @@ import { PodcastGrid } from '../components/PodcastCard';
 import { clipPath } from '../components/EpisodeExtras';
 import { Artwork, EmptyState, Tabs, formatBytes, shareLink } from '../components/common';
 import { LocalFilesPanel } from './LocalFiles';
+import { Shortcuts, type Shortcut } from '../components/Shortcuts';
+import { useLocalFiles } from '../store/localFiles';
 import { PremiumTeaser } from '../components/Premium';
 import { FREE_DOWNLOADS, usePremium } from '../store/premium';
 import { buildOpml } from '../lib/opml';
@@ -234,18 +236,45 @@ function Settings() {
 
 export function LibraryPage() {
   const library = useLibrary();
+  const { downloads } = useDownloads();
+  const { files } = useLocalFiles();
   const [params, setParams] = useSearchParams();
   const tab = (TABS.find((t) => t.id === params.get('tab'))?.id ?? 'subscriptions') as TabId;
+
+  // Sur téléphone, toutes les rubriques sont visibles d'un coup d'œil (tuiles) au lieu d'onglets qui défilent.
+  const shortcuts: Shortcut[] = (
+    [
+      { id: 'subscriptions', icon: Podcast, color: '#6cc4b4', count: library.subscriptions.length },
+      { id: 'playlists', icon: ListMusic, color: '#e2c485', count: library.playlists.length },
+      { id: 'downloads', icon: Download, color: '#85b7eb', count: downloads.length },
+      { id: 'files', icon: FolderOpen, color: '#f0997b', count: files.length },
+      { id: 'saved', icon: Heart, color: '#ed93b1', count: library.savedEpisodes.length },
+      { id: 'clips', icon: Scissors, color: '#97c459', count: library.clips.length },
+      { id: 'history', icon: History, color: '#b4b2a9', count: library.history.length },
+    ] as const
+  ).map(({ id, ...rest }) => ({
+    ...rest,
+    to: `/library?tab=${id}`,
+    label: id === 'downloads' ? 'Téléchargés' : TABS.find((t) => t.id === id)!.label,
+    active: tab === id,
+  }));
+  shortcuts.push({ to: '/stats', label: 'Statistiques', icon: ChartColumn, color: '#afa9ec' });
 
   return (
     <div className="page">
       <div className="page__header">
         <h1 className="page__title">Bibliothèque</h1>
-        <Link to="/stats" className="btn btn--outline btn--small">
+        <Link to="/stats" className="btn btn--outline btn--small library-stats-link">
           <ChartColumn size={14} /> Statistiques d'écoute
         </Link>
       </div>
-      <Tabs tabs={[...TABS]} value={tab} onChange={(id) => setParams({ tab: id }, { replace: true })} />
+      <div className="library-tabs">
+        <Tabs tabs={[...TABS]} value={tab} onChange={(id) => setParams({ tab: id }, { replace: true })} />
+      </div>
+      <div className="library-shortcuts">
+        <Shortcuts items={shortcuts} label="Rubriques de la bibliothèque" />
+      </div>
+      <h2 className="library-section-title">{TABS.find((t) => t.id === tab)!.label}</h2>
 
       {tab === 'subscriptions' &&
         (library.subscriptions.length ? (

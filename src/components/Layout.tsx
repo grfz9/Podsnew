@@ -34,7 +34,7 @@ const MOBILE_NAV = [
   { to: '/coran', label: 'Coran', icon: BookOpen },
   { to: '/search', label: 'Rechercher', icon: Search },
   { to: '/library', label: 'Bibliothèque', icon: Library },
-  { to: '/account', label: 'Compte', icon: User },
+  { to: '/account', label: 'Moi', icon: User },
 ];
 
 /**
