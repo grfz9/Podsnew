@@ -31,6 +31,8 @@ import { DownloadsProvider } from './store/downloads';
 import { LibraryProvider } from './store/library';
 import { PlayerProvider } from './store/player';
 import './styles.css';
+// Capte la proposition d'installation (PWA) dès le chargement.
+import './lib/install';
 
 // Service worker : fonctionnement hors-ligne et épisodes téléchargés (build de production uniquement).
 if ('serviceWorker' in navigator && import.meta.env.PROD) {

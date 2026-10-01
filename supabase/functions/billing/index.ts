@@ -3,8 +3,8 @@ import { adminClient, HttpError, json, readJson, requireUser, serve } from '../_
 import { stripe } from '../_shared/stripe.ts';
 
 const PRICES = {
-  monthly: () => Deno.env.get('STRIPE_PRICE_MONTHLY'),
-  yearly: () => Deno.env.get('STRIPE_PRICE_YEARLY'),
+  monthly: () => Deno.env.get('STRIPE_PRICE_MONTHLY')?.trim(),
+  yearly: () => Deno.env.get('STRIPE_PRICE_YEARLY')?.trim(),
 };
 
 /** Seules les adresses de l'application (APP_URLS, séparées par des virgules) sont acceptées comme retour après paiement. */

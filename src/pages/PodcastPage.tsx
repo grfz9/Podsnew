@@ -210,11 +210,6 @@ export function PodcastPage() {
           <ArrowUpDown size={14} /> {oldestFirst ? 'Ordre de lecture' : 'Plus récents d’abord'}
         </button>
       </div>
-      {oldestFirst && data && (data.podcast.episodeCount ?? 0) > data.episodes.length && (
-        <p className="small muted pad">
-          Seuls les {data.episodes.length} épisodes les plus récents sont disponibles : la liste commence donc au milieu de la série.
-        </p>
-      )}
 
       {loading && !data ? (
         <Spinner />
@@ -224,6 +219,12 @@ export function PodcastPage() {
         <EpisodeList episodes={episodes} />
       ) : (
         <p className="muted pad">Aucun épisode ne correspond.</p>
+      )}
+
+      {oldestFirst && data && (data.podcast.episodeCount ?? 0) > data.episodes.length && (
+        <p className="small muted pad">
+          Les {data.episodes.length} épisodes les plus récents sont affichés : les plus anciens ne sont plus proposés par l’éditeur.
+        </p>
       )}
 
       <div className="pad">
