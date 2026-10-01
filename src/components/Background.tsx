@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { idbGet } from '../lib/idb';
 import { findNewEpisodes, notify, onNativeNotificationOpen, permissionGranted, shareStateWithServiceWorker } from '../lib/notifications';
 import { formatClock, nextPrayer, PRAYER_NAMES } from '../lib/prayer';
+import { onAdhanChange, playAdhan, stopAdhan } from '../lib/adhan';
 import { useLibrary } from '../store/library';
 import { usePlayer } from '../store/player';
 
@@ -55,18 +56,22 @@ function NewEpisodeNotifier() {
   return null;
 }
 
-/** Heure de la prière : met la lecture en pause et affiche un rappel (selon les réglages). */
+/** Heure de la prière : met la lecture en pause, joue l'adhan et affiche un rappel (selon les réglages). */
 function PrayerWatcher() {
   const library = useLibrary();
   const player = usePlayer();
   const playerRef = useRef(player);
   playerRef.current = player;
   const [banner, setBanner] = useState<string | null>(null);
+  const [adhanPlaying, setAdhanPlaying] = useState(false);
   const fired = useRef<string | null>(null);
   const p = library.settings.prayer;
 
+  useEffect(() => onAdhanChange(setAdhanPlaying), []);
+
   useEffect(() => {
-    if (!p.enabled || p.latitude === null || (!p.pauseAtAdhan && !p.notify)) return;
+    const adhanOn = p.adhan !== 'off';
+    if (!p.enabled || p.latitude === null || (!p.pauseAtAdhan && !p.notify && !adhanOn)) return;
     // La prochaine prière est calculée à l'avance ; on vérifie toutes les 15 s si son heure est passée.
     let target = nextPrayer(p);
     const check = () => {
@@ -78,12 +83,12 @@ function PrayerWatcher() {
       if (fired.current !== key && now.getTime() - target.time.getTime() < 10 * 60 * 1000) {
         fired.current = key;
         const message = `C'est l'heure de la prière : ${PRAYER_NAMES[target.key]} (${formatClock(target.time)}).`;
-        if (p.pauseAtAdhan && playerRef.current.isPlaying) {
-          playerRef.current.pause();
-          setBanner(`${message} La lecture a été mise en pause.`);
-        } else {
-          setBanner(message);
-        }
+        const withAdhan = adhanOn && (p.adhanPrayers as string[]).includes(target.key);
+        // L'adhan coupe toujours la lecture en cours ; sinon, selon le réglage « pause ».
+        const paused = (withAdhan || p.pauseAtAdhan) && playerRef.current.isPlaying;
+        if (paused) playerRef.current.pause();
+        setBanner(paused ? `${message} La lecture a été mise en pause.` : message);
+        if (withAdhan && p.adhan !== 'off') void playAdhan(p.adhan);
         if (p.notify) void notify(PRAYER_NAMES[target.key], message, '/priere').catch(() => undefined);
       }
       target = nextPrayer(p, new Date(now.getTime() + 1000));
@@ -96,7 +101,18 @@ function PrayerWatcher() {
   return (
     <div className="prayer-banner" role="alert">
       <span>{banner}</span>
-      <button className="btn btn--outline btn--small" onClick={() => setBanner(null)}>
+      {adhanPlaying && (
+        <button className="btn btn--outline btn--small" onClick={stopAdhan}>
+          Arrêter l'adhan
+        </button>
+      )}
+      <button
+        className="btn btn--outline btn--small"
+        onClick={() => {
+          stopAdhan();
+          setBanner(null);
+        }}
+      >
         Fermer
       </button>
     </div>

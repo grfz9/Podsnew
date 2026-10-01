@@ -23,6 +23,10 @@ export interface PrayerSettings {
   pauseAtAdhan: boolean;
   /** Notification à l'heure de chaque prière. */
   notify: boolean;
+  /** Adhan joué à l'heure de la prière : désactivé par défaut (voir lib/adhan.ts). */
+  adhan: 'off' | 'default' | 'custom';
+  /** Prières pour lesquelles l'adhan est joué. */
+  adhanPrayers: ('fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha')[];
 }
 
 export interface Settings {
@@ -56,6 +60,8 @@ export const DEFAULT_SETTINGS: Settings = {
     madhab: 'shafi',
     pauseAtAdhan: true,
     notify: false,
+    adhan: 'off',
+    adhanPrayers: ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'],
   },
 };
 
