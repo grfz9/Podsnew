@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
-import { BookOpen, ChartColumn, Clock, Crown, FolderOpen, House, Library, ListMusic, Mic, Search, ShieldCheck, Sparkle, User, Users, WifiOff } from 'lucide-react';
+import { BookOpen, ChartColumn, Clock, Crown, Download, FolderOpen, House, Library, ListMusic, Mic, Search, ShieldCheck, Sparkle, User, Users, WifiOff } from 'lucide-react';
 import { useModeration } from '../store/moderation';
+import { isStandalone } from '../lib/install';
 import { PlaylistDialogProvider } from './Playlists';
 import { AppMark, Wordmark } from './Wordmark';
 import { resolveBackground, sidebarBackground } from '../data/wallpapers';
@@ -157,6 +158,12 @@ export function Layout() {
               <NavLink to="/admin" className="nav-link">
                 <Crown size={22} />
                 Administration
+              </NavLink>
+            )}
+            {!isStandalone() && (
+              <NavLink to="/telecharger" className="nav-link">
+                <Download size={22} />
+                Télécharger l’appli
               </NavLink>
             )}
           </nav>

@@ -1,4 +1,4 @@
-import { detectPlatform, iosBrowser, isInAppBrowser } from './install';
+import { desktopOs, detectPlatform, iosBrowser, isInAppBrowser } from './install';
 import { describe, expect, it } from 'vitest';
 import { allowsEpisode, allowsPodcast, isReligiousContent, type PolicyState } from './policy';
 import { episodePath, podcastPath } from './paths';
@@ -187,6 +187,15 @@ describe('page d’installation', () => {
     expect(detectPlatform(IPHONE)).toBe('ios');
     expect(detectPlatform(ANDROID)).toBe('android');
     expect(detectPlatform(WINDOWS)).toBe('desktop');
+  });
+
+  it('propose le bon fichier pour ordinateur', () => {
+    expect(desktopOs(WINDOWS)).toBe('windows');
+    expect(desktopOs('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15')).toBe('mac');
+    expect(desktopOs('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36')).toBe('linux');
+    expect(desktopOs('Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36')).toBe(null);
+    expect(desktopOs(ANDROID)).toBe(null);
+    expect(desktopOs(IPHONE)).toBe(null);
   });
 
   it('repère les navigateurs où l’installation est impossible', () => {

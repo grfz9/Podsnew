@@ -1,11 +1,20 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
-import { Check, Compass, Copy, EllipsisVertical, Laptop, MonitorDown, PartyPopper, Share, Smartphone, SquarePlus } from 'lucide-react';
+import { Check, Compass, Copy, Download, EllipsisVertical, FolderOpen, MonitorDown, MousePointerClick, PartyPopper, Settings, Share, ShieldCheck, Smartphone, SquarePlus, Terminal } from 'lucide-react';
 import { AppMark } from '../components/Wordmark';
 import { Tabs } from '../components/common';
-import { detectPlatform, INSTALL_URL, iosBrowser, isInAppBrowser, isStandalone, useInstall, type Platform } from '../lib/install';
+import { desktopOs, DESKTOP_DOWNLOADS, detectPlatform, INSTALL_URL, iosBrowser, isInAppBrowser, isStandalone, useInstall, type DesktopOs } from '../lib/install';
 
 const PERKS = ['Gratuite, sans publicité', 'Écoute écran éteint', 'Hors-ligne', 'Mises à jour automatiques'];
+
+type Target = 'ios' | 'android' | DesktopOs;
+const TARGETS: { id: Target; label: string }[] = [
+  { id: 'ios', label: 'iPhone' },
+  { id: 'android', label: 'Android' },
+  { id: 'windows', label: 'Windows' },
+  { id: 'mac', label: 'Mac' },
+  { id: 'linux', label: 'Linux' },
+];
 
 function Steps({ items }: { items: { icon: ReactNode; text: ReactNode }[] }) {
   return (
@@ -21,49 +30,43 @@ function Steps({ items }: { items: { icon: ReactNode; text: ReactNode }[] }) {
   );
 }
 
-function IosSteps() {
-  return (
-    <Steps
-      items={[
-        { icon: <Compass size={18} />, text: <>Ouvrez <strong>podsal.com/telecharger</strong> dans <strong>Safari</strong>.</> },
-        { icon: <Share size={18} />, text: <>Touchez le bouton <strong>Partager</strong>, en bas de l’écran (ou en haut sur iPad).</> },
-        { icon: <SquarePlus size={18} />, text: <>Choisissez <strong>Sur l’écran d’accueil</strong> puis <strong>Ajouter</strong>.</> },
-      ]}
-    />
-  );
-}
+const STEPS: Record<Target, { icon: ReactNode; text: ReactNode }[]> = {
+  ios: [
+    { icon: <Compass size={18} />, text: <>Ouvrez <strong>podsal.com/telecharger</strong> dans <strong>Safari</strong>.</> },
+    { icon: <Share size={18} />, text: <>Touchez le bouton <strong>Partager</strong>, en bas de l’écran (ou en haut sur iPad).</> },
+    { icon: <SquarePlus size={18} />, text: <>Choisissez <strong>Sur l’écran d’accueil</strong> puis <strong>Ajouter</strong>.</> },
+  ],
+  android: [
+    { icon: <Compass size={18} />, text: <>Ouvrez <strong>podsal.com/telecharger</strong> dans <strong>Chrome</strong>.</> },
+    { icon: <EllipsisVertical size={18} />, text: <>Touchez le menu <strong>⋮</strong> en haut à droite.</> },
+    { icon: <SquarePlus size={18} />, text: <>Choisissez <strong>Installer l’application</strong> (ou « Ajouter à l’écran d’accueil »).</> },
+  ],
+  windows: [
+    { icon: <Download size={18} />, text: <>Téléchargez <strong>Podsal-Setup.exe</strong> et ouvrez-le.</> },
+    { icon: <ShieldCheck size={18} />, text: <>Si Windows affiche « Windows a protégé votre ordinateur » : <strong>Informations complémentaires</strong> puis <strong>Exécuter quand même</strong>.</> },
+    { icon: <MousePointerClick size={18} />, text: <>Podsal s’installe et s’ouvre, avec un raccourci sur le Bureau et dans le menu Démarrer.</> },
+  ],
+  mac: [
+    { icon: <Download size={18} />, text: <>Téléchargez le fichier <strong>.dmg</strong> (puce Apple ou Intel : menu Pomme → <em>À propos de ce Mac</em>).</> },
+    { icon: <FolderOpen size={18} />, text: <>Ouvrez-le et glissez <strong>Podsal</strong> dans le dossier <strong>Applications</strong>.</> },
+    { icon: <Settings size={18} />, text: <>Au premier lancement, si macOS bloque Podsal : <strong>Réglages Système → Confidentialité et sécurité → Ouvrir quand même</strong>.</> },
+  ],
+  linux: [
+    { icon: <Download size={18} />, text: <>Ubuntu, Debian, Mint : téléchargez le <strong>.deb</strong> et ouvrez-le pour l’installer.</> },
+    { icon: <Terminal size={18} />, text: <>Ou dans un terminal : <code>sudo apt install ./Podsal-linux.deb</code></> },
+    { icon: <MousePointerClick size={18} />, text: <>Autres distributions : <strong>.AppImage</strong>, à rendre exécutable (clic droit → Propriétés) puis à ouvrir.</> },
+  ],
+};
 
-function AndroidSteps() {
-  return (
-    <Steps
-      items={[
-        { icon: <Compass size={18} />, text: <>Ouvrez <strong>podsal.com/telecharger</strong> dans <strong>Chrome</strong>.</> },
-        { icon: <EllipsisVertical size={18} />, text: <>Touchez le menu <strong>⋮</strong> en haut à droite.</> },
-        { icon: <SquarePlus size={18} />, text: <>Choisissez <strong>Installer l’application</strong> (ou « Ajouter à l’écran d’accueil »).</> },
-      ]}
-    />
-  );
-}
-
-function DesktopSteps() {
-  return (
-    <Steps
-      items={[
-        { icon: <Compass size={18} />, text: <>Ouvrez <strong>podsal.com</strong> dans <strong>Chrome</strong>, <strong>Edge</strong> ou <strong>Brave</strong>.</> },
-        { icon: <MonitorDown size={18} />, text: <>Cliquez sur l’icône d’installation à droite de la barre d’adresse.</> },
-        { icon: <Laptop size={18} />, text: <>Sur Mac avec Safari : menu <strong>Fichier → Ajouter au Dock</strong>.</> },
-      ]}
-    />
-  );
-}
-
-/** Page à partager (podsal.com/telecharger) : installe Podsal sur l'appareil, avec les bonnes étapes selon le téléphone. */
+/** Page à partager (podsal.com/telecharger) : appli pour ordinateur à télécharger, installation sur téléphone. */
 export function InstallPage() {
   const { mode, install } = useInstall();
-  const [platform, setPlatform] = useState<Platform>(() => detectPlatform());
-  const [installed, setInstalled] = useState(false);
-  const [copied, setCopied] = useState(false);
   const here = detectPlatform();
+  const os = desktopOs();
+  const [target, setTarget] = useState<Target>(os ?? (here === 'desktop' ? 'windows' : here));
+  const [installed, setInstalled] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const standalone = isStandalone();
   const inApp = isInAppBrowser();
 
@@ -83,14 +86,56 @@ export function InstallPage() {
     }
   };
 
+  const onDownload = (system: DesktopOs) => {
+    setTarget(system);
+    setDownloading(true);
+  };
+
+  const desktopCta = os && (
+    <div className="install-download">
+      <div className="install-download__main">
+        {DESKTOP_DOWNLOADS[os].files.map((f, i) => (
+          <a key={f.url} href={f.url} className={`btn ${i === 0 ? 'btn--primary install-cta' : 'btn--outline install-cta install-cta--alt'}`} onClick={() => onDownload(os)}>
+            <Download size={18} /> {i === 0 ? `Télécharger pour ${DESKTOP_DOWNLOADS[os].label}` : f.label}
+            <small>{f.note}</small>
+          </a>
+        ))}
+      </div>
+      {downloading && (
+        <p className="install-download__hint">
+          Le téléchargement commence. Ouvrez ensuite le fichier : les étapes sont juste en dessous.
+        </p>
+      )}
+      <p className="small muted install-download__others">
+        Autres systèmes :{' '}
+        {(Object.keys(DESKTOP_DOWNLOADS) as DesktopOs[])
+          .filter((k) => k !== os)
+          .flatMap((k) => DESKTOP_DOWNLOADS[k].files.map((f) => ({ ...f, system: k })))
+          .map((f, i) => (
+            <span key={f.url}>
+              {i > 0 && ' · '}
+              <a href={f.url} onClick={() => onDownload(f.system)}>
+                {f.label}
+              </a>
+            </span>
+          ))}
+      </p>
+      {mode === 'prompt' && (
+        <button className="link-button small install-download__light" onClick={async () => setInstalled(await install())}>
+          <MonitorDown size={14} /> Ou installer la version légère depuis le navigateur, sans téléchargement
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className="page install-page">
       <header className="install-hero">
         <span className="install-hero__icon">
           <AppMark />
         </span>
-        <h1>Installer Podsal</h1>
-        <p className="muted">Podcasts, Coran et rappels, réunis dans une seule appli sur votre écran d’accueil.</p>
+        <h1>Télécharger Podsal</h1>
+        <p className="muted">Podcasts, Coran et rappels, réunis dans une seule appli, sur ordinateur comme sur téléphone.</p>
         <ul className="install-perks">
           {PERKS.map((p) => (
             <li key={p}>
@@ -107,6 +152,8 @@ export function InstallPage() {
               Ouvrir l’accueil
             </Link>
           </div>
+        ) : os ? (
+          desktopCta
         ) : mode === 'prompt' ? (
           <button className="btn btn--primary install-cta" onClick={async () => setInstalled(await install())}>
             <Smartphone size={18} /> Installer Podsal
@@ -124,16 +171,17 @@ export function InstallPage() {
 
       <section className="panel install-how">
         <h2 className="panel__title">Comment l’installer</h2>
-        <Tabs
-          tabs={[
-            { id: 'ios', label: 'iPhone / iPad' },
-            { id: 'android', label: 'Android' },
-            { id: 'desktop', label: 'Ordinateur' },
-          ]}
-          value={platform}
-          onChange={setPlatform}
-        />
-        {platform === 'ios' ? <IosSteps /> : platform === 'android' ? <AndroidSteps /> : <DesktopSteps />}
+        <Tabs tabs={TARGETS} value={target} onChange={setTarget} />
+        <Steps items={STEPS[target]} />
+        {(target === 'windows' || target === 'mac' || target === 'linux') && !(os === target && !standalone) && (
+          <div className="install-files">
+            {DESKTOP_DOWNLOADS[target].files.map((f) => (
+              <a key={f.url} href={f.url} className="btn btn--outline btn--small" onClick={() => onDownload(target)}>
+                <Download size={14} /> {f.label}
+              </a>
+            ))}
+          </div>
+        )}
       </section>
 
       <div className="install-grid">
@@ -158,7 +206,7 @@ export function InstallPage() {
         </section>
       </div>
 
-      <p className="small muted install-stores">Bientôt sur l’App Store et Google Play. L’appli installée depuis ce lien se met à jour toute seule.</p>
+      <p className="small muted install-stores">Bientôt sur l’App Store et Google Play. L’appli se met à jour toute seule.</p>
     </div>
   );
 }
