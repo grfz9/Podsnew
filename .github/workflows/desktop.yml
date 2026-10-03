@@ -1,0 +1,80 @@
+name: Appli ordinateur
+
+# Fabrique Podsal pour Windows (.exe), macOS (.dmg) et Linux (.deb, .AppImage) puis les publie
+# dans la release « desktop-v<version> ». Les liens de podsal.com/telecharger pointent vers la
+# dernière release : https://github.com/grfz9/Podsnew/releases/latest/download/<fichier>.
+# Pour une nouvelle version : augmenter "version" dans desktop/package.json.
+on:
+  push:
+    branches: [main]
+    paths: ['desktop/**', '.github/workflows/desktop.yml']
+  # Dans une PR : on vérifie seulement que les 3 versions se fabriquent, sans rien publier.
+  pull_request:
+    paths: ['desktop/**', '.github/workflows/desktop.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop
+  cancel-in-progress: false
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - run: npm ci
+      - run: npx electron-builder --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Vérifier la signature macOS
+        if: runner.os == 'macOS'
+        run: for app in dist/mac*/Podsal.app; do codesign --verify --deep --strict --verbose=2 "$app"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: podsal-${{ runner.os }}
+          path: |
+            desktop/dist/Podsal-Setup.exe
+            desktop/dist/Podsal-mac-*.dmg
+            desktop/dist/Podsal-linux.deb
+            desktop/dist/Podsal-linux.AppImage
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: files
+          merge-multiple: true
+      - name: Publier la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./desktop/package.json').version")
+          tag="desktop-v$version"
+          ls -la files
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" files/* --clobber
+          else
+            gh release create "$tag" files/* --target "$GITHUB_SHA" --latest \
+              --title "Podsal pour ordinateur $version" \
+              --notes "Téléchargez Podsal pour Windows, macOS ou Linux depuis https://podsal.com/telecharger"
+          fi

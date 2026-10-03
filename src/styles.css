@@ -1458,3 +1458,16 @@ html, body, .main { overflow-x: clip; }
 .install-stores { text-align: center; margin: 4px 0 24px; }
 @keyframes install-pop { from { opacity: 0; transform: scale(0.8); } }
 @media (prefers-reduced-motion: reduce) { .install-hero__icon { animation: none; } }
+.install-download { display: grid; justify-items: center; gap: 12px; }
+.install-download__main { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.install-cta small { font-size: 11px; font-weight: 600; opacity: 0.75; }
+.install-download .install-cta { height: auto; min-height: 50px; flex-direction: column; gap: 0; padding: 8px 28px; }
+.install-download .install-cta > svg { display: none; }
+.install-download .install-cta--alt { border-radius: 999px; }
+.install-download__hint { margin: 0; padding: 10px 14px; border-radius: var(--radius-lg); background: rgba(108, 196, 180, 0.12); animation: install-pop 0.3s ease both; }
+.install-download__others { margin: 0; }
+.install-download__others a { color: var(--accent); }
+.install-download__light { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); }
+.install-files { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.install-steps code { font-size: 12px; padding: 2px 6px; border-radius: 4px; background: var(--bg-elevated); word-break: break-all; }
+@media (max-width: 480px) { .install-how .tabs { gap: 0; } .install-how .tab { padding: 10px 8px; font-size: 13px; } }

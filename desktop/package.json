@@ -1,0 +1,91 @@
+{
+  "name": "podsal-desktop",
+  "productName": "Podsal",
+  "version": "1.0.0",
+  "description": "Podcasts, Coran et rappels, réunis dans une seule appli.",
+  "homepage": "https://podsal.com",
+  "author": "Podsal",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "44.5.1",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "app.podsal",
+    "productName": "Podsal",
+    "copyright": "© Podsal",
+    "files": [
+      "main.js",
+      "preload.js",
+      "offline.html",
+      "build/icon.png"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "afterPack": "build/adhoc-sign.js",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Podsal-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "shortcutName": "Podsal",
+      "deleteAppDataOnUninstall": false
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.music",
+      "identity": null,
+      "artifactName": "Podsal-mac-${arch}.${ext}"
+    },
+    "dmg": {
+      "title": "Podsal"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Audio",
+      "executableName": "podsal",
+      "maintainer": "Podsal",
+      "synopsis": "Podcasts, Coran et rappels",
+      "artifactName": "Podsal-linux.${ext}"
+    },
+    "publish": null
+  }
+}

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src file:" />
+    <title>Podsal</title>
+    <style>
+      html, body { height: 100%; margin: 0; }
+      body { display: grid; place-items: center; background: radial-gradient(60% 50% at 50% 40%, #173a35, #0d1111 70%); color: #f5f1ec; font: 15px/1.5 system-ui, sans-serif; text-align: center; }
+      img { width: 84px; height: 84px; }
+      h1 { font-size: 22px; margin: 18px 0 6px; }
+      p { margin: 0 0 20px; color: #a9b3b1; max-width: 340px; }
+      button { font: inherit; font-weight: 700; padding: 10px 22px; border: 0; border-radius: 999px; background: #6cc4b4; color: #0d1111; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="build/icon.png" alt="" />
+      <h1>Pas de connexion internet</h1>
+      <p>Podsal a besoin d’internet pour son premier lancement. Ensuite, vos téléchargements restent disponibles hors-ligne.</p>
+      <button id="retry">Réessayer</button>
+    </main>
+    <script>
+      const retry = () => location.replace('https://podsal.com/');
+      document.getElementById('retry').addEventListener('click', retry);
+      addEventListener('online', retry);
+    </script>
+  </body>
+</html>
