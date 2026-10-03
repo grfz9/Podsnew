@@ -1,7 +1,7 @@
 {
   "name": "podsal-desktop",
   "productName": "Podsal",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Podcasts, Coran et rappels, réunis dans une seule appli.",
   "homepage": "https://podsal.com",
   "author": "Podsal",
@@ -46,7 +46,8 @@
       "oneClick": true,
       "perMachine": false,
       "shortcutName": "Podsal",
-      "deleteAppDataOnUninstall": false
+      "deleteAppDataOnUninstall": false,
+      "differentialPackage": false
     },
     "mac": {
       "target": [
@@ -86,6 +87,12 @@
       "synopsis": "Podcasts, Coran et rappels",
       "artifactName": "Podsal-linux.${ext}"
     },
-    "publish": null
+    "publish": {
+      "provider": "generic",
+      "url": "https://github.com/grfz9/Podsnew/releases/latest/download"
+    }
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9"
   }
 }

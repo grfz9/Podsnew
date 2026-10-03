@@ -3,7 +3,8 @@
  * Le contenu vient du site, donc l'appli se met à jour toute seule, comme la version web ;
  * le service worker du site la garde utilisable hors-ligne après la première ouverture.
  */
-const { app, BrowserWindow, Menu, nativeTheme, screen, session, shell } = require('electron');
+const { app, BrowserWindow, dialog, Menu, nativeTheme, net, screen, session, shell } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
 const path = require('path');
 
@@ -58,6 +59,64 @@ function saveState(win) {
 
 let win = null;
 let quitting = false;
+
+/**
+ * Mises à jour de l'appli elle-même (rare : le contenu vient déjà du site).
+ * Windows et Linux : téléchargement en arrière-plan depuis la dernière release GitHub, installation au
+ * redémarrage. Mac : l'installation automatique exige une signature Apple ; on propose de retélécharger.
+ */
+const SIX_HOURS = 6 * 60 * 60 * 1000;
+const isNewer = (a, b) => {
+  const [x, y] = [a, b].map((v) => String(v).split('.').map((n) => parseInt(n, 10) || 0));
+  for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0);
+  return false;
+};
+let updateAnnounced = false;
+
+async function announceUpdate(version, ready) {
+  if (updateAnnounced) return;
+  updateAnnounced = true;
+  const { response } = await dialog.showMessageBox(win && !win.isDestroyed() ? win : undefined, {
+    type: 'info',
+    title: 'Mise à jour de Podsal',
+    message: `La version ${version} de Podsal est ${ready ? 'prête' : 'disponible'}.`,
+    detail: ready ? 'Redémarrez pour l’installer maintenant, sinon elle s’installera quand vous fermerez Podsal.' : 'Téléchargez-la depuis podsal.com/telecharger pour la mettre à jour.',
+    buttons: [ready ? 'Redémarrer' : 'Télécharger', 'Plus tard'],
+    defaultId: 0,
+    cancelId: 1,
+  });
+  if (response !== 0) return;
+  if (ready) {
+    quitting = true;
+    autoUpdater.quitAndInstall();
+  } else {
+    void shell.openExternal('https://podsal.com/telecharger');
+  }
+}
+
+async function checkForUpdates() {
+  if (updateAnnounced) return;
+  try {
+    if (isMac) {
+      const res = await net.fetch('https://api.github.com/repos/grfz9/Podsnew/releases/latest', { headers: { Accept: 'application/vnd.github+json' } });
+      const latest = String((await res.json()).tag_name || '').replace(/^desktop-v/, '');
+      if (isNewer(latest, app.getVersion())) void announceUpdate(latest, false);
+    } else {
+      await autoUpdater.checkForUpdates();
+    }
+  } catch {
+    // hors-ligne ou GitHub indisponible : on réessaiera plus tard
+  }
+}
+
+function setupUpdates() {
+  if (!app.isPackaged) return;
+  autoUpdater.disableDifferentialDownload = true;
+  autoUpdater.on('error', () => {});
+  autoUpdater.on('update-downloaded', (info) => void announceUpdate(info.version, true));
+  setTimeout(checkForUpdates, 15_000);
+  setInterval(checkForUpdates, SIX_HOURS);
+}
 
 function createWindow() {
   const s = readState();
@@ -151,5 +210,6 @@ if (!app.requestSingleInstanceLock()) {
     // Sur Mac, le menu du haut porte les raccourcis copier/coller ; ailleurs, pas de barre de menus.
     Menu.setApplicationMenu(isMac ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' }]) : null);
     createWindow();
+    setupUpdates();
   });
 }
