@@ -22,6 +22,7 @@ import { PlaylistPage } from './components/Playlists';
 import { PremiumPage } from './pages/Premium';
 import { AdminPage } from './pages/Admin';
 import { WallpapersPage } from './pages/Wallpapers';
+import { InstallPage } from './pages/Install';
 import { ModerationProvider } from './store/moderation';
 import { PremiumProvider } from './store/premium';
 import { CustomImagesProvider } from './store/customImages';
@@ -36,6 +37,9 @@ import './styles.css';
 import './lib/install';
 
 // Service worker : fonctionnement hors-ligne et épisodes téléchargés (build de production uniquement).
+// Lien à partager podsal.com/telecharger : on ouvre la page d'installation de l'appli.
+if (/^\/telecharger\/?$/.test(location.pathname)) history.replaceState(null, '', '/#/telecharger');
+
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(() => undefined);
@@ -80,6 +84,7 @@ createRoot(document.getElementById('root')!).render(
                           <Route path="account" element={<AccountPage />} />
                           <Route path="premium" element={<PremiumPage />} />
                           <Route path="fonds-ecran" element={<WallpapersPage />} />
+                          <Route path="telecharger" element={<InstallPage />} />
                         <Route path="fichiers" element={<LocalFilesPage />} />
                           <Route path="studio" element={<StudioPage />} />
                           <Route path="studio/:id" element={<StudioPodcastPage />} />

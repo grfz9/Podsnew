@@ -1,3 +1,4 @@
+import { detectPlatform, iosBrowser, isInAppBrowser } from './install';
 import { describe, expect, it } from 'vitest';
 import { allowsEpisode, allowsPodcast, isReligiousContent, type PolicyState } from './policy';
 import { episodePath, podcastPath } from './paths';
@@ -172,5 +173,27 @@ describe('récitations ajoutées par la modération', () => {
     expect(r.id).toBe(1_000_003);
     expect(r.moshaf[0].surahs).toEqual([1]);
     expect(surahAudioUrl(r.moshaf[0], 1)).toBe('https://ex.org/1.mp3');
+  });
+});
+
+describe('page d’installation', () => {
+  const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
+  const IPHONE_CHROME = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/129.0 Mobile/15E148 Safari/604.1';
+  const INSTAGRAM = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 350.0';
+  const ANDROID = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36';
+  const WINDOWS = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36';
+
+  it('reconnaît l’appareil', () => {
+    expect(detectPlatform(IPHONE)).toBe('ios');
+    expect(detectPlatform(ANDROID)).toBe('android');
+    expect(detectPlatform(WINDOWS)).toBe('desktop');
+  });
+
+  it('repère les navigateurs où l’installation est impossible', () => {
+    expect(isInAppBrowser(INSTAGRAM)).toBe(true);
+    expect(isInAppBrowser(IPHONE)).toBe(false);
+    expect(iosBrowser(IPHONE)).toBe('safari');
+    expect(iosBrowser(IPHONE_CHROME)).toBe('other');
+    expect(iosBrowser(INSTAGRAM)).toBe('other');
   });
 });

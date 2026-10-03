@@ -27,7 +27,7 @@ if (typeof window !== 'undefined') {
   });
 }
 
-function isStandalone(): boolean {
+export function isStandalone(): boolean {
   return (
     window.matchMedia?.('(display-mode: standalone)').matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true ||
@@ -35,9 +35,31 @@ function isStandalone(): boolean {
   );
 }
 
-function isIos(): boolean {
+export function isIos(): boolean {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
+
+export type Platform = 'ios' | 'android' | 'desktop';
+
+/** Appareil de la personne, pour lui montrer les bonnes étapes d'installation. */
+export function detectPlatform(ua = navigator.userAgent): Platform {
+  if (/iPad|iPhone|iPod/.test(ua) || (typeof navigator !== 'undefined' && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return 'ios';
+  if (/Android/i.test(ua)) return 'android';
+  return 'desktop';
+}
+
+/** Navigateur intégré d'une appli (Instagram, Facebook, TikTok, Snapchat…) : l'installation y est impossible. */
+export function isInAppBrowser(ua = navigator.userAgent): boolean {
+  return /FBAN|FBAV|FB_IAB|Instagram|Snapchat|TikTok|musical_ly|BytedanceWebview|LinkedInApp|Line\/|GSA\//i.test(ua);
+}
+
+/** Sur iPhone, seuls Safari (et depuis iOS 16.4 Chrome, Edge, Firefox) savent ajouter un site à l'écran d'accueil. */
+export function iosBrowser(ua = navigator.userAgent): 'safari' | 'other' {
+  return /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua) || isInAppBrowser(ua) ? 'other' : 'safari';
+}
+
+/** Lien à partager pour installer Podsal. */
+export const INSTALL_URL = 'https://podsal.com/telecharger';
 
 export type InstallMode = 'prompt' | 'ios' | null;
 
