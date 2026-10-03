@@ -1325,3 +1325,41 @@ html, body, .main { overflow-x: clip; }
 .adhan__prayer { padding: 6px 10px; font-size: 13px; }
 .adhan__custom { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .adhan__credit { margin: 0; }
+
+/* ---------- Grand lecteur : versets qui défilent (sourates) ---------- */
+.full-player__switch { display: inline-flex; padding: 3px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--line); }
+.full-player__switch button { padding: 5px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; color: var(--text-muted); transition: background 0.2s, color 0.2s; }
+.full-player__switch button.on { background: var(--bg-hover); color: var(--text); }
+.verses { position: relative; display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; animation: fade-in 0.3s ease; }
+.verses__tools { display: flex; align-items: center; gap: 8px; }
+.verses__select { flex: 1; min-width: 0; }
+.verses__select select { width: 100%; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text); font: inherit; font-size: 13px; }
+.verses__chip { padding: 6px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text-muted); font-family: 'Amiri Quran', serif; font-size: 15px; }
+.verses__chip--on { border-color: var(--accent); color: var(--text); background: rgba(108, 196, 180, 0.12); }
+.verses__scroll {
+  position: relative; height: min(52vh, 460px); overflow-y: auto; padding: 32% 4px; scrollbar-width: none; overscroll-behavior: contain;
+  -webkit-mask-image: linear-gradient(transparent, #000 18%, #000 82%, transparent); mask-image: linear-gradient(transparent, #000 18%, #000 82%, transparent);
+  border-radius: 18px; background: radial-gradient(90% 60% at 50% 50%, rgba(108, 196, 180, 0.07), transparent 70%);
+}
+.verses__scroll::-webkit-scrollbar { display: none; }
+.verses__basmala { text-align: center; font-family: 'Amiri Quran', serif; font-size: 22px; color: #e2c485; margin: 0 0 18px; }
+.verse {
+  display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 12px 14px; margin-bottom: 4px; border-radius: 14px; text-align: left;
+  opacity: 0.42; transform: scale(0.97); transform-origin: center; transition: opacity 0.4s var(--ease), transform 0.4s var(--ease), background 0.4s;
+}
+.verse:disabled { cursor: default; }
+.verse--past { opacity: 0.3; }
+.verse--active { opacity: 1; transform: none; background: rgba(108, 196, 180, 0.09); box-shadow: inset 3px 0 0 var(--accent); }
+.verse:not(:disabled):hover { opacity: 0.85; }
+.verse__number { align-self: flex-start; min-width: 24px; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 800; color: #e2c485; border: 1px solid rgba(226, 196, 133, 0.4); }
+.verse__arabic { font-family: 'Amiri Quran', serif; font-size: 23px; line-height: 2; text-align: right; color: var(--text); }
+.verse__translation { font-size: 15px; line-height: 1.55; color: var(--text); }
+.verse--active .verse__translation { font-weight: 600; }
+.verses__back { position: absolute; bottom: 8px; left: 0; right: 0; width: max-content; margin: 0 auto; backdrop-filter: blur(10px); background: rgba(13, 17, 17, 0.8); animation: rise 0.3s var(--ease); }
+.verses__note { margin: 0; text-align: center; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 800px) {
+  .verses__scroll { height: 50vh; }
+  .verse__arabic { font-size: 21px; }
+  .verse__translation { font-size: 14px; }
+}
