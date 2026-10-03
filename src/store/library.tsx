@@ -43,13 +43,22 @@ export interface Settings {
   sidebarWallpaper: string;
   /** Ordre des épisodes sur la page d'un podcast : « oldest » = ordre de lecture (épisode 1 en premier). */
   episodeOrder: 'oldest' | 'newest';
+  /** Présentation de l'appli (tutoriel) déjà vue ou passée. */
+  onboarded: boolean;
+  /** Ce que l'utilisateur veut voir à l'accueil (choisi à la fin du tutoriel). */
+  interests: Interest[];
 }
+
+export type Interest = 'quran' | 'islamic' | 'general';
+export const ALL_INTERESTS: Interest[] = ['quran', 'islamic', 'general'];
 
 export const DEFAULT_SETTINGS: Settings = {
   notifications: false,
   wallpaper: 'halo',
   sidebarWallpaper: 'uni',
   episodeOrder: 'oldest',
+  onboarded: false,
+  interests: ['quran', 'islamic', 'general'],
   quran: { translation: 'rashid', showArabic: true, favorites: [] },
   prayer: {
     enabled: false,

@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { Link } from 'react-router';
 import { ChartColumn, Clock, Cloud, CloudOff, Crown, FileUp, FolderOpen, Image, ListMusic, ListOrdered, LogOut, Mail, Mic, ShieldCheck, Smartphone, Sparkle, Users } from 'lucide-react';
 import { Shortcuts, type Shortcut } from '../components/Shortcuts';
+import { HomeInterests } from '../components/HomeInterests';
 import { normalizePhone } from '../utils/phone';
 import { usePremium } from '../store/premium';
 import { useModeration } from '../store/moderation';
@@ -304,6 +305,7 @@ function ProfileSettings() {
       </div>
 
       <MeShortcuts />
+      <HomeInterests />
 
       <section className="settings">
         <h2>Profil</h2>
@@ -362,6 +364,7 @@ export function AccountPage() {
       <div className="page">
         <h1 className="page__title">Moi</h1>
         <MeShortcuts />
+      <HomeInterests />
         <EmptyState icon={<Cloud size={32} />} title="Les comptes ne sont pas activés sur cette installation">
           Podsal fonctionne entièrement sur cet appareil : abonnements, progression, téléchargements et statistiques y sont conservés.
         </EmptyState>
@@ -380,6 +383,7 @@ export function AccountPage() {
     <div className="page">
       <h1 className="page__title">Moi</h1>
       <MeShortcuts />
+      <HomeInterests />
       <h2 className="section-title account-login-title">Se connecter</h2>
       <AuthForms />
     </div>

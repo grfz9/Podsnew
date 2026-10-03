@@ -15,6 +15,7 @@ import { BackgroundTasks, useOnline } from './Background';
 import { FullPlayer, PlayerBar } from './Player';
 import { podcastPath } from '../lib/paths';
 import { EXPAND_PLAYER_EVENT } from './playLocal';
+import { Onboarding, SHOW_ONBOARDING_EVENT } from './Onboarding';
 
 const SIDEBAR_NAV = [
   { to: '/', label: 'Accueil', icon: House, end: true },
@@ -99,6 +100,14 @@ export function Layout() {
   const closePlayer = useCallback(() => setExpanded(false), []);
 
   useKeyboardShortcuts(expanded);
+
+  // Présentation de l'appli : à la première ouverture, ou à la demande depuis « Moi ».
+  const [tour, setTour] = useState(false);
+  useEffect(() => {
+    const onShow = () => setTour(true);
+    window.addEventListener(SHOW_ONBOARDING_EVENT, onShow);
+    return () => window.removeEventListener(SHOW_ONBOARDING_EVENT, onShow);
+  }, []);
 
   // « Mes fichiers » : une vidéo lancée s'ouvre dans le grand lecteur.
   useEffect(() => {
@@ -190,6 +199,7 @@ export function Layout() {
         </nav>
 
         {expanded && <FullPlayer onClose={closePlayer} />}
+        {(tour || !settings.onboarded) && <Onboarding onDone={() => setTour(false)} />}
       </div>
     </PlaylistDialogProvider>
   );
