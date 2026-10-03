@@ -3,7 +3,7 @@
  * Le contenu vient du site, donc l'appli se met à jour toute seule, comme la version web ;
  * le service worker du site la garde utilisable hors-ligne après la première ouverture.
  */
-const { app, BrowserWindow, dialog, Menu, nativeTheme, net, screen, session, shell } = require('electron');
+const { app, BrowserWindow, dialog, Menu, nativeTheme, net, powerMonitor, screen, session, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
 const path = require('path');
@@ -36,6 +36,21 @@ const ALLOWED = new Set(['notifications', 'fullscreen', 'clipboard-sanitized-wri
 // Agent utilisateur d'un Chrome classique : sans cela, Google refuse la connexion dans une appli.
 app.userAgentFallback = app.userAgentFallback.replace(/ Electron\/\S+/, '').replace(/ Podsal\/\S+/i, '').replace(/ podsal-desktop\/\S+/i, '');
 app.setAppUserModelId('app.podsal'); // notifications Windows au nom de Podsal
+// Profil séparé pour les essais de développement (ne touche pas à l'appli installée).
+if (process.env.PODSAL_PROFILE) app.setPath('userData', process.env.PODSAL_PROFILE);
+
+/**
+ * Écrit sur le disque ce que le site garde en mémoire (session de connexion, réglages).
+ * Sans cela, une fermeture brutale (arrêt du PC, fin de tâche) peut perdre la session renouvelée
+ * par Supabase au lancement, et l'appli se retrouve déconnectée au démarrage suivant.
+ */
+const flushStorage = () => {
+  try {
+    session.defaultSession.flushStorageData();
+  } catch {
+    // session pas encore prête
+  }
+};
 nativeTheme.themeSource = 'dark'; // barre de titre sombre
 
 // Taille et position de la fenêtre, retrouvées au lancement suivant.
@@ -174,12 +189,14 @@ function createWindow() {
 
   win.on('close', (e) => {
     saveState(win);
+    flushStorage();
     // Sur Mac, fermer la fenêtre la cache (l'écoute continue), comme Musique ou Spotify.
     if (isMac && !quitting) {
       e.preventDefault();
       win.hide();
     }
   });
+  win.on('blur', flushStorage);
   win.on('closed', () => {
     win = null;
   });
@@ -198,6 +215,7 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', showWindow);
   app.on('before-quit', () => {
     quitting = true;
+    flushStorage();
   });
   app.on('activate', showWindow);
   app.on('window-all-closed', () => {
@@ -211,5 +229,7 @@ if (!app.requestSingleInstanceLock()) {
     Menu.setApplicationMenu(isMac ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' }]) : null);
     createWindow();
     setupUpdates();
+    setInterval(flushStorage, 30_000);
+    for (const event of ['suspend', 'shutdown', 'lock-screen']) powerMonitor.on(event, flushStorage);
   });
 }

@@ -82,7 +82,12 @@ export interface LibraryState extends SyncedData {
   /** Date du dernier épisode connu par podcast (sert aux notifications). */
   seen: Record<string, string>;
   sync: { userId: string | null; lastSyncedAt: number | null };
+  /** Dernière modification des préférences synchronisées (voir SyncedPrefs). */
+  prefsModified: number;
 }
+
+/** Réglages qui suivent le compte d'un appareil à l'autre. */
+const SYNCED_SETTINGS = ['quran', 'interests', 'episodeOrder'] as const;
 
 /** Version légère d'un épisode pour les playlists (description raccourcie). */
 function lightEpisode(e: Episode): Episode {
@@ -121,6 +126,7 @@ function initialState(): LibraryState {
     settings: DEFAULT_SETTINGS,
     seen: {},
     sync: { userId: null, lastSyncedAt: null },
+    prefsModified: 0,
   };
 }
 
@@ -228,7 +234,11 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       country: state.country,
       setCountry: (country) => update(() => ({ country })),
       settings: state.settings,
-      setSettings: (patch) => update((s) => ({ settings: { ...s.settings, ...patch } })),
+      setSettings: (patch) =>
+        update((s) => ({
+          settings: { ...s.settings, ...patch },
+          ...(SYNCED_SETTINGS.some((k) => k in patch) ? { prefsModified: Date.now() } : {}),
+        })),
 
       subscriptions: state.subscriptions,
       isSubscribed: (id) => subscribedIds.has(id),
@@ -331,9 +341,14 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       markSeen: (entries) => update((s) => ({ seen: { ...s.seen, ...entries } })),
 
       applySynced: (data, userId) =>
-        update(() => {
+        update((s) => {
           const out: Partial<LibraryState> = { progress: data.progress, stats: data.stats, modified: data.modified };
           for (const key of LIST_KEYS) (out as Record<string, unknown>)[key] = data[key];
+          if (data.prefs && data.prefs.updatedAt >= s.prefsModified) {
+            const { quran, interests, episodeOrder, updatedAt } = data.prefs;
+            out.settings = { ...s.settings, quran: { ...s.settings.quran, ...quran }, interests, episodeOrder };
+            out.prefsModified = updatedAt;
+          }
           return { ...out, sync: { userId, lastSyncedAt: Date.now() } };
         }),
       resetSync: () => update(() => ({ sync: { userId: null, lastSyncedAt: null } })),

@@ -1,8 +1,18 @@
 import type { Clip, DeviceStats, Episode, EpisodeProgress, Playlist, Podcast } from '../types';
+import type { Settings } from '../store/library';
 
 /** Collections dont la dernière version l'emporte lors d'une synchronisation. */
 export const LIST_KEYS = ['subscriptions', 'savedEpisodes', 'history', 'clips', 'playlists'] as const;
 export type ListKey = (typeof LIST_KEYS)[number];
+
+/** Préférences suivies d'un appareil à l'autre : favoris et réglages du Coran, accueil, ordre des épisodes. */
+export interface SyncedPrefs {
+  quran: Settings['quran'];
+  interests: Settings['interests'];
+  episodeOrder: Settings['episodeOrder'];
+  /** Date de dernière modification (0 : jamais modifiées sur cet appareil). */
+  updatedAt: number;
+}
 
 export interface SyncedData {
   subscriptions: Podcast[];
@@ -14,6 +24,7 @@ export interface SyncedData {
   stats: Record<string, DeviceStats>;
   /** Date de dernière modification de chaque collection. */
   modified: Record<ListKey, number>;
+  prefs?: SyncedPrefs;
 }
 
 function unionById<T extends { id: string }>(primary: T[], secondary: T[]): T[] {
@@ -58,6 +69,18 @@ export function mergeSynced(local: SyncedData, remote: Partial<SyncedData>, firs
     if (!stats[device] || s.updatedAt > stats[device].updatedAt) stats[device] = s;
   }
   out.stats = stats;
+
+  // Préférences : la version la plus récente l'emporte ; à la première synchronisation, les favoris s'additionnent.
+  const lp = local.prefs;
+  const rp = remote.prefs;
+  if (rp && lp) {
+    const newer = rp.updatedAt > lp.updatedAt ? rp : lp;
+    out.prefs = firstSync
+      ? { ...newer, quran: { ...newer.quran, favorites: [...new Set([...newer.quran.favorites, ...lp.quran.favorites, ...rp.quran.favorites])] }, updatedAt: Math.max(lp.updatedAt, rp.updatedAt) }
+      : newer;
+  } else if (rp) {
+    out.prefs = rp;
+  }
 
   return out;
 }
