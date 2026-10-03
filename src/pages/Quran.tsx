@@ -93,6 +93,8 @@ export function QuranHome() {
     [data],
   );
   const recent = library.history.filter((e) => isQuranId(e.podcastId)).slice(0, 4);
+  // Récitations ajoutées à la main par la modération (enregistrements anciens…).
+  const added = (data ?? []).filter((r) => r.custom);
 
   return (
     <div className="page">
@@ -107,6 +109,18 @@ export function QuranHome() {
                 <strong>{e.title}</strong>
                 <span className="small muted">{e.podcastTitle}</span>
               </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {added.length > 0 && !q && riwaya === 'all' && (
+        <section className="section">
+          <h2 className="section-title">Récitations anciennes</h2>
+          <p className="small muted section__intro">Enregistrements choisis et ajoutés un par un par la modération.</p>
+          <div className="reciter-grid">
+            {added.map((r) => (
+              <ReciterRow key={r.id} reciter={r} />
             ))}
           </div>
         </section>
@@ -160,7 +174,7 @@ export function QuranHome() {
       ) : (
         <EmptyState icon={<BookOpen size={32} />} title="Aucun récitateur ne correspond" />
       )}
-      <p className="small muted">Récitations : mp3quran.net · Texte : édition Uthmani (Hafs) · Traductions : QuranEnc.com.</p>
+      <p className="small muted">Récitations : mp3quran.net et ajouts de la modération · Texte : édition Uthmani (Hafs) · Traductions : QuranEnc.com.</p>
     </div>
   );
 }
@@ -173,7 +187,7 @@ function ReciterRow({ reciter, riwaya }: { reciter: Reciter; riwaya?: string }) 
       <Artwork alt={reciter.name} size={48} kind="quran" />
       <span className="reciter-row__text">
         <strong>{reciter.name}</strong>
-        <span className="small muted">{riwayat.join(' · ')}</span>
+        <span className="small muted">{reciter.subtitle ? `${reciter.subtitle} · ${riwayat.join(' · ')}` : riwayat.join(' · ')}</span>
       </span>
       <FavoriteButton reciterId={reciter.id} />
     </Link>
@@ -208,9 +222,11 @@ export function ReciterPage() {
             Coran
           </Link>
           <h1>{reciter.name}</h1>
+          {reciter.subtitle && <p className="muted">{reciter.subtitle}</p>}
           <p className="small muted">
-            {moshaf.riwaya} · {moshaf.style} · {moshaf.surahs.length} sourates
+            {moshaf.riwaya} · {moshaf.style} · {moshaf.surahs.length} sourate{moshaf.surahs.length > 1 ? 's' : ''}
           </p>
+          {moshaf.source && <p className="small muted">Source : {moshaf.source}</p>}
           <div className="row-actions">
             <button className="btn btn--primary" onClick={() => player.playAll(episodes)}>
               <Play size={16} fill="currentColor" /> Tout écouter

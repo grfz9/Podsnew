@@ -3,8 +3,9 @@ import { allowsEpisode, allowsPodcast, isReligiousContent, type PolicyState } fr
 import { episodePath, podcastPath } from './paths';
 import { nextPrayer, prayerTimes } from './prayer';
 import { SURAHS } from '../data/surahs';
-import { ayahAt, BASMALA, parseMoshafName, parseSurahEpisodeId, stripBasmala, surahEpisode, type Moshaf } from '../api/quran';
+import { ayahAt, BASMALA, parseMoshafName, recitationToReciter, surahAudioUrl, parseSurahEpisodeId, stripBasmala, surahEpisode, type Moshaf } from '../api/quran';
 import { starPath } from '../components/Cover';
+import { parseSurahList, tracksFromLines, tracksFromPattern } from './recitationInput';
 import { isLocalId, isPublicationOutdated, mediaKindOf, titleFromName, toEpisode } from './localFiles';
 
 const state = (validated: string[] = [], blocked: string[] = []): PolicyState => ({ validated: new Set(validated), blocked: new Set(blocked) });
@@ -147,5 +148,29 @@ describe('groupes de fichiers', () => {
   it('renvoie les fichiers d’un ami vers son profil', () => {
     expect(podcastPath('shared:ali_92')).toBe('/u/ali_92');
     expect(episodePath({ id: 'shared-1', podcastId: 'shared:ali_92' })).toBe('/u/ali_92');
+  });
+});
+
+describe('récitations ajoutées par la modération', () => {
+  it('lit une liste de sourates', () => {
+    expect(parseSurahList('1-3, 18 36')).toEqual([1, 2, 3, 18, 36]);
+    expect(parseSurahList('110-114, 200, 0, 114')).toEqual([110, 111, 112, 113, 114]);
+  });
+  it('applique un modèle d’adresse', () => {
+    expect(tracksFromPattern('https://ex.org/{nnn}.mp3', [1, 18]).tracks).toEqual({ 1: 'https://ex.org/001.mp3', 18: 'https://ex.org/018.mp3' });
+    expect(tracksFromPattern('https://ex.org/s{n}.mp3', [7]).tracks).toEqual({ 7: 'https://ex.org/s7.mp3' });
+    expect(tracksFromPattern('http://ex.org/{nnn}.mp3', [1]).error).toBeTruthy();
+    expect(tracksFromPattern('https://ex.org/a.mp3', [1]).error).toBeTruthy();
+  });
+  it('lit une liste de liens', () => {
+    const r = tracksFromLines('18 https://ex.org/kahf.mp3\n36: https://ex.org/yasin.mp3\nabc\n200 https://x');
+    expect(r.tracks).toEqual({ 18: 'https://ex.org/kahf.mp3', 36: 'https://ex.org/yasin.mp3' });
+    expect(r.errors).toHaveLength(2);
+  });
+  it('transforme une ligne de la base en récitateur', () => {
+    const r = recitationToReciter({ id: 3, reciter: 'Cheikh X', title: 'Le Caire, 1960', riwaya: 'Hafs ʿan ʿĀsim', style: 'Mujawwad', source: null, tracks: { '1': 'https://ex.org/1.mp3', '2': 'http://no' }, created_at: '' });
+    expect(r.id).toBe(1_000_003);
+    expect(r.moshaf[0].surahs).toEqual([1]);
+    expect(surahAudioUrl(r.moshaf[0], 1)).toBe('https://ex.org/1.mp3');
   });
 });
