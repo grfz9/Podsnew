@@ -105,6 +105,21 @@ describe('synchronisation', () => {
     expect(merged.stats.phone.updatedAt).toBe(10);
     expect(merged.stats.laptop).toBeDefined();
   });
+
+  const prefs = (favorites: number[], updatedAt: number, translation = 'rashid') =>
+    ({ quran: { translation, showArabic: true, favorites }, interests: ['quran'], episodeOrder: 'oldest', updatedAt }) as SyncedData['prefs'];
+
+  it('retrouve les récitateurs favoris sur un nouvel appareil', () => {
+    const merged = mergeSynced({ ...base(), prefs: prefs([], 0) }, { prefs: prefs([7, 12], 100) }, true);
+    expect(merged.prefs?.quran.favorites).toEqual([7, 12]);
+  });
+
+  it('additionne les favoris à la première synchronisation, puis garde les plus récents', () => {
+    expect(mergeSynced({ ...base(), prefs: prefs([1], 50) }, { prefs: prefs([2], 100) }, true).prefs?.quran.favorites.sort()).toEqual([1, 2]);
+    const later = mergeSynced({ ...base(), prefs: prefs([1], 200, 'hamidullah') }, { prefs: prefs([1, 2], 100) }, false);
+    expect(later.prefs?.quran.favorites).toEqual([1]);
+    expect(later.prefs?.quran.translation).toBe('hamidullah');
+  });
 });
 
 describe('mix du jour', () => {

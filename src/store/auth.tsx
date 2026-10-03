@@ -33,8 +33,9 @@ interface AuthValue {
 const AuthContext = createContext<AuthValue | null>(null);
 
 function syncedPart(s: LibraryState): SyncedData {
-  const { subscriptions, savedEpisodes, history, clips, playlists, progress, stats, modified } = s;
-  return { subscriptions, savedEpisodes, history, clips, playlists, progress, stats, modified };
+  const { subscriptions, savedEpisodes, history, clips, playlists, progress, stats, modified, settings } = s;
+  const prefs = { quran: settings.quran, interests: settings.interests, episodeOrder: settings.episodeOrder, updatedAt: s.prefsModified };
+  return { subscriptions, savedEpisodes, history, clips, playlists, progress, stats, modified, prefs };
 }
 
 const PUSH_DELAY_MS = 3000;
@@ -116,12 +117,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [userId, pullAndMerge]);
 
   // Envoi différé après chaque modification locale des données synchronisées.
-  const { subscriptions, savedEpisodes, history, clips, playlists, progress, stats } = library.state;
+  const { subscriptions, savedEpisodes, history, clips, playlists, progress, stats, prefsModified } = library.state;
   useEffect(() => {
     if (!userId || pulledFor.current !== userId) return;
     const t = setTimeout(() => void push(userId), PUSH_DELAY_MS);
     return () => clearTimeout(t);
-  }, [userId, push, subscriptions, savedEpisodes, history, clips, playlists, progress, stats]);
+  }, [userId, push, subscriptions, savedEpisodes, history, clips, playlists, progress, stats, prefsModified]);
 
   /* ---------- Actions ---------- */
   const value = useMemo<AuthValue>(
