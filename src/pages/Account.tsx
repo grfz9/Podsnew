@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Link } from 'react-router';
-import { ChartColumn, Clock, Cloud, CloudOff, FileUp, FolderOpen, Image, ListMusic, ListOrdered, LogOut, Mail, Mic, ShieldCheck, Smartphone, Sparkle, Users } from 'lucide-react';
+import { ChartColumn, Clock, Cloud, CloudOff, Crown, FileUp, FolderOpen, Image, ListMusic, ListOrdered, LogOut, Mail, Mic, ShieldCheck, Smartphone, Sparkle, Users } from 'lucide-react';
 import { Shortcuts, type Shortcut } from '../components/Shortcuts';
+import { HomeInterests } from '../components/HomeInterests';
 import { normalizePhone } from '../utils/phone';
 import { usePremium } from '../store/premium';
 import { useModeration } from '../store/moderation';
@@ -304,6 +305,7 @@ function ProfileSettings() {
       </div>
 
       <MeShortcuts />
+      <HomeInterests />
 
       <section className="settings">
         <h2>Profil</h2>
@@ -336,7 +338,7 @@ function ProfileSettings() {
 
 /** Toutes les fonctions de l'appli, visibles d'un coup d'œil (onglet « Moi » sur téléphone). */
 function MeShortcuts() {
-  const { isAdmin } = useModeration();
+  const { isAdmin, isModerator } = useModeration();
   const { isPremium } = usePremium();
   const items: Shortcut[] = [
     { to: '/premium', label: isPremium ? 'Podsal+ actif' : 'Podsal+', icon: Sparkle, color: '#e2c485' },
@@ -350,7 +352,8 @@ function MeShortcuts() {
     { to: '/studio', label: 'Studio créateur', icon: Mic, color: '#f09595' },
     { to: '/import', label: 'Importer', icon: FileUp, color: '#b4b2a9' },
   ];
-  if (isAdmin) items.push({ to: '/moderation', label: 'Modération', icon: ShieldCheck, color: '#d85a30' });
+  if (isModerator) items.push({ to: '/moderation', label: 'Modération', icon: ShieldCheck, color: '#d85a30' });
+  if (isAdmin) items.push({ to: '/admin', label: 'Administration', icon: Crown, color: '#e2c485' });
   return <Shortcuts items={items} label="Fonctions de Podsal" />;
 }
 
@@ -361,6 +364,7 @@ export function AccountPage() {
       <div className="page">
         <h1 className="page__title">Moi</h1>
         <MeShortcuts />
+      <HomeInterests />
         <EmptyState icon={<Cloud size={32} />} title="Les comptes ne sont pas activés sur cette installation">
           Podsal fonctionne entièrement sur cet appareil : abonnements, progression, téléchargements et statistiques y sont conservés.
         </EmptyState>
@@ -379,6 +383,7 @@ export function AccountPage() {
     <div className="page">
       <h1 className="page__title">Moi</h1>
       <MeShortcuts />
+      <HomeInterests />
       <h2 className="section-title account-login-title">Se connecter</h2>
       <AuthForms />
     </div>

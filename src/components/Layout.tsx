@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
-import { BookOpen, ChartColumn, Clock, FolderOpen, House, Library, ListMusic, Mic, Search, ShieldCheck, Sparkle, User, Users, WifiOff } from 'lucide-react';
+import { BookOpen, ChartColumn, Clock, Crown, FolderOpen, House, Library, ListMusic, Mic, Search, ShieldCheck, Sparkle, User, Users, WifiOff } from 'lucide-react';
 import { useModeration } from '../store/moderation';
 import { PlaylistDialogProvider } from './Playlists';
 import { AppMark, Wordmark } from './Wordmark';
@@ -15,6 +15,7 @@ import { BackgroundTasks, useOnline } from './Background';
 import { FullPlayer, PlayerBar } from './Player';
 import { podcastPath } from '../lib/paths';
 import { EXPAND_PLAYER_EVENT } from './playLocal';
+import { Onboarding, SHOW_ONBOARDING_EVENT } from './Onboarding';
 
 const SIDEBAR_NAV = [
   { to: '/', label: 'Accueil', icon: House, end: true },
@@ -91,7 +92,7 @@ export function Layout() {
   const images = useCustomImages();
   const wallpaper = resolveBackground('main', settings.wallpaper, isPremium, images.wallpaperUrl('main'));
   const sidebarBg = resolveBackground('sidebar', settings.sidebarWallpaper, isPremium, images.wallpaperUrl('sidebar'));
-  const { isAdmin } = useModeration();
+  const { isAdmin, isModerator } = useModeration();
   const { current } = usePlayer();
   const [expanded, setExpanded] = useState(false);
   const location = useLocation();
@@ -99,6 +100,14 @@ export function Layout() {
   const closePlayer = useCallback(() => setExpanded(false), []);
 
   useKeyboardShortcuts(expanded);
+
+  // Présentation de l'appli : à la première ouverture, ou à la demande depuis « Moi ».
+  const [tour, setTour] = useState(false);
+  useEffect(() => {
+    const onShow = () => setTour(true);
+    window.addEventListener(SHOW_ONBOARDING_EVENT, onShow);
+    return () => window.removeEventListener(SHOW_ONBOARDING_EVENT, onShow);
+  }, []);
 
   // « Mes fichiers » : une vidéo lancée s'ouvre dans le grand lecteur.
   useEffect(() => {
@@ -138,10 +147,16 @@ export function Layout() {
               <Sparkle size={22} />
               {isPremium ? 'Podsal+ · actif' : 'Podsal+'}
             </NavLink>
-            {isAdmin && (
+            {isModerator && (
               <NavLink to="/moderation" className="nav-link">
                 <ShieldCheck size={22} />
                 Modération
+              </NavLink>
+            )}
+            {isAdmin && (
+              <NavLink to="/admin" className="nav-link">
+                <Crown size={22} />
+                Administration
               </NavLink>
             )}
           </nav>
@@ -184,6 +199,7 @@ export function Layout() {
         </nav>
 
         {expanded && <FullPlayer onClose={closePlayer} />}
+        {(tour || !settings.onboarded) && <Onboarding onDone={() => setTour(false)} />}
       </div>
     </PlaylistDialogProvider>
   );

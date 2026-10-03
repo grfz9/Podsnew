@@ -27,6 +27,9 @@ import { episodePath } from './EpisodeRow';
 import { podcastPath } from '../lib/paths';
 import { isLocalId } from '../lib/localFiles';
 import { LocalVideo } from './LocalVideo';
+import { QuranVerses } from './QuranVerses';
+import { isQuranId } from '../lib/policy';
+import { parseSurahEpisodeId } from '../api/quran';
 
 function ProgressBar() {
   const { seek } = usePlayer();
@@ -272,9 +275,26 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
   const { time } = usePlayerTime();
   const navigate = useNavigate();
   const ep = player.current;
-  // Fichier personnel (importé, ou publié par un ami) : pas de podcast à charger (ni chapitres, ni transcription).
+  // Fichier personnel (importé, ou publié par un ami) ou sourate : pas de podcast à charger (ni chapitres, ni transcription).
   const local = !!ep && (isLocalId(ep.id) || !!ep.mediaKind);
-  const podcast = useAsync(() => (ep && !local ? getAnyPodcast(ep.podcastId, country, 200) : Promise.resolve(null)), [ep?.podcastId, local, country]);
+  const quran = !!ep && isQuranId(ep.podcastId) && !!parseSurahEpisodeId(ep.id);
+  // Sourate : versets qui défilent (par défaut) ou visuel ; le choix est retenu.
+  const [view, setView] = useState<'verses' | 'art'>(() => {
+    try {
+      return localStorage.getItem('podsal:quran-view') === 'art' ? 'art' : 'verses';
+    } catch {
+      return 'verses';
+    }
+  });
+  const chooseView = (v: 'verses' | 'art') => {
+    setView(v);
+    try {
+      localStorage.setItem('podsal:quran-view', v);
+    } catch {
+      /* préférence non retenue */
+    }
+  };
+  const podcast = useAsync(() => (ep && !local && !quran ? getAnyPodcast(ep.podcastId, country, 200) : Promise.resolve(null)), [ep?.podcastId, local, quran, country]);
   const extras = useEpisodeExtras(podcast.data?.podcast, ep ?? undefined);
   const chapterIndex = currentChapterIndex(extras.chapters, time);
   const chapter = chapterIndex >= 0 ? extras.chapters[chapterIndex] : null;
@@ -298,7 +318,18 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
           <button className="icon-btn" onClick={onClose} aria-label="Fermer le lecteur">
             <ChevronDown size={28} />
           </button>
-          <span className="small muted">En cours de lecture</span>
+          {quran ? (
+            <div className="full-player__switch" role="tablist" aria-label="Affichage">
+              <button role="tab" aria-selected={view === 'verses'} className={view === 'verses' ? 'on' : ''} onClick={() => chooseView('verses')}>
+                Versets
+              </button>
+              <button role="tab" aria-selected={view === 'art'} className={view === 'art' ? 'on' : ''} onClick={() => chooseView('art')}>
+                Visuel
+              </button>
+            </div>
+          ) : (
+            <span className="small muted">En cours de lecture</span>
+          )}
           <button className="icon-btn" onClick={() => go('/queue')} aria-label="File d'attente">
             <ListMusic size={22} />
           </button>
@@ -321,6 +352,8 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
               </>
             }
           />
+        ) : quran && view === 'verses' ? (
+          <QuranVerses episode={ep} />
         ) : (
           <Artwork
             src={chapter?.img || ep.artwork}

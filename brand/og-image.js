@@ -73,7 +73,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" v
 <text x="80" y="408" font-family="Segoe UI" font-size="22" fill="#a9b8b5">podcasts, récitations du Coran et horaires de prière.</text>
 ${pill(80, 448, 168, 'Coran récité')}${pill(260, 448, 210, 'Horaires de prière')}${pill(482, 448, 156, 'Hors-ligne')}
 ${pill(80, 500, 238, 'Podcasts vérifiés')}${pill(330, 500, 212, 'Vos audios &amp; vidéos')}
-<text x="80" y="590" font-family="Segoe UI" font-size="18" font-weight="600" fill="#6cc4b4">grfz9.github.io/Podsnew</text>
+<text x="80" y="590" font-family="Segoe UI" font-size="18" font-weight="600" fill="#6cc4b4">podsal.com</text>
 
 ${cover(740, 70, 190, -8, bands)}
 ${cover(950, 120, 170, 7, islamic)}

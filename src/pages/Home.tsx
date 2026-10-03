@@ -1,17 +1,20 @@
+import type { CSSProperties } from 'react';
 import { Link } from 'react-router';
-import { BookOpen, ChartColumn, Clock, Download, FolderOpen, Heart, LayoutGrid, Mic, User } from 'lucide-react';
+import { BookOpen, Clock, Download, FolderOpen, Heart, Mic, User } from 'lucide-react';
+import { getReciters, quranPodcastId } from '../api/quran';
+import { knownReciterRank } from '../data/reciters';
+import type { Interest } from '../store/library';
 import { getAnyPodcast } from '../api/catalog';
 import { getTopPodcasts } from '../api/itunes';
 import { GENRES, getGenre } from '../api/genres';
 import { latestNativePodcasts } from '../api/native';
 import { EpisodeList } from '../components/EpisodeRow';
 import { PodcastRow, SkeletonCards } from '../components/PodcastCard';
-import { ErrorState, Section, Spinner } from '../components/common';
+import { Artwork, ErrorState, Section, Spinner } from '../components/common';
 import { AppMark, Wordmark } from '../components/Wordmark';
 import { GenreTile } from '../components/GenreTile';
 import { MixCard, ResumeHero, useResumeEpisode } from '../components/HomeHero';
 import { Shortcuts, type Shortcut } from '../components/Shortcuts';
-import { Welcome } from '../components/Welcome';
 import { useLocalFiles } from '../store/localFiles';
 import { useDownloads } from '../store/downloads';
 import { buildDailyMix, excludeKnown, recommendationSeeds, type Seed } from '../lib/recommend';
@@ -22,9 +25,6 @@ import { useLibrary } from '../store/library';
 import type { Episode } from '../types';
 import { useAsync } from '../utils/hooks';
 import { hijriDate } from '../utils/format';
-
-/** Catégories mises en avant sur l'accueil. */
-const FEATURED_GENRES = [1489, 1303, 1487];
 
 function TopRow({ country, genreId, title }: { country: string; genreId?: number; title: string }) {
   const { filterPodcasts } = useModeration();
@@ -140,21 +140,43 @@ function NativeCreators() {
 }
 
 /** Raccourcis de l'accueil : ce qu'on cherche le plus souvent, à portée de pouce. */
-function QuickAccess() {
+function QuickAccess({ interests }: { interests: Interest[] }) {
   const library = useLibrary();
   const { files } = useLocalFiles();
   const { downloads } = useDownloads();
   const items: Shortcut[] = [
-    { to: '/coran', label: 'Coran', icon: BookOpen, color: '#e2c485' },
-    { to: '/islam', label: 'Podcasts islamiques', icon: Mic, color: '#6cc4b4' },
-    { to: '/fichiers', label: 'Mes fichiers', icon: FolderOpen, color: '#f0997b', count: files.length },
-    { to: '/library?tab=downloads', label: 'Téléchargés', icon: Download, color: '#85b7eb', count: downloads.length },
-    { to: '/library?tab=saved', label: 'Favoris', icon: Heart, color: '#ed93b1', count: library.savedEpisodes.length },
+    ...(interests.includes('quran') ? [{ to: '/coran', label: 'Coran', icon: BookOpen, color: '#e2c485' }] : []),
+    ...(interests.includes('islamic') ? [{ to: '/islam', label: 'Podcasts islamiques', icon: Mic, color: '#6cc4b4' }] : []),
     { to: '/priere', label: 'Prière', icon: Clock, color: '#5dcaa5' },
-    { to: '/stats', label: 'Statistiques', icon: ChartColumn, color: '#afa9ec' },
-    { to: '/search', label: 'Catégories', icon: LayoutGrid, color: '#b4b2a9' },
+    { to: '/library?tab=saved', label: 'Favoris', icon: Heart, color: '#ed93b1', count: library.savedEpisodes.length },
+    { to: '/library?tab=downloads', label: 'Téléchargés', icon: Download, color: '#85b7eb', count: downloads.length },
+    { to: '/fichiers', label: 'Mes fichiers', icon: FolderOpen, color: '#f0997b', count: files.length },
   ];
   return <Shortcuts items={items} layout="row" label="Accès rapide" />;
+}
+
+/** Récitateurs connus, en accès direct depuis l'accueil. */
+function QuranRow() {
+  const { data } = useAsync(() => getReciters(), []);
+  const known = (data ?? [])
+    .map((r) => ({ r, rank: knownReciterRank(r.name) }))
+    .filter((x) => x.rank >= 0)
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, 10)
+    .map((x) => x.r);
+  if (!known.length) return null;
+  return (
+    <Section title="Écouter le Coran" action={<Link to="/coran" className="see-all">Tous les récitateurs</Link>}>
+      <div className="reciter-strip">
+        {known.map((r, i) => (
+          <Link key={r.id} to={`/coran/${r.id}`} className="reciter-chip" style={{ '--i': i } as CSSProperties}>
+            <Artwork alt="" kind="quran" podcastId={quranPodcastId(r.id)} />
+            <span>{r.name}</span>
+          </Link>
+        ))}
+      </div>
+    </Section>
+  );
 }
 
 function greeting(date = new Date()): string {
@@ -175,8 +197,9 @@ export function Home() {
   const recRows = (recs.data ?? []).map((r) => ({ ...r, podcasts: filterPodcasts(r.podcasts) })).filter((r) => r.podcasts.length > 0);
   const discoveryIds = recRows.flatMap((r) => r.podcasts.slice(0, 2).map((p) => p.id));
   const resume = useResumeEpisode();
-  // Nouveau visiteur (aucune écoute, aucun abonnement) : présentation de Podsal.
-  const isNew = !library.subscriptions.length && !library.history.some((e) => !e.mediaKind);
+  // Ce que l'utilisateur a choisi de voir (fin de la présentation, ou « Moi » → Mon accueil).
+  const interests = library.settings.interests.length ? library.settings.interests : (['quran', 'islamic', 'general'] as Interest[]);
+  const general = interests.includes('general');
   const name = auth.profile?.display_name || auth.profile?.username;
 
   return (
@@ -203,36 +226,37 @@ export function Home() {
         </p>
       </header>
 
-      {isNew && <Welcome />}
       {resume && <ResumeHero episode={resume} />}
       <PrayerCard />
-      <QuickAccess />
+      <QuickAccess interests={interests} />
 
       <ContinueListening exclude={resume?.id} />
-      <IslamicPodcasts />
-      <DailyMix fromSubscriptions={subs.data} discoveryPodcasts={discoveryIds} />
+      {interests.includes('quran') && <QuranRow />}
+      {interests.includes('islamic') && <IslamicPodcasts />}
+      <DailyMix fromSubscriptions={subs.data} discoveryPodcasts={general ? discoveryIds : []} />
       <NewFromSubscriptions episodes={subs.data} loading={subs.loading} />
-      {recRows.map(({ seed, podcasts }) => (
-        <Section
-          key={seed.podcast.id}
-          title={`Parce que vous écoutez ${seed.podcast.title}`}
-          action={<Link to={`/genre/${seed.genreId}`} className="see-all">{getGenre(seed.genreId)?.name}</Link>}
-        >
-          <PodcastRow podcasts={podcasts} />
-        </Section>
-      ))}
-      <NativeCreators />
-      <TopRow country={library.country} title="Podcasts populaires" />
-      <Section title="Explorer par catégorie" action={<Link to="/search" className="see-all">Tout afficher</Link>}>
-        <div className="quick-genres">
-          {GENRES.slice(0, 8).map((g, i) => (
-            <GenreTile key={g.id} genre={g} index={i} />
+      {general && (
+        <>
+          {recRows.map(({ seed, podcasts }) => (
+            <Section
+              key={seed.podcast.id}
+              title={`Parce que vous écoutez ${seed.podcast.title}`}
+              action={<Link to={`/genre/${seed.genreId}`} className="see-all">{getGenre(seed.genreId)?.name}</Link>}
+            >
+              <PodcastRow podcasts={podcasts} />
+            </Section>
           ))}
-        </div>
-      </Section>
-      {FEATURED_GENRES.map((id) => (
-        <TopRow key={id} country={library.country} genreId={id} title={getGenre(id)!.name} />
-      ))}
+          <TopRow country={library.country} title="Podcasts populaires" />
+          <Section title="Explorer par catégorie" action={<Link to="/search" className="see-all">Tout afficher</Link>}>
+            <div className="quick-genres">
+              {GENRES.slice(0, 8).map((g, i) => (
+                <GenreTile key={g.id} genre={g} index={i} />
+              ))}
+            </div>
+          </Section>
+          <NativeCreators />
+        </>
+      )}
     </div>
   );
 }
