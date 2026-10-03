@@ -1,10 +1,12 @@
 import type { Episode } from '../types';
 import { getSurah } from '../data/surahs';
 import { QURAN_PREFIX } from '../lib/policy';
+import { supabase } from '../lib/supabase';
 
 /**
  * Coran :
- * - récitations : mp3quran.net (récitateurs, riwayat, fichiers audio par sourate, minutage des versets) ;
+ * - récitations : mp3quran.net (récitateurs, riwayat, fichiers audio par sourate, minutage des versets),
+ *   plus les récitations ajoutées à la main par la modération (enregistrements anciens, table quran_recitations) ;
  * - texte arabe : alquran.cloud (édition « quran-uthmani », lecture Hafs) ;
  * - traductions françaises : QuranEnc.com (projet du Centre Rowwad at-Tarjama et d'IslamHouse,
  *   traductions revues), avec repli sur alquran.cloud pour Hamidullah.
@@ -21,12 +23,76 @@ export interface Moshaf {
   style: string;
   server: string;
   surahs: number[];
+  /** Récitation ajoutée par la modération : adresse du fichier de chaque sourate. */
+  urls?: Record<number, string>;
+  /** Provenance et crédit (récitations ajoutées par la modération). */
+  source?: string;
 }
 
 export interface Reciter {
   id: number;
   name: string;
   moshaf: Moshaf[];
+  /** Récitation ajoutée à la main par la modération (enregistrement ancien…). */
+  custom?: boolean;
+  /** Précision sous le nom : époque, lieu (récitations ajoutées). */
+  subtitle?: string;
+}
+
+/** Les récitations ajoutées par la modération ont des identifiants au-delà de ceux de mp3quran.net. */
+export const CUSTOM_RECITATION_BASE = 1_000_000;
+export const isCustomRecitation = (id: number) => id >= CUSTOM_RECITATION_BASE;
+
+export interface RecitationRow {
+  id: number;
+  reciter: string;
+  title: string;
+  riwaya: string;
+  style: string;
+  source: string | null;
+  tracks: Record<string, string>;
+  created_at: string;
+}
+
+export function recitationToReciter(row: RecitationRow): Reciter {
+  const id = CUSTOM_RECITATION_BASE + row.id;
+  const urls: Record<number, string> = {};
+  for (const [n, url] of Object.entries(row.tracks ?? {})) {
+    const surah = Number(n);
+    if (surah >= 1 && surah <= 114 && typeof url === 'string' && url.startsWith('https://')) urls[surah] = url;
+  }
+  const surahs = Object.keys(urls).map(Number).sort((a, b) => a - b);
+  return {
+    id,
+    name: row.reciter.trim(),
+    subtitle: row.title.trim() || undefined,
+    custom: true,
+    moshaf: [
+      {
+        id,
+        name: [row.riwaya, row.style, row.title].filter(Boolean).join(' - '),
+        riwaya: row.riwaya,
+        style: row.style,
+        server: '',
+        surahs,
+        urls,
+        source: row.source ?? undefined,
+      },
+    ],
+  };
+}
+
+/** Récitations ajoutées par la modération (vide sans base de données ou en cas d'erreur). */
+export async function getCustomRecitations(): Promise<RecitationRow[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from('quran_recitations').select('*').order('reciter');
+  if (error) return [];
+  return (data ?? []) as RecitationRow[];
+}
+
+/** À appeler après un ajout ou un retrait par la modération : la liste sera relue. */
+export function refreshReciters() {
+  recitersPromise = null;
 }
 
 interface RawReciter {
@@ -74,9 +140,11 @@ async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
 let recitersPromise: Promise<Reciter[]> | null = null;
 
 export function getReciters(): Promise<Reciter[]> {
-  recitersPromise ??= getJson<{ reciters: RawReciter[] }>(`${MP3QURAN}/reciters?language=fr`)
-    .then((data) =>
-      data.reciters
+  recitersPromise ??= Promise.all([getJson<{ reciters: RawReciter[] }>(`${MP3QURAN}/reciters?language=fr`), getCustomRecitations()])
+    .then(([data, custom]) =>
+      [
+        ...custom.map(recitationToReciter).filter((r) => r.moshaf[0].surahs.length > 0),
+        ...data.reciters
         .map((r) => ({
           id: r.id,
           name: r.name.trim(),
@@ -90,7 +158,8 @@ export function getReciters(): Promise<Reciter[]> {
               .map(Number)
               .filter((n) => n >= 1 && n <= 114),
           })),
-        }))
+        })),
+      ]
         .filter((r) => r.moshaf.length > 0)
         .sort((a, b) => a.name.localeCompare(b.name, 'fr')),
     )
@@ -108,6 +177,7 @@ export async function getReciter(id: number): Promise<Reciter> {
 }
 
 export function surahAudioUrl(moshaf: Moshaf, surah: number): string {
+  if (moshaf.urls?.[surah]) return moshaf.urls[surah];
   return `${moshaf.server}${String(surah).padStart(3, '0')}.mp3`;
 }
 
@@ -223,6 +293,8 @@ export interface AyahTiming {
  * Sert à surligner le verset en cours et à répéter un passage précis.
  */
 export async function getAyahTimings(surah: number, moshafId: number): Promise<AyahTiming[] | null> {
+  // Pas de minutage des versets pour les récitations ajoutées à la main.
+  if (isCustomRecitation(moshafId)) return null;
   try {
     const data = await getJson<{ ayah: number; start_time: number; end_time: number }[]>(
       `${MP3QURAN}/ayat_timing?surah=${surah}&read=${moshafId}`,

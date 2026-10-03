@@ -1,1 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#2f4f4f"/><g transform="translate(9.6 9.6) scale(0.448)"><path d="M22 88 V50 C22 33 36 22 50 12 C64 22 78 33 78 50 V88" fill="none" stroke="#f5f1ec" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><g stroke="#f5f1ec" stroke-width="5" stroke-linecap="round"><line x1="34" y1="54.0" x2="34" y2="70.0"/><line x1="42" y1="47.0" x2="42" y2="77.0"/><line x1="50" y1="40.0" x2="50" y2="84.0"/><line x1="58" y1="47.0" x2="58" y2="77.0"/><line x1="66" y1="54.0" x2="66" y2="70.0"/></g></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><radialGradient id="g" cx="35%" cy="25%" r="85%"><stop offset="0" stop-color="#3d6a66"/><stop offset="1" stop-color="#25403f"/></radialGradient></defs><circle cx="256" cy="256" r="256" fill="url(#g)"/><g transform="translate(97.28 97.28) scale(3.174)">
+  <path d="M22 88 V50 C22 33 36 22 50 12 C64 22 78 33 78 50 V88" fill="none" stroke="#f5f1ec" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <g stroke="#f5f1ec" stroke-width="5" stroke-linecap="round">
+    <line x1="34" y1="54" x2="34" y2="70"/><line x1="42" y1="47" x2="42" y2="77"/><line x1="50" y1="40" x2="50" y2="84"/><line x1="58" y1="47" x2="58" y2="77"/><line x1="66" y1="54" x2="66" y2="70"/>
+  </g>
+</g></svg>

@@ -5,6 +5,7 @@ import { searchPodcasts, getPodcast, lookupPodcasts } from '../api/itunes';
 import { blockPodcast, mySuggestions, pendingSuggestions, setSuggestionStatus, suggestPodcast, unblockPodcast, unvalidatePodcast, validatePodcast, type SuggestionRow } from '../api/moderation';
 import { PodcastGrid } from '../components/PodcastCard';
 import { ModerationGroups } from '../components/SharedGroups';
+import { RecitationsModeration } from '../components/RecitationsModeration';
 import { Artwork, EmptyState, ErrorState, Spinner, Tabs } from '../components/common';
 import { isMusicPodcast } from '../api/genres';
 import { useAuth } from '../store/auth';
@@ -207,7 +208,7 @@ function MySuggestions() {
 
 /* ---------- Modération (administrateur) ---------- */
 
-type ModTab = 'suggestions' | 'validated' | 'add' | 'blocked' | 'groups';
+type ModTab = 'suggestions' | 'validated' | 'add' | 'blocked' | 'groups' | 'recitations';
 
 export function ModerationPage() {
   const moderation = useModeration();
@@ -257,6 +258,7 @@ export function ModerationPage() {
           { id: 'validated', label: `Validés (${moderation.validated.length})` },
           { id: 'add', label: 'Ajouter' },
           { id: 'blocked', label: `Masqués (${moderation.blocked.length})` },
+          { id: 'recitations', label: 'Récitations' },
           { id: 'groups', label: 'Groupes publiés' },
         ]}
         value={tab}
@@ -362,6 +364,8 @@ export function ModerationPage() {
       )}
 
       {tab === 'groups' && <ModerationGroups />}
+
+      {tab === 'recitations' && <RecitationsModeration />}
 
       {tab === 'blocked' && (
         <ul className="import-list">
