@@ -20,6 +20,7 @@ import { PrayerPage } from './pages/Prayer';
 import { IslamPage, ModerationPage } from './pages/Islam';
 import { PlaylistPage } from './components/Playlists';
 import { PremiumPage } from './pages/Premium';
+import { AdminPage } from './pages/Admin';
 import { WallpapersPage } from './pages/Wallpapers';
 import { ModerationProvider } from './store/moderation';
 import { PremiumProvider } from './store/premium';
@@ -75,6 +76,7 @@ createRoot(document.getElementById('root')!).render(
                           <Route path="priere" element={<PrayerPage />} />
                           <Route path="islam" element={<IslamPage />} />
                           <Route path="moderation" element={<ModerationPage />} />
+                      <Route path="admin" element={<AdminPage />} />
                           <Route path="account" element={<AccountPage />} />
                           <Route path="premium" element={<PremiumPage />} />
                           <Route path="fonds-ecran" element={<WallpapersPage />} />

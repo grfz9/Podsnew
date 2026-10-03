@@ -214,13 +214,13 @@ export function ModerationPage() {
   const auth = useAuth();
   const library = useLibrary();
   const [tab, setTab] = useState<ModTab>('suggestions');
-  const suggestions = useAsync(() => (moderation.isAdmin ? pendingSuggestions() : Promise.resolve([])), [moderation.isAdmin]);
+  const suggestions = useAsync(() => (moderation.isModerator ? pendingSuggestions() : Promise.resolve([])), [moderation.isModerator]);
   const [query, setQuery] = useState('');
   const term = useDebounced(query.trim());
   const results = useCatalogSearch(term);
   const [error, setError] = useState<string | null>(null);
 
-  if (!auth.userId || !moderation.isAdmin) {
+  if (!auth.userId || !moderation.isModerator) {
     return (
       <div className="page">
         <EmptyState icon={<ShieldCheck size={32} />} title="Page réservée à la modération" />

@@ -9,7 +9,7 @@ export function ModerationTools({ podcast, onChange }: { podcast: Podcast; onCha
   const moderation = useModeration();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  if (!moderation.isAdmin || podcast.id.startsWith('quran-')) return null;
+  if (!moderation.isModerator || podcast.id.startsWith('quran-')) return null;
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);

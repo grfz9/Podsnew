@@ -62,6 +62,17 @@ export async function checkIsAdmin(): Promise<boolean> {
   return data === true;
 }
 
+/** Rôles : administrateur > modérateur > utilisateur. */
+export type Role = 'admin' | 'moderator' | 'user';
+
+export async function getMyRole(): Promise<Role> {
+  if (!supabase) return 'user';
+  const { data, error } = await supabase.rpc('my_role');
+  if (!error && (data === 'admin' || data === 'moderator' || data === 'user')) return data;
+  // Base pas encore mise à jour (fonction my_role absente) : seuls les administrateurs sont connus.
+  return (await checkIsAdmin()) ? 'admin' : 'user';
+}
+
 export async function validatePodcast(p: Podcast, note?: string): Promise<void> {
   const { error } = await requireBackend()
     .from('islamic_podcasts')

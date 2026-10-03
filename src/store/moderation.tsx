@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Episode, Podcast } from '../types';
 import { ISLAMIC_SEED } from '../data/islamicSeed';
-import { checkIsAdmin, getBlocked, getValidated, rowToPodcast, type BlockedRow } from '../api/moderation';
+import { getBlocked, getMyRole, getValidated, rowToPodcast, type BlockedRow, type Role } from '../api/moderation';
 import { allowsEpisode, allowsPodcast, isReligiousContent, type PolicyState } from '../lib/policy';
 import { useAuth } from './auth';
 import { registerFeed } from '../api/rss';
@@ -10,7 +10,12 @@ interface ModerationValue {
   /** Podcasts islamiques validés (liste de départ + validations de la modération), hors podcasts masqués. */
   validated: Podcast[];
   blocked: BlockedRow[];
+  /** Rôle de la personne connectée : administrateur > modérateur > utilisateur. */
+  role: Role;
+  /** Administrateur : membres, statistiques, rôles (et Podsal+ inclus). */
   isAdmin: boolean;
+  /** Modérateur ou administrateur : accès à la modération. */
+  isModerator: boolean;
   loading: boolean;
   isValidated: (podcastId: string) => boolean;
   isBlocked: (podcastId: string) => boolean;
@@ -33,7 +38,7 @@ export function ModerationProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const [validated, setValidated] = useState<Podcast[]>(SEED);
   const [blocked, setBlocked] = useState<BlockedRow[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState<Role>('user');
   const [loading, setLoading] = useState(auth.enabled);
   const [nonce, setNonce] = useState(0);
 
@@ -58,10 +63,12 @@ export function ModerationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!auth.userId) {
-      setIsAdmin(false);
+      setRole('user');
       return;
     }
-    checkIsAdmin().then(setIsAdmin).catch(() => setIsAdmin(false));
+    getMyRole()
+      .then(setRole)
+      .catch(() => setRole('user'));
   }, [auth.userId]);
 
   const reload = useCallback(() => setNonce((n) => n + 1), []);
@@ -89,7 +96,9 @@ export function ModerationProvider({ children }: { children: ReactNode }) {
     return {
       validated: visible,
       blocked,
-      isAdmin,
+      role,
+      isAdmin: role === 'admin',
+      isModerator: role !== 'user',
       loading,
       isValidated: (id) => state.validated.has(id),
       isBlocked: (id) => state.blocked.has(id),
@@ -100,7 +109,7 @@ export function ModerationProvider({ children }: { children: ReactNode }) {
       isReligious: (id) => isReligiousContent(id, state),
       reload,
     };
-  }, [validated, blocked, isAdmin, loading, reload]);
+  }, [validated, blocked, role, loading, reload]);
 
   return <ModerationContext.Provider value={value}>{children}</ModerationContext.Provider>;
 }
