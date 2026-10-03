@@ -11,6 +11,7 @@ import { isUsernameAvailable } from '../api/social';
 import { EmptyState, Tabs } from '../components/common';
 import { useAuth } from '../store/auth';
 import { formatReleaseDate } from '../utils/format';
+import { isStandalone } from '../lib/install';
 
 const USERNAME = /^[a-z0-9_]{3,24}$/;
 
@@ -351,6 +352,7 @@ function MeShortcuts() {
     { to: '/fonds-ecran', label: "Fonds d'écran", icon: Image, color: '#5dcaa5' },
     { to: '/studio', label: 'Studio créateur', icon: Mic, color: '#f09595' },
     { to: '/import', label: 'Importer', icon: FileUp, color: '#b4b2a9' },
+    { to: '/telecharger', label: isStandalone() ? 'Partager l’appli' : 'Installer l’appli', icon: Smartphone, color: '#6cc4b4' },
   ];
   if (isModerator) items.push({ to: '/moderation', label: 'Modération', icon: ShieldCheck, color: '#d85a30' });
   if (isAdmin) items.push({ to: '/admin', label: 'Administration', icon: Crown, color: '#e2c485' });
