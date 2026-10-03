@@ -52,6 +52,7 @@ jobs:
             desktop/dist/Podsal-mac-*.dmg
             desktop/dist/Podsal-linux.deb
             desktop/dist/Podsal-linux.AppImage
+            desktop/dist/latest*.yml
           if-no-files-found: error
 
   release:
