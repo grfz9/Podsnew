@@ -1,3 +1,4 @@
+import { useModeration } from '../store/moderation';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { idbGet } from '../lib/idb';
@@ -12,15 +13,18 @@ const CHECK_EVERY_MS = 30 * 60 * 1000;
 /** Vérifie régulièrement les nouveaux épisodes des abonnements et envoie une notification. */
 function NewEpisodeNotifier() {
   const library = useLibrary();
+  const { filterPodcasts } = useModeration();
   const navigate = useNavigate();
+  const filterRef = useRef(filterPodcasts);
+  filterRef.current = filterPodcasts;
   const libraryRef = useRef(library);
   libraryRef.current = library;
   const enabled = library.settings.notifications;
 
   // Le service worker lit ces données pour ses vérifications en arrière-plan.
   useEffect(() => {
-    void shareStateWithServiceWorker({ enabled, subscriptions: library.subscriptions, seen: library.seen, country: library.country });
-  }, [enabled, library.subscriptions, library.seen, library.country]);
+    void shareStateWithServiceWorker({ enabled, subscriptions: filterPodcasts(library.subscriptions), seen: library.seen, country: library.country });
+  }, [enabled, library.subscriptions, library.seen, library.country, filterPodcasts]);
 
   useEffect(() => {
     let cleanup = () => undefined as void;
@@ -38,7 +42,7 @@ function NewEpisodeNotifier() {
       const fromWorker = await idbGet<{ seen?: Record<string, string> }>('kv', 'notify-state').catch(() => undefined);
       const seen = { ...lib.seen };
       for (const [id, date] of Object.entries(fromWorker?.seen ?? {})) if (!seen[id] || date > seen[id]) seen[id] = date;
-      const { fresh, seen: nextSeen } = await findNewEpisodes(lib.subscriptions, seen, lib.country);
+      const { fresh, seen: nextSeen } = await findNewEpisodes(filterRef.current(lib.subscriptions), seen, lib.country);
       if (cancelled) return;
       for (const item of fresh.slice(0, 5)) {
         await notify(item.podcast.title, item.title, `/podcast/${item.podcast.id}`).catch(() => undefined);

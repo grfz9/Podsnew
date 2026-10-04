@@ -3,21 +3,17 @@ import { Link } from 'react-router';
 import { BookOpen, BookOpenText, Clock, Download, FolderOpen, Heart, Mic, User } from 'lucide-react';
 import { getReciters, quranPodcastId } from '../api/quran';
 import { knownReciterRank } from '../data/reciters';
-import type { Interest } from '../store/library';
+import { ALL_INTERESTS, type Interest } from '../store/library';
 import { getAnyPodcast } from '../api/catalog';
-import { getTopPodcasts } from '../api/itunes';
-import { GENRES, getGenre } from '../api/genres';
-import { latestNativePodcasts } from '../api/native';
 import { EpisodeList } from '../components/EpisodeRow';
-import { PodcastRow, SkeletonCards } from '../components/PodcastCard';
-import { Artwork, ErrorState, Section, Spinner } from '../components/common';
+import { PodcastRow } from '../components/PodcastCard';
+import { Artwork, Section, Spinner } from '../components/common';
 import { AppMark, Wordmark } from '../components/Wordmark';
-import { GenreTile } from '../components/GenreTile';
 import { MixCard, ResumeHero, useResumeEpisode } from '../components/HomeHero';
 import { Shortcuts, type Shortcut } from '../components/Shortcuts';
 import { useLocalFiles } from '../store/localFiles';
 import { useDownloads } from '../store/downloads';
-import { buildDailyMix, excludeKnown, recommendationSeeds, type Seed } from '../lib/recommend';
+import { buildDailyMix } from '../lib/recommend';
 import { useAuth } from '../store/auth';
 import { useModeration } from '../store/moderation';
 import { PrayerCard } from './Prayer';
@@ -26,16 +22,6 @@ import type { Episode } from '../types';
 import { DailyVerse } from '../components/DailyVerse';
 import { useAsync } from '../utils/hooks';
 import { hijriDate } from '../utils/format';
-
-function TopRow({ country, genreId, title }: { country: string; genreId?: number; title: string }) {
-  const { filterPodcasts } = useModeration();
-  const { data, error, loading, reload } = useAsync((signal) => getTopPodcasts(country, genreId, 30, signal), [country, genreId]);
-  return (
-    <Section title={title} action={<Link to={genreId ? `/genre/${genreId}` : '/genre/top'} className="see-all">Tout afficher</Link>}>
-      {loading && !data ? <SkeletonCards /> : error ? <ErrorState error={error} onRetry={reload} /> : <PodcastRow podcasts={filterPodcasts(data ?? []).slice(0, 20)} />}
-    </Section>
-  );
-}
 
 /** Podcasts islamiques validés par la modération. */
 function IslamicPodcasts() {
@@ -76,7 +62,8 @@ function ContinueListening({ exclude }: { exclude?: string }) {
 /** Derniers épisodes des abonnements (partagé par le mix et la section « Nouveautés »). */
 function useSubscriptionEpisodes() {
   const { subscriptions, country } = useLibrary();
-  const ids = subscriptions.slice(0, 15).map((p) => p.id);
+  const { filterPodcasts } = useModeration();
+  const ids = filterPodcasts(subscriptions).slice(0, 15).map((p) => p.id);
   return useAsync(async (signal) => {
     const results = await Promise.allSettled(ids.map((id) => getAnyPodcast(id, country, 5, signal)));
     return results
@@ -97,21 +84,6 @@ function NewFromSubscriptions({ episodes, loading }: { episodes?: Episode[]; loa
   );
 }
 
-function useRecommendations(seeds: Seed[]) {
-  const { subscriptions, country } = useLibrary();
-  const known = new Set(subscriptions.map((p) => p.id));
-  return useAsync(async (signal) => {
-    const rows = await Promise.all(
-      seeds.map(async (seed) => {
-        const top = await getTopPodcasts(country, seed.genreId, 50, signal).catch(() => []);
-        known.add(seed.podcast.id);
-        return { seed, podcasts: excludeKnown(top, known).slice(0, 12) };
-      }),
-    );
-    return rows.filter((r) => r.podcasts.length > 0);
-  }, [seeds.map((s) => `${s.podcast.id}:${s.genreId}`).join(','), subscriptions.length, country]);
-}
-
 function DailyMix({ fromSubscriptions, discoveryPodcasts }: { fromSubscriptions?: Episode[]; discoveryPodcasts: string[] }) {
   const library = useLibrary();
   const { progress, country } = library;
@@ -125,19 +97,6 @@ function DailyMix({ fromSubscriptions, discoveryPodcasts }: { fromSubscriptions?
   const mix = buildDailyMix({ fromSubscriptions: filterEpisodes(fromSubscriptions ?? []), discovery: filterEpisodes(discovery.data ?? []), progress });
   if (mix.length < 3) return null;
   return <MixCard mix={mix} subscribedCount={mix.filter((e) => library.isSubscribed(e.podcastId)).length} />;
-}
-
-function NativeCreators() {
-  const auth = useAuth();
-  const { filterPodcasts } = useModeration();
-  const { data } = useAsync(() => (auth.enabled ? latestNativePodcasts(12) : Promise.resolve([])), [auth.enabled]);
-  const list = filterPodcasts(data ?? []);
-  if (!list.length) return null;
-  return (
-    <Section title="Publiés sur Podsal" action={<Link to="/studio" className="see-all">Publier le vôtre</Link>}>
-      <PodcastRow podcasts={list} />
-    </Section>
-  );
 }
 
 /** Raccourcis de l'accueil : ce qu'on cherche le plus souvent, à portée de pouce. */
@@ -196,16 +155,10 @@ function greeting(date = new Date()): string {
 export function Home() {
   const library = useLibrary();
   const auth = useAuth();
-  const { filterPodcasts } = useModeration();
   const subs = useSubscriptionEpisodes();
-  const seeds = recommendationSeeds(library.state.stats, library.subscriptions, 2);
-  const recs = useRecommendations(seeds);
-  const recRows = (recs.data ?? []).map((r) => ({ ...r, podcasts: filterPodcasts(r.podcasts) })).filter((r) => r.podcasts.length > 0);
-  const discoveryIds = recRows.flatMap((r) => r.podcasts.slice(0, 2).map((p) => p.id));
   const resume = useResumeEpisode();
   // Ce que l'utilisateur a choisi de voir (fin de la présentation, ou « Moi » → Mon accueil).
-  const interests = library.settings.interests.length ? library.settings.interests : (['quran', 'islamic', 'general'] as Interest[]);
-  const general = interests.includes('general');
+  const interests = library.settings.interests.length ? library.settings.interests : ALL_INTERESTS;
   const name = auth.profile?.display_name || auth.profile?.username;
 
   return (
@@ -240,30 +193,8 @@ export function Home() {
       <ContinueListening exclude={resume?.id} />
       {interests.includes('quran') && <QuranRow />}
       {interests.includes('islamic') && <IslamicPodcasts />}
-      <DailyMix fromSubscriptions={subs.data} discoveryPodcasts={general ? discoveryIds : []} />
+      <DailyMix fromSubscriptions={subs.data} discoveryPodcasts={[]} />
       <NewFromSubscriptions episodes={subs.data} loading={subs.loading} />
-      {general && (
-        <>
-          {recRows.map(({ seed, podcasts }) => (
-            <Section
-              key={seed.podcast.id}
-              title={`Parce que vous écoutez ${seed.podcast.title}`}
-              action={<Link to={`/genre/${seed.genreId}`} className="see-all">{getGenre(seed.genreId)?.name}</Link>}
-            >
-              <PodcastRow podcasts={podcasts} />
-            </Section>
-          ))}
-          <TopRow country={library.country} title="Podcasts populaires" />
-          <Section title="Explorer par catégorie" action={<Link to="/search" className="see-all">Tout afficher</Link>}>
-            <div className="quick-genres">
-              {GENRES.slice(0, 8).map((g, i) => (
-                <GenreTile key={g.id} genre={g} index={i} />
-              ))}
-            </div>
-          </Section>
-          <NativeCreators />
-        </>
-      )}
     </div>
   );
 }

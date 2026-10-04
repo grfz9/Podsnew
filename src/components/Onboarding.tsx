@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowRight, Bell, BookOpen, Check, Download, FolderOpen, Mic, Newspaper, Smartphone } from 'lucide-react';
+import { ArrowRight, Bell, BookOpen, Check, Download, FolderOpen, Mic, Smartphone } from 'lucide-react';
 import { useInstall } from '../lib/install';
 import { ALL_INTERESTS, useLibrary, type Interest } from '../store/library';
 import { Artwork } from './common';
@@ -17,7 +17,6 @@ export const SHOW_ONBOARDING_EVENT = 'podsal:onboarding';
 const INTERESTS: { id: Interest; icon: typeof BookOpen; title: string; text: string }[] = [
   { id: 'quran', icon: BookOpen, title: 'Le Coran', text: 'Récitations et versets traduits' },
   { id: 'islamic', icon: Mic, title: 'Podcasts islamiques', text: 'Cours, rappels, khoutbas vérifiés' },
-  { id: 'general', icon: Newspaper, title: 'Podcasts de société', text: 'Actualité, histoire, sciences, humour…' },
 ];
 
 function VisualWelcome() {

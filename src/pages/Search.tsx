@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { FileText, Search as SearchIcon, X } from 'lucide-react';
+import { BookOpen, BookOpenText, Clock, FileText, Mic, Search as SearchIcon, X } from 'lucide-react';
 import { searchAllPodcasts } from '../api/catalog';
 import { searchEpisodes } from '../api/itunes';
-import { GENRES } from '../api/genres';
-import { GenreTile } from '../components/GenreTile';
+import { reciterMatches } from '../data/reciters';
+import { getReciters } from '../api/quran';
+import { Shortcuts } from '../components/Shortcuts';
 import { searchTranscripts } from '../api/ai';
 import { searchLocalTranscripts } from '../lib/feed';
 import { EpisodeList, EpisodeRow, episodePath } from '../components/EpisodeRow';
@@ -92,12 +93,44 @@ function Results({ term, tab }: { term: string; tab: Tab }) {
 
   if (tab === 'transcripts') return <TranscriptResults term={term} />;
   const state = tab === 'podcasts' ? podcasts : episodes;
-  const podcastList = moderation.filterPodcasts(podcasts.data ?? []);
+  // Podsal est 100 % islamique : podcasts validés qui correspondent, puis résultats du catalogue validés.
+  const q = term.toLowerCase();
+  const validatedMatches = moderation.validated.filter((p) => `${p.title} ${p.author}`.toLowerCase().includes(q));
+  const seen = new Set(validatedMatches.map((p) => p.id));
+  const podcastList = [...validatedMatches, ...moderation.filterPodcasts(podcasts.data ?? []).filter((p) => !seen.has(p.id))];
   const episodeList = moderation.filterEpisodes(episodes.data ?? []);
   if (state.loading) return <Spinner label="Recherche…" />;
   if (state.error) return <ErrorState error={state.error} onRetry={state.reload} />;
-  if (!(tab === 'podcasts' ? podcastList : episodeList).length) return <NoResults term={term} />;
-  return tab === 'podcasts' ? <PodcastGrid podcasts={podcastList} /> : <EpisodeList episodes={episodeList} showPodcast />;
+  if (tab === 'podcasts' && !podcastList.length) return <ReciterResults term={term} empty={<NoResults term={term} />} />;
+  if (tab === 'episodes' && !episodeList.length) return <NoResults term={term} />;
+  return tab === 'podcasts' ? (
+    <>
+      <ReciterResults term={term} />
+      <PodcastGrid podcasts={podcastList} />
+    </>
+  ) : (
+    <EpisodeList episodes={episodeList} showPodcast />
+  );
+}
+
+/** Récitateurs du Coran dont le nom correspond à la recherche. */
+function ReciterResults({ term, empty = null }: { term: string; empty?: React.ReactNode }) {
+  const { data } = useAsync(() => getReciters(), []);
+  const list = (data ?? []).filter((r) => reciterMatches(r.name, term.toLowerCase())).slice(0, 8);
+  if (!list.length) return <>{empty}</>;
+  return (
+    <section className="section">
+      <h2 className="section-title">Récitateurs du Coran</h2>
+      <div className="surah-chips">
+        {list.map((r) => (
+          <Link key={r.id} to={`/coran/${r.id}`} className="surah-chip">
+            <strong>{r.name}</strong>
+            {r.subtitle && <span className="small muted">{r.subtitle}</span>}
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 export function SearchPage() {
@@ -138,7 +171,7 @@ export function SearchPage() {
           type="search"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={tab === 'transcripts' ? 'Un sujet, une personne, une citation…' : 'Podcasts, épisodes, animateurs…'}
+          placeholder={tab === 'transcripts' ? 'Un sujet, une personne, une citation…' : 'Récitateurs, podcasts islamiques, épisodes…'}
           aria-label="Rechercher"
           autoFocus
         />
@@ -167,12 +200,16 @@ export function SearchPage() {
         </p>
       ) : (
         <>
-          <h2 className="section-title">Parcourir les catégories</h2>
-          <div className="genre-grid">
-            {GENRES.map((g, i) => (
-              <GenreTile key={g.id} genre={g} size="large" index={i} />
-            ))}
-          </div>
+          <h2 className="section-title">Parcourir</h2>
+          <Shortcuts
+            label="Parcourir"
+            items={[
+              { to: '/coran', label: 'Écouter le Coran', icon: BookOpen, color: '#e2c485' },
+              { to: '/lire', label: 'Lire le Coran', icon: BookOpenText, color: '#c9a86a' },
+              { to: '/islam', label: 'Podcasts islamiques', icon: Mic, color: '#6cc4b4' },
+              { to: '/priere', label: 'Prière', icon: Clock, color: '#5dcaa5' },
+            ]}
+          />
         </>
       )}
     </div>

@@ -90,7 +90,7 @@ export function PodcastPage() {
         <EmptyState icon={<ShieldCheck size={32} />} title="Ce podcast n'est pas disponible sur Podsal">
           {moderation.isBlocked(podcast.id)
             ? 'Il a été retiré par la modération.'
-            : 'Podsal ne propose pas de musique ni de contenu explicite, et les podcasts religieux ne sont proposés qu’après vérification.'}{' '}
+            : 'Podsal est une appli 100 % islamique : seuls le Coran et les podcasts islamiques vérifiés par la modération y sont proposés.'}{' '}
           {!moderation.isBlocked(podcast.id) && (
             <Link to={`/islam?proposer=${encodeURIComponent(podcast.id)}`} className="link">
               Proposer ce podcast à la validation

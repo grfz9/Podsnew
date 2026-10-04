@@ -30,7 +30,9 @@ export function EpisodePage() {
     if (moderation.loading) return <div className="page"><Spinner /></div>;
     return (
       <div className="page">
-        <EmptyState icon={<ShieldCheck size={32} />} title="Cet épisode n'est pas disponible sur Podsal" />
+        <EmptyState icon={<ShieldCheck size={32} />} title="Cet épisode n'est pas disponible sur Podsal">
+          Podsal est une appli 100 % islamique : seuls le Coran et les podcasts islamiques vérifiés par la modération y sont proposés.
+        </EmptyState>
       </div>
     );
   }

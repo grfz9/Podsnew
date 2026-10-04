@@ -90,13 +90,15 @@ function AccountLink() {
 }
 
 export function Layout() {
-  const { subscriptions, settings } = useLibrary();
+  const { settings, subscriptions: allSubscriptions } = useLibrary();
   const { isPremium } = usePremium();
   // Un fond réservé à Podsal+ (ou une image importée) revient au fond par défaut quand l'abonnement prend fin.
   const images = useCustomImages();
   const wallpaper = resolveBackground('main', settings.wallpaper, isPremium, images.wallpaperUrl('main'));
   const sidebarBg = resolveBackground('sidebar', settings.sidebarWallpaper, isPremium, images.wallpaperUrl('sidebar'));
-  const { isAdmin, isModerator } = useModeration();
+  const { isAdmin, isModerator, filterPodcasts } = useModeration();
+  // Anciens abonnements non islamiques : masqués (Podsal est 100 % islamique).
+  const subscriptions = filterPodcasts(allSubscriptions);
   const { current } = usePlayer();
   const [expanded, setExpanded] = useState(false);
   const location = useLocation();

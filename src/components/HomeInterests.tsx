@@ -1,4 +1,4 @@
-import { BookOpen, Mic, Newspaper, PlayCircle, Sparkles } from 'lucide-react';
+import { BookOpen, Mic, PlayCircle, Sparkles } from 'lucide-react';
 import { ALL_INTERESTS, useLibrary, type Interest } from '../store/library';
 import { SHOW_ONBOARDING_EVENT } from './Onboarding';
 import { SHOW_WHATS_NEW_EVENT } from './WhatsNew';
@@ -6,7 +6,6 @@ import { SHOW_WHATS_NEW_EVENT } from './WhatsNew';
 const CHOICES: { id: Interest; icon: typeof BookOpen; label: string }[] = [
   { id: 'quran', icon: BookOpen, label: 'Le Coran' },
   { id: 'islamic', icon: Mic, label: 'Podcasts islamiques' },
-  { id: 'general', icon: Newspaper, label: 'Podcasts de société' },
 ];
 
 /** « Mon accueil » (page Moi) : ce que l'accueil met en avant, et accès à la présentation de l'appli. */
