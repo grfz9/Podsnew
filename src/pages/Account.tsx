@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Link } from 'react-router';
-import { ChartColumn, Clock, Cloud, CloudOff, Crown, FileUp, FolderOpen, Image, ListMusic, ListOrdered, LogOut, Mail, Mic, ShieldCheck, Smartphone, Sparkle, Users } from 'lucide-react';
+import { BookOpenText, ChartColumn, Clock, Cloud, CloudOff, Crown, FileUp, FolderOpen, Image, ListMusic, ListOrdered, LogOut, Mail, Mic, ShieldCheck, Smartphone, Sparkle, Users } from 'lucide-react';
 import { Shortcuts, type Shortcut } from '../components/Shortcuts';
 import { HomeInterests } from '../components/HomeInterests';
 import { normalizePhone } from '../utils/phone';
@@ -343,6 +343,7 @@ function MeShortcuts() {
   const { isPremium } = usePremium();
   const items: Shortcut[] = [
     { to: '/premium', label: isPremium ? 'Podsal+ actif' : 'Podsal+', icon: Sparkle, color: '#e2c485' },
+    { to: '/lire', label: 'Lire le Coran', icon: BookOpenText, color: '#c9a86a' },
     { to: '/fichiers', label: 'Mes fichiers', icon: FolderOpen, color: '#f0997b' },
     { to: '/priere', label: 'Prière', icon: Clock, color: '#6cc4b4' },
     { to: '/stats', label: 'Statistiques', icon: ChartColumn, color: '#afa9ec' },

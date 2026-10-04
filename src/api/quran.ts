@@ -237,7 +237,10 @@ export const BASMALA = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱ�
 /** L'édition Uthmani inclut la basmala au début du premier verset (sauf sourates 1 et 9) : on l'affiche à part. */
 export function stripBasmala(surah: number, ayah: number, text: string): string {
   if (surah === 1 || surah === 9 || ayah !== 1) return text;
-  return text.startsWith(BASMALA) ? text.slice(BASMALA.length).trim() : text;
+  // Comparaison en Unicode normalisé : l'API écrit parfois la shadda avant la fatha, et l'inverse ici.
+  const normalized = text.normalize('NFC');
+  const basmala = BASMALA.normalize('NFC');
+  return normalized.startsWith(basmala) ? normalized.slice(basmala.length).trim() : text;
 }
 
 const textCache = new Map<string, Promise<Ayah[]>>();

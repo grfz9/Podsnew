@@ -10,6 +10,13 @@ const HISTORY_DESCRIPTION_MAX = 600;
 
 export type TranslationSetting = 'rashid' | 'hamidullah' | 'none';
 
+/** Un verset du Coran (sourate, verset) et la date à laquelle il a été lu ou marqué. */
+export interface QuranPlace {
+  surah: number;
+  ayah: number;
+  at: number;
+}
+
 export type PrayerMethod = 'mwl' | 'ummalqura' | 'egypt' | 'karachi' | 'isna' | 'moonsighting' | 'uoif' | 'fifteen';
 
 export interface PrayerSettings {
@@ -35,6 +42,11 @@ export interface Settings {
     translation: TranslationSetting;
     showArabic: boolean;
     favorites: number[];
+    /** Lecture : dernier verset lu, marque-pages, affichage et taille du texte (suivent le compte). */
+    lastRead?: QuranPlace;
+    bookmarks?: QuranPlace[];
+    readerMode?: 'both' | 'arabic' | 'translation';
+    readerSize?: number;
   };
   prayer: PrayerSettings;
   /** Fond d'écran de l'application (voir src/data/wallpapers.ts ; « custom » = image importée). */

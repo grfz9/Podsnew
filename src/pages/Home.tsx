@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { Link } from 'react-router';
-import { BookOpen, Clock, Download, FolderOpen, Heart, Mic, User } from 'lucide-react';
+import { BookOpen, BookOpenText, Clock, Download, FolderOpen, Heart, Mic, User } from 'lucide-react';
 import { getReciters, quranPodcastId } from '../api/quran';
 import { knownReciterRank } from '../data/reciters';
 import type { Interest } from '../store/library';
@@ -145,7 +145,12 @@ function QuickAccess({ interests }: { interests: Interest[] }) {
   const { files } = useLocalFiles();
   const { downloads } = useDownloads();
   const items: Shortcut[] = [
-    ...(interests.includes('quran') ? [{ to: '/coran', label: 'Coran', icon: BookOpen, color: '#e2c485' }] : []),
+    ...(interests.includes('quran')
+      ? [
+          { to: '/coran', label: 'Écouter le Coran', icon: BookOpen, color: '#e2c485' },
+          { to: '/lire', label: 'Lire le Coran', icon: BookOpenText, color: '#c9a86a' },
+        ]
+      : []),
     ...(interests.includes('islamic') ? [{ to: '/islam', label: 'Podcasts islamiques', icon: Mic, color: '#6cc4b4' }] : []),
     { to: '/priere', label: 'Prière', icon: Clock, color: '#5dcaa5' },
     { to: '/library?tab=saved', label: 'Favoris', icon: Heart, color: '#ed93b1', count: library.savedEpisodes.length },

@@ -12,6 +12,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-04b',
+    date: '4 octobre 2026',
+    title: 'Lire le Coran',
+    items: [
+      'Nouvel onglet « Lire le Coran » : les 114 sourates en arabe, avec la traduction de votre choix.',
+      'Trois affichages : arabe et traduction, arabe seul façon mushaf, ou traduction seule.',
+      'Taille du texte réglable, marque-pages et « Reprendre la lecture » là où vous vous étiez arrêté, sur tous vos appareils.',
+      'Touchez un verset pour le marquer ou le copier, et « Écouter » pour lancer la récitation.',
+    ],
+  },
+  {
     id: '2026-10-04',
     date: '4 octobre 2026',
     title: 'Une appli plus propre sur ordinateur',

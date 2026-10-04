@@ -65,6 +65,9 @@ describe('Coran', () => {
   it('sépare la basmala du premier verset et situe le verset en cours', () => {
     expect(stripBasmala(2, 1, `${BASMALA} الٓمٓ`)).toBe('الٓمٓ');
     expect(stripBasmala(1, 1, BASMALA)).toBe(BASMALA);
+    // Texte réel d'alquran.cloud (18:1) : shadda avant fatha, dans l'autre ordre que BASMALA.
+    const api = '\u0628\u0650\u0633\u0652\u0645\u0650 \u0671\u0644\u0644\u0651\u064e\u0647\u0650 \u0671\u0644\u0631\u0651\u064e\u062d\u0652\u0645\u064e\u0670\u0646\u0650 \u0671\u0644\u0631\u0651\u064e\u062d\u0650\u064a\u0645\u0650 \u0671\u0644\u0652\u062d\u064e\u0645\u0652\u062f\u064f';
+    expect(stripBasmala(18, 1, api)).toBe('\u0671\u0644\u0652\u062d\u064e\u0645\u0652\u062f\u064f');
     const timings = [
       { ayah: 1, start: 0, end: 5 },
       { ayah: 2, start: 5, end: 9 },
