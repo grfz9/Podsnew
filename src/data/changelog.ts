@@ -12,6 +12,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-04c',
+    date: '4 octobre 2026',
+    title: 'Verset du jour et explications',
+    items: [
+      'Un verset du jour, différent pour chacun, sur l’accueil et dans « Lire le Coran ».',
+      'Bouton « Explication » sur chaque verset : Al-Mukhtasar fi Tafsir, explication abrégée officielle du Centre de Tafsir.',
+      'Traduction de Muhammad Hamidullah (édition du Complexe du Roi Fahd) proposée par défaut, avec ses notes.',
+      'Podsal ne traduit ni n’explique jamais le Coran lui-même : seules des sources officielles revues par des savants sont affichées.',
+    ],
+  },
+  {
     id: '2026-10-04b',
     date: '4 octobre 2026',
     title: 'Lire le Coran',

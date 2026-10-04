@@ -1,3 +1,4 @@
+import { DAILY_VERSES, dailyVerse, today } from '../data/dailyVerses';
 import { desktopOs, detectPlatform, iosBrowser, isInAppBrowser, isNewerVersion, manualDesktopVersion } from './install';
 import { describe, expect, it } from 'vitest';
 import { allowsEpisode, allowsPodcast, isReligiousContent, type PolicyState } from './policy';
@@ -226,5 +227,25 @@ describe('page d’installation', () => {
     expect(iosBrowser(IPHONE)).toBe('safari');
     expect(iosBrowser(IPHONE_CHROME)).toBe('other');
     expect(iosBrowser(INSTAGRAM)).toBe('other');
+  });
+});
+
+describe('verset du jour', () => {
+  it('ne propose que des versets qui existent', () => {
+    for (const [surah, ayah] of DAILY_VERSES) {
+      const s = SURAHS[surah - 1];
+      expect(s, `${surah}:${ayah}`).toBeDefined();
+      expect(ayah, `${surah}:${ayah}`).toBeGreaterThanOrEqual(1);
+      expect(ayah, `${surah}:${ayah}`).toBeLessThanOrEqual(s.ayahs);
+    }
+  });
+
+  it('garde le même verset toute la journée et varie selon la personne et le jour', () => {
+    expect(dailyVerse('alice', '2026-10-04')).toEqual(dailyVerse('alice', '2026-10-04'));
+    const days = new Set(Array.from({ length: 30 }, (_, i) => JSON.stringify(dailyVerse('alice', `2026-11-${String(i + 1).padStart(2, '0')}`))));
+    expect(days.size).toBeGreaterThan(15);
+    const people = new Set(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((p) => JSON.stringify(dailyVerse(p, '2026-10-04'))));
+    expect(people.size).toBeGreaterThan(3);
+    expect(today(new Date(2026, 0, 5))).toBe('2026-01-05');
   });
 });

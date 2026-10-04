@@ -210,18 +210,26 @@ export function parseSurahEpisodeId(id: string): { moshafId: number; surah: numb
 
 export type TranslationId = 'rashid' | 'hamidullah';
 
+/**
+ * Traductions officielles, revues par des savants (QuranEnc.com) : Podsal ne traduit ni n'explique
+ * jamais le Coran lui-même. Hamidullah (édition du Complexe du Roi Fahd) est la plus répandue en français.
+ */
 export const TRANSLATIONS: { id: TranslationId; label: string; source: string }[] = [
   {
-    id: 'rashid',
-    label: 'Rachid Maach',
-    source: 'Traduction de Rachid Maach, revue et publiée par le Centre Rowwad at-Tarjama (QuranEnc.com).',
+    id: 'hamidullah',
+    label: 'Muhammad Hamidullah (Complexe du Roi Fahd)',
+    source: 'Traduction de Muhammad Hamidullah, édition revue par le Complexe du Roi Fahd pour l’impression du Noble Coran (QuranEnc.com).',
   },
   {
-    id: 'hamidullah',
-    label: 'Muhammad Hamidullah',
-    source: 'Traduction de Muhammad Hamidullah, édition revue par le Complexe du Roi Fahd (QuranEnc.com).',
+    id: 'rashid',
+    label: 'Rachid Maach (Rowwad at-Tarjama)',
+    source: 'Traduction de Rachid Maach, revue et publiée par le Centre Rowwad at-Tarjama (QuranEnc.com).',
   },
 ];
+
+/** Source de l'explication des versets affichée dans Podsal. */
+export const TAFSIR_SOURCE =
+  'Al-Mukhtasar fi Tafsir al-Qur’an al-Karim (explication abrégée du Noble Coran), Centre de Tafsir pour les études coraniques, traduction française officielle (QuranEnc.com).';
 
 const QURANENC_KEYS: Record<TranslationId, string> = { rashid: 'french_rashid', hamidullah: 'french_hameedullah' };
 
@@ -281,6 +289,31 @@ export function getSurahText(surah: number, translation: TranslationId | null): 
     textCache.set(key, hit);
   }
   return hit;
+}
+
+/* ---------- Explication des versets (Al-Mukhtasar, traduction française officielle) ---------- */
+
+const tafsirCache = new Map<number, Promise<string[]>>();
+
+/** Explication de chaque verset d'une sourate (index 0 = verset 1). */
+export function getSurahTafsir(surah: number): Promise<string[]> {
+  let hit = tafsirCache.get(surah);
+  if (!hit) {
+    hit = getJson<{ result: { aya: string | number; translation: string }[] }>(`${QURANENC}/translation/sura/french_mokhtasar/${surah}`).then((data) =>
+      data.result.map((r) => r.translation.trim()),
+    );
+    hit.catch(() => tafsirCache.delete(surah));
+    tafsirCache.set(surah, hit);
+  }
+  return hit;
+}
+
+/** Un seul verset : texte arabe et traduction officielle (pour le verset du jour). */
+export async function getVerse(surah: number, ayah: number, translation: TranslationId): Promise<Ayah> {
+  const text = await getSurahText(surah, translation);
+  const verse = text[ayah - 1];
+  if (!verse) throw new Error('Verset introuvable.');
+  return verse;
 }
 
 /* ---------- Minutage des versets ---------- */
