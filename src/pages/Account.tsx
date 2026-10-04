@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Link } from 'react-router';
-import { BookOpenText, ChartColumn, Clock, Cloud, CloudOff, Crown, FileUp, FolderOpen, Image, ListMusic, ListOrdered, LogOut, Mail, Mic, ShieldCheck, Smartphone, Sparkle, Users } from 'lucide-react';
+import { BookOpenText, ChartColumn, Clock, Cloud, CloudOff, Crown, FolderOpen, Image, ListMusic, ListOrdered, LogOut, Mail, Mic, ShieldCheck, Smartphone, Sparkle, Users } from 'lucide-react';
 import { Shortcuts, type Shortcut } from '../components/Shortcuts';
 import { HomeInterests } from '../components/HomeInterests';
 import { normalizePhone } from '../utils/phone';
@@ -352,7 +352,6 @@ function MeShortcuts() {
     { to: '/queue', label: "File d'attente", icon: ListOrdered, color: '#97c459' },
     { to: '/fonds-ecran', label: "Fonds d'écran", icon: Image, color: '#5dcaa5' },
     { to: '/studio', label: 'Studio créateur', icon: Mic, color: '#f09595' },
-    { to: '/import', label: 'Importer', icon: FileUp, color: '#b4b2a9' },
     { to: '/telecharger', label: isStandalone() ? 'Partager l’appli' : 'Installer l’appli', icon: Smartphone, color: '#6cc4b4' },
   ];
   if (isModerator) items.push({ to: '/moderation', label: 'Modération', icon: ShieldCheck, color: '#d85a30' });

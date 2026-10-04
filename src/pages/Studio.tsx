@@ -170,6 +170,9 @@ function StudioHome() {
         )}
       </div>
       <p className="muted">Publiez vos épisodes sur Podsal, obtenez un flux RSS pour les autres plateformes et suivez vos écoutes.</p>
+      <p className="scholar-notice">
+        Podsal est une appli 100 % islamique : votre podcast (cours, rappels, khoutbas…) apparaît dans Podsal une fois vérifié et validé par la modération.
+      </p>
 
       {creating && (
         <section className="panel">

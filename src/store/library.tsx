@@ -61,8 +61,9 @@ export interface Settings {
   interests: Interest[];
 }
 
-export type Interest = 'quran' | 'islamic' | 'general';
-export const ALL_INTERESTS: Interest[] = ['quran', 'islamic', 'general'];
+/** Ce que l'accueil met en avant (Podsal est 100 % islamique : Coran et podcasts islamiques). */
+export type Interest = 'quran' | 'islamic';
+export const ALL_INTERESTS: Interest[] = ['quran', 'islamic'];
 
 export const DEFAULT_SETTINGS: Settings = {
   notifications: false,
@@ -70,7 +71,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sidebarWallpaper: 'uni',
   episodeOrder: 'oldest',
   onboarded: false,
-  interests: ['quran', 'islamic', 'general'],
+  interests: ['quran', 'islamic'],
   quran: { translation: 'hamidullah', showArabic: true, favorites: [] },
   prayer: {
     enabled: false,
@@ -155,6 +156,8 @@ function normalize(stored: Partial<LibraryState> | null): LibraryState {
       ...stored.settings,
       quran: { ...base.settings.quran, ...stored.settings?.quran },
       prayer: { ...base.settings.prayer, ...stored.settings?.prayer },
+      // Ancien choix « Podcasts de société » retiré : Podsal est 100 % islamique.
+      interests: (stored.settings?.interests ?? base.settings.interests).filter((i) => ALL_INTERESTS.includes(i)),
     },
     playlists: stored.playlists ?? [],
     sync: { ...base.sync, ...stored.sync },
@@ -358,7 +361,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
           for (const key of LIST_KEYS) (out as Record<string, unknown>)[key] = data[key];
           if (data.prefs && data.prefs.updatedAt >= s.prefsModified) {
             const { quran, interests, episodeOrder, updatedAt } = data.prefs;
-            out.settings = { ...s.settings, quran: { ...s.settings.quran, ...quran }, interests, episodeOrder };
+            out.settings = { ...s.settings, quran: { ...s.settings.quran, ...quran }, interests: interests.filter((i) => ALL_INTERESTS.includes(i)), episodeOrder };
             out.prefsModified = updatedAt;
           }
           return { ...out, sync: { userId, lastSyncedAt: Date.now() } };

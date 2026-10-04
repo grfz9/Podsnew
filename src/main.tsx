@@ -1,14 +1,12 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HashRouter, Route, Routes } from 'react-router';
+import { HashRouter, Navigate, Route, Routes } from 'react-router';
 import { Layout } from './components/Layout';
 import { AccountPage } from './pages/Account';
 import { ClipPage } from './pages/ClipPage';
 import { EpisodePage } from './pages/EpisodePage';
 import { FriendsPage, ProfilePage } from './pages/Friends';
-import { GenrePage } from './pages/Genre';
 import { Home } from './pages/Home';
-import { ImportPage } from './pages/Import';
 import { LibraryPage } from './pages/Library';
 import { PodcastPage } from './pages/PodcastPage';
 import { QueuePage } from './pages/Queue';
@@ -65,12 +63,12 @@ createRoot(document.getElementById('root')!).render(
                           <Route path="search" element={<SearchPage />} />
                           <Route path="library" element={<LibraryPage />} />
                           <Route path="queue" element={<QueuePage />} />
-                          <Route path="genre/:id" element={<GenrePage />} />
+                          <Route path="genre/:id" element={<Navigate to="/islam" replace />} />
                           <Route path="podcast/:id" element={<PodcastPage />} />
                           <Route path="podcast/:podcastId/episode/:episodeId" element={<EpisodePage />} />
                           <Route path="clip" element={<ClipPage />} />
                           <Route path="stats" element={<StatsPage />} />
-                          <Route path="import" element={<ImportPage />} />
+                          <Route path="import" element={<Navigate to="/islam" replace />} />
                           <Route path="friends" element={<FriendsPage />} />
                           <Route path="u/:username" element={<ProfilePage />} />
                           <Route path="u/:username/playlist/:playlistId" element={<ProfilePage />} />

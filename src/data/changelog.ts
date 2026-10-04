@@ -12,6 +12,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-05',
+    date: '5 octobre 2026',
+    title: 'Podsal devient 100 % islamique',
+    items: [
+      'Seuls le Coran et les podcasts islamiques vérifiés par la modération sont proposés.',
+      'Les podcasts généraux (populaires, catégories, recommandations) sont retirés de l’accueil et de la recherche.',
+      'La recherche trouve les récitateurs du Coran et les podcasts islamiques.',
+      'Les podcasts du Studio apparaissent après validation par la modération.',
+    ],
+  },
+  {
     id: '2026-10-04c',
     date: '4 octobre 2026',
     title: 'Verset du jour',

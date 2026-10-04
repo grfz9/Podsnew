@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { Bell, ChartColumn, Clock, Download, FileDown, FileUp, FolderOpen, Heart, History, Library as LibraryIcon, ListMusic, Play, Podcast, Scissors, Trash } from 'lucide-react';
+import { Bell, ChartColumn, Clock, Download, FileDown, FolderOpen, Heart, History, Library as LibraryIcon, ListMusic, Play, Podcast, Scissors, Trash } from 'lucide-react';
 import { PlaylistGrid } from '../components/Playlists';
 import { COUNTRIES } from '../api/genres';
 import { lookupPodcasts } from '../api/itunes';
@@ -16,6 +16,7 @@ import { FREE_DOWNLOADS, usePremium } from '../store/premium';
 import { buildOpml } from '../lib/opml';
 import { notificationsSupported, registerBackgroundCheck, requestNotificationPermission } from '../lib/notifications';
 import { useDownloads } from '../store/downloads';
+import { useModeration } from '../store/moderation';
 import { useLibrary } from '../store/library';
 import { usePlayer } from '../store/player';
 import { formatReleaseDate, formatTime } from '../utils/format';
@@ -219,9 +220,6 @@ function Settings() {
           <span className="small muted"> — au format OPML, compatible avec les autres applications de podcasts</span>
         </span>
         <span className="row-actions">
-          <Link to="/import" className="btn btn--outline btn--small">
-            <FileUp size={14} /> Importer
-          </Link>
           <button className="btn btn--outline btn--small" onClick={exportOpml} disabled={!library.subscriptions.length || exporting}>
             <FileDown size={14} /> Exporter
           </button>
@@ -236,6 +234,8 @@ function Settings() {
 
 export function LibraryPage() {
   const library = useLibrary();
+  const { filterPodcasts } = useModeration();
+  const subscriptions = filterPodcasts(library.subscriptions);
   const { downloads } = useDownloads();
   const { files } = useLocalFiles();
   const [params, setParams] = useSearchParams();
@@ -244,7 +244,7 @@ export function LibraryPage() {
   // Sur téléphone, toutes les rubriques sont visibles d'un coup d'œil (tuiles) au lieu d'onglets qui défilent.
   const shortcuts: Shortcut[] = (
     [
-      { id: 'subscriptions', icon: Podcast, color: '#6cc4b4', count: library.subscriptions.length },
+      { id: 'subscriptions', icon: Podcast, color: '#6cc4b4', count: subscriptions.length },
       { id: 'playlists', icon: ListMusic, color: '#e2c485', count: library.playlists.length },
       { id: 'downloads', icon: Download, color: '#85b7eb', count: downloads.length },
       { id: 'files', icon: FolderOpen, color: '#f0997b', count: files.length },
@@ -277,11 +277,11 @@ export function LibraryPage() {
       <h2 className="library-section-title">{TABS.find((t) => t.id === tab)!.label}</h2>
 
       {tab === 'subscriptions' &&
-        (library.subscriptions.length ? (
-          <PodcastGrid podcasts={library.subscriptions} />
+        (subscriptions.length ? (
+          <PodcastGrid podcasts={subscriptions} />
         ) : (
           <EmptyState icon={<LibraryIcon size={32} />} title="Aucun abonnement">
-            Appuyez sur « S'abonner » sur la page d'un podcast, ou <Link to="/import" className="link">importez vos abonnements</Link> depuis une autre application.
+            Abonnez-vous à des <Link to="/islam" className="link">podcasts islamiques</Link> pour retrouver ici leurs nouveaux épisodes.
           </EmptyState>
         ))}
 

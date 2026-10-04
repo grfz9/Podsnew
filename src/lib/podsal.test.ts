@@ -12,27 +12,22 @@ import { isLocalId, isPublicationOutdated, mediaKindOf, titleFromName, toEpisode
 
 const state = (validated: string[] = [], blocked: string[] = []): PolicyState => ({ validated: new Set(validated), blocked: new Set(blocked) });
 
-describe('règles de contenu', () => {
-  it('exclut musique, contenu explicite et religion non validée', () => {
-    expect(allowsPodcast({ id: '1', genreIds: ['1487'] }, state())).toBe(true);
-    expect(allowsPodcast({ id: '2', genreIds: ['1310'] }, state())).toBe(false);
-    expect(allowsPodcast({ id: '3', genreIds: ['1487'], explicit: true }, state())).toBe(false);
-    expect(allowsPodcast({ id: '4', genreIds: ['1439'] }, state())).toBe(false); // christianisme
-    expect(allowsPodcast({ id: '5', genreIds: ['1440'] }, state())).toBe(false); // islam non validé
-    expect(allowsPodcast({ id: '6', genre: 'Religion et spiritualité' }, state())).toBe(false);
+describe('règles de contenu (appli 100 % islamique)', () => {
+  it('refuse tout podcast non validé par la modération, quel qu’il soit', () => {
+    expect(allowsPodcast({ id: '1' }, state())).toBe(false); // podcast général
+    expect(allowsPodcast({ id: 'c-abc' }, state())).toBe(false); // podcast du Studio non validé
+    expect(allowsEpisode({ podcastId: '9' }, state())).toBe(false);
   });
 
-  it('accepte les podcasts islamiques validés et respecte les podcasts masqués', () => {
-    expect(allowsPodcast({ id: '5', genreIds: ['1440'] }, state(['5']))).toBe(true);
-    expect(allowsPodcast({ id: '1', genreIds: ['1487'] }, state([], ['1']))).toBe(false);
+  it('accepte le Coran et les podcasts islamiques validés, sauf s’ils sont masqués', () => {
     expect(allowsPodcast({ id: 'quran-7' }, state())).toBe(true);
+    expect(allowsPodcast({ id: '5' }, state(['5']))).toBe(true);
+    expect(allowsPodcast({ id: '5' }, state(['5'], ['5']))).toBe(false);
+    expect(allowsEpisode({ podcastId: '9' }, state(['9']))).toBe(true);
+    expect(allowsEpisode({ podcastId: 'quran-3' }, state())).toBe(true);
   });
 
-  it('filtre aussi les épisodes et repère le contenu religieux', () => {
-    expect(allowsEpisode({ podcastId: '9', genre: 'Histoire' }, state())).toBe(true);
-    expect(allowsEpisode({ podcastId: '9', genre: 'Islam' }, state())).toBe(false);
-    expect(allowsEpisode({ podcastId: '9', genre: 'Islam' }, state(['9']))).toBe(true);
-    expect(allowsEpisode({ podcastId: '9', genre: 'Histoire', explicit: true }, state())).toBe(false);
+  it('repère le contenu religieux', () => {
     expect(isReligiousContent('quran-3', state())).toBe(true);
     expect(isReligiousContent('9', state(['9']))).toBe(true);
     expect(isReligiousContent('1', state())).toBe(false);

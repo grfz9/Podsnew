@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { BookOpen, ChartColumn, Check, Download, FolderOpen, Image, ImagePlus, ScrollText, Users } from 'lucide-react';
+import { BookOpen, ChartColumn, Check, Download, FolderOpen, Image, ImagePlus, Users } from 'lucide-react';
 import { openBillingPortal, PLANS, startCheckout, type Plan } from '../api/billing';
 import { AppMark } from '../components/Wordmark';
 import { useAuth } from '../store/auth';
@@ -14,7 +14,6 @@ const BENEFITS = [
   { icon: FolderOpen, title: 'Vos audios et vidéos, sans limite', text: `Importez vos MP3, MP4… et écoutez-les en arrière-plan. Sans abonnement : ${FREE_LOCAL_FILES} fichiers.` },
   { icon: Users, title: 'Partager vos groupes avec vos amis', text: 'Publiez un groupe de fichiers sur votre profil : vos amis l’écoutent depuis Podsal.' },
   { icon: ChartColumn, title: 'Statistiques avancées', text: 'Historique complet, catégories, heures d’écoute, bilan de l’année et export.' },
-  { icon: ScrollText, title: '20 résumés par jour', text: 'Pour les podcasts généraux (jamais sur le religieux). Sans abonnement : 3 par jour.' },
 ];
 
 function formatDate(iso: string): string {
