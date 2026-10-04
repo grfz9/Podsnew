@@ -90,6 +90,9 @@
     "publish": {
       "provider": "generic",
       "url": "https://github.com/grfz9/Podsnew/releases/latest/download"
+    },
+    "releaseInfo": {
+      "releaseNotesFile": "build/release-notes.md"
     }
   },
   "dependencies": {

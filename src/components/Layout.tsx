@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { BookOpen, ChartColumn, Clock, Crown, Download, FolderOpen, House, Library, ListMusic, Mic, Search, ShieldCheck, Sparkle, User, Users, WifiOff } from 'lucide-react';
 import { useModeration } from '../store/moderation';
 import { DesktopUpdateBanner } from './DesktopUpdate';
+import { WhatsNew } from './WhatsNew';
 import { isStandalone } from '../lib/install';
 import { PlaylistDialogProvider } from './Playlists';
 import { AppMark, Wordmark } from './Wordmark';
@@ -74,7 +75,7 @@ function AccountLink() {
   const auth = useAuth();
   const name = auth.profile?.display_name || auth.profile?.username;
   return (
-    <NavLink to="/account" className="nav-link sidebar__account">
+    <NavLink to="/account" className="nav-link sidebar__account" title={name ?? 'Compte'}>
       {name ? (
         <span className="avatar avatar--small" aria-hidden>
           {name.slice(0, 1).toUpperCase()}
@@ -82,7 +83,7 @@ function AccountLink() {
       ) : (
         <User size={22} />
       )}
-      {name ?? (auth.enabled ? 'Se connecter' : 'Compte')}
+      <span className="nav-link__label">{name ?? (auth.enabled ? 'Se connecter' : 'Compte')}</span>
     </NavLink>
   );
 }
@@ -140,31 +141,31 @@ export function Layout() {
           </Link>
           <nav className="sidebar__nav">
             {SIDEBAR_NAV.map(({ to, label, icon: Icon, end }) => (
-              <NavLink key={to} to={to} end={end} className="nav-link">
+              <NavLink key={to} to={to} end={end} className="nav-link" title={label}>
                 <Icon size={22} />
-                {label}
+                <span className="nav-link__label">{label}</span>
               </NavLink>
             ))}
-            <NavLink to="/premium" className="nav-link nav-link--premium">
+            <NavLink to="/premium" className="nav-link nav-link--premium" title="Podsal+">
               <Sparkle size={22} />
-              {isPremium ? 'Podsal+ · actif' : 'Podsal+'}
+              <span className="nav-link__label">{isPremium ? 'Podsal+ · actif' : 'Podsal+'}</span>
             </NavLink>
             {isModerator && (
-              <NavLink to="/moderation" className="nav-link">
+              <NavLink to="/moderation" className="nav-link" title="Modération">
                 <ShieldCheck size={22} />
-                Modération
+                <span className="nav-link__label">Modération</span>
               </NavLink>
             )}
             {isAdmin && (
-              <NavLink to="/admin" className="nav-link">
+              <NavLink to="/admin" className="nav-link" title="Administration">
                 <Crown size={22} />
-                Administration
+                <span className="nav-link__label">Administration</span>
               </NavLink>
             )}
             {!isStandalone() && (
-              <NavLink to="/telecharger" className="nav-link">
+              <NavLink to="/telecharger" className="nav-link" title="Télécharger l’appli">
                 <Download size={22} />
-                Télécharger l’appli
+                <span className="nav-link__label">Télécharger l’appli</span>
               </NavLink>
             )}
           </nav>
@@ -172,7 +173,7 @@ export function Layout() {
             <div className="sidebar__heading">Vos abonnements</div>
             {subscriptions.length === 0 && <p className="small muted">Abonnez-vous à des podcasts pour les retrouver ici.</p>}
             {subscriptions.map((p) => (
-              <NavLink key={p.id} to={podcastPath(p.id)} className="sub-link">
+              <NavLink key={p.id} to={podcastPath(p.id)} className="sub-link" title={p.title}>
                 <Artwork alt={p.title} size={40} podcastId={p.id} genre={p.genre} genreIds={p.genreIds} />
                 <span>
                   <span className="sub-link__title">{p.title}</span>
@@ -209,6 +210,7 @@ export function Layout() {
 
         {expanded && <FullPlayer onClose={closePlayer} />}
         {(tour || !settings.onboarded) && <Onboarding onDone={() => setTour(false)} />}
+        {!tour && <WhatsNew />}
       </div>
     </PlaylistDialogProvider>
   );
