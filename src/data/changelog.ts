@@ -14,12 +14,12 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     id: '2026-10-04c',
     date: '4 octobre 2026',
-    title: 'Verset du jour et explications',
+    title: 'Verset du jour',
     items: [
       'Un verset du jour, différent pour chacun, sur l’accueil et dans « Lire le Coran ».',
-      'Bouton « Explication » sur chaque verset : Al-Mukhtasar fi Tafsir, explication abrégée officielle du Centre de Tafsir.',
-      'Traduction de Muhammad Hamidullah (édition du Complexe du Roi Fahd) proposée par défaut, avec ses notes.',
-      'Podsal ne traduit ni n’explique jamais le Coran lui-même : seules des sources officielles revues par des savants sont affichées.',
+      'Traduction de Muhammad Hamidullah (édition du Complexe du Roi Fahd) proposée par défaut.',
+      'Podsal ne traduit jamais le Coran lui-même : seules des traductions officielles revues par des savants sont affichées.',
+      'Pour comprendre et expliquer les versets, il est fortement conseillé de se tourner vers un savant.',
     ],
   },
   {

@@ -227,9 +227,9 @@ export const TRANSLATIONS: { id: TranslationId; label: string; source: string }[
   },
 ];
 
-/** Source de l'explication des versets affichée dans Podsal. */
-export const TAFSIR_SOURCE =
-  'Al-Mukhtasar fi Tafsir al-Qur’an al-Karim (explication abrégée du Noble Coran), Centre de Tafsir pour les études coraniques, traduction française officielle (QuranEnc.com).';
+/** Rappel affiché avec le texte : une traduction rend le sens de façon approchée ; pour l'explication, se tourner vers un savant. */
+export const SCHOLAR_NOTICE =
+  'Une traduction ne rend le sens du Coran que de façon approchée. Pour comprendre et expliquer les versets, il est fortement conseillé de se tourner vers un savant.';
 
 const QURANENC_KEYS: Record<TranslationId, string> = { rashid: 'french_rashid', hamidullah: 'french_hameedullah' };
 
@@ -237,7 +237,6 @@ export interface Ayah {
   number: number;
   arabic: string;
   translation?: string;
-  footnotes?: string;
 }
 
 export const BASMALA = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
@@ -258,17 +257,23 @@ async function arabicText(surah: number): Promise<string[]> {
   return data.data.ayahs.map((a) => stripBasmala(surah, a.numberInSurah, a.text));
 }
 
-async function translationText(surah: number, id: TranslationId): Promise<{ text: string; footnotes?: string }[]> {
+/** « … Miséricordieux.[1] » → « … Miséricordieux. » */
+export function stripNoteMarks(text: string): string {
+  return text.replace(/\s*\[\d+\]/g, '').trim();
+}
+
+async function translationText(surah: number, id: TranslationId): Promise<{ text: string }[]> {
   try {
     const data = await getJson<{ result: { aya: string | number; translation: string; footnotes?: string }[] }>(
       `${QURANENC}/translation/sura/${QURANENC_KEYS[id]}/${surah}`,
     );
-    return data.result.map((r) => ({ text: r.translation.trim(), footnotes: r.footnotes?.trim() || undefined }));
+    // Seule la traduction du sens est gardée : ni notes ni commentaires (appels de note « [1] » retirés).
+    return data.result.map((r) => ({ text: stripNoteMarks(r.translation) }));
   } catch (error) {
     if (id !== 'hamidullah') throw error;
     // Repli : la même traduction de Hamidullah, servie par alquran.cloud.
     const data = await getJson<{ data: { ayahs: { text: string }[] } }>(`${ALQURAN}/surah/${surah}/fr.hamidullah`);
-    return data.data.ayahs.map((a) => ({ text: a.text.trim() }));
+    return data.data.ayahs.map((a) => ({ text: stripNoteMarks(a.text) }));
   }
 }
 
@@ -282,7 +287,6 @@ export function getSurahText(surah: number, translation: TranslationId | null): 
           number: i + 1,
           arabic: text,
           translation: translated[i]?.text,
-          footnotes: translated[i]?.footnotes,
         })),
     );
     hit.catch(() => textCache.delete(key));
@@ -291,22 +295,7 @@ export function getSurahText(surah: number, translation: TranslationId | null): 
   return hit;
 }
 
-/* ---------- Explication des versets (Al-Mukhtasar, traduction française officielle) ---------- */
-
-const tafsirCache = new Map<number, Promise<string[]>>();
-
-/** Explication de chaque verset d'une sourate (index 0 = verset 1). */
-export function getSurahTafsir(surah: number): Promise<string[]> {
-  let hit = tafsirCache.get(surah);
-  if (!hit) {
-    hit = getJson<{ result: { aya: string | number; translation: string }[] }>(`${QURANENC}/translation/sura/french_mokhtasar/${surah}`).then((data) =>
-      data.result.map((r) => r.translation.trim()),
-    );
-    hit.catch(() => tafsirCache.delete(surah));
-    tafsirCache.set(surah, hit);
-  }
-  return hit;
-}
+/* ---------- Verset seul ---------- */
 
 /** Un seul verset : texte arabe et traduction officielle (pour le verset du jour). */
 export async function getVerse(surah: number, ayah: number, translation: TranslationId): Promise<Ayah> {

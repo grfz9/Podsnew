@@ -1597,3 +1597,5 @@ html, body, .main { overflow-x: clip; }
 .read-actions:has(.read-explain) { border-radius: 18px; }
 .read-ayah__notes { margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: var(--text-muted); white-space: pre-line; }
 .read-source { margin-top: 24px; }
+.scholar-notice { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0 14px; padding: 10px 14px; border-radius: var(--radius); background: rgba(226, 196, 133, 0.1); border: 1px solid rgba(226, 196, 133, 0.22); font-size: 13px; line-height: 1.5; }
+.scholar-notice > svg { flex: none; margin-top: 2px; color: #e2c485; }

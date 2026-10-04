@@ -1,7 +1,6 @@
-import { useState } from 'react';
 import { Link } from 'react-router';
-import { BookOpenText, Lightbulb, Sun } from 'lucide-react';
-import { getSurahTafsir, getVerse, TAFSIR_SOURCE, TRANSLATIONS, type TranslationId } from '../api/quran';
+import { BookOpenText, Sun } from 'lucide-react';
+import { getVerse, SCHOLAR_NOTICE, TRANSLATIONS, type TranslationId } from '../api/quran';
 import { dailyVerse, today } from '../data/dailyVerses';
 import { getSurah } from '../data/surahs';
 import { useAuth } from '../store/auth';
@@ -17,8 +16,6 @@ export function DailyVerse() {
   const { surah, ayah } = dailyVerse(auth.userId ?? library.deviceId, day);
   const s = getSurah(surah)!;
   const verse = useAsync(() => getVerse(surah, ayah, translation), [surah, ayah, translation]);
-  const [explain, setExplain] = useState(false);
-  const tafsir = useAsync(() => (explain ? getSurahTafsir(surah) : Promise.resolve(null)), [explain, surah]);
 
   if (verse.error) return null;
   return (
@@ -37,21 +34,14 @@ export function DailyVerse() {
             {verse.data.arabic}
           </p>
           {verse.data.translation && <p className="daily-verse__translation">{verse.data.translation}</p>}
-          {explain && (
-            <div className="daily-verse__explain">
-              <p>{tafsir.loading ? 'Chargement de l’explication…' : (tafsir.data?.[ayah - 1] ?? 'Explication indisponible pour le moment.')}</p>
-              <p className="small muted">Source : {TAFSIR_SOURCE}</p>
-            </div>
-          )}
           <div className="daily-verse__actions">
             <Link to={`/lire/${surah}?v=${ayah}`} className="btn btn--outline btn--small">
               <BookOpenText size={15} /> Lire la sourate
             </Link>
-            <button className={`btn btn--ghost btn--small ${explain ? 'btn--active' : ''}`} onClick={() => setExplain(!explain)}>
-              <Lightbulb size={15} /> Explication
-            </button>
           </div>
-          <p className="small muted daily-verse__source">{TRANSLATIONS.find((t) => t.id === translation)?.label}</p>
+          <p className="small muted daily-verse__source">
+            Traduction : {TRANSLATIONS.find((t) => t.id === translation)?.label}. {SCHOLAR_NOTICE}
+          </p>
         </>
       ) : (
         <p className="small muted">Chargement du verset…</p>
