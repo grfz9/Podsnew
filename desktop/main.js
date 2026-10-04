@@ -3,7 +3,7 @@
  * Le contenu vient du site, donc l'appli se met à jour toute seule, comme la version web ;
  * le service worker du site la garde utilisable hors-ligne après la première ouverture.
  */
-const { app, BrowserWindow, dialog, Menu, nativeTheme, net, powerMonitor, screen, session, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, powerMonitor, screen, session, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
 const path = require('path');
@@ -87,10 +87,25 @@ const isNewer = (a, b) => {
   return false;
 };
 let updateAnnounced = false;
+const testMode = !!process.env.PODSAL_PROFILE;
+
+// Journal des mises à jour (userData/mises-a-jour.log), pour comprendre un échec.
+function logUpdate(...parts) {
+  try {
+    const file = path.join(app.getPath('userData'), 'mises-a-jour.log');
+    if (fs.existsSync(file) && fs.statSync(file).size > 200_000) fs.renameSync(file, `${file}.ancien`);
+    fs.appendFileSync(file, `${new Date().toISOString()} [${app.getVersion()}] ${parts.map(String).join(' ')}
+`);
+  } catch {
+    // journal facultatif
+  }
+}
 
 async function announceUpdate(version, ready) {
   if (updateAnnounced) return;
   updateAnnounced = true;
+  logUpdate(ready ? 'prête :' : 'disponible :', version);
+  if (testMode) return; // essais de développement : pas de fenêtre
   const { response } = await dialog.showMessageBox(win && !win.isDestroyed() ? win : undefined, {
     type: 'info',
     title: 'Mise à jour de Podsal',
@@ -119,15 +134,18 @@ async function checkForUpdates() {
     } else {
       await autoUpdater.checkForUpdates();
     }
-  } catch {
-    // hors-ligne ou GitHub indisponible : on réessaiera plus tard
+  } catch (e) {
+    logUpdate('vérification impossible :', e?.message ?? e); // hors-ligne… : on réessaiera plus tard
   }
 }
 
 function setupUpdates() {
   if (!app.isPackaged) return;
   autoUpdater.disableDifferentialDownload = true;
-  autoUpdater.on('error', () => {});
+  autoUpdater.on('error', (e) => logUpdate('erreur :', e?.message ?? e));
+  autoUpdater.on('checking-for-update', () => logUpdate('vérification…'));
+  autoUpdater.on('update-not-available', (info) => logUpdate('à jour, dernière version :', info?.version));
+  autoUpdater.on('update-available', (info) => logUpdate('téléchargement de', info?.version));
   autoUpdater.on('update-downloaded', (info) => void announceUpdate(info.version, true));
   setTimeout(checkForUpdates, 15_000);
   setInterval(checkForUpdates, SIX_HOURS);
@@ -220,6 +238,10 @@ if (!app.requestSingleInstanceLock()) {
   app.on('activate', showWindow);
   app.on('window-all-closed', () => {
     if (!isMac) app.quit();
+  });
+
+  ipcMain.on('podsal:version', (e) => {
+    e.returnValue = app.getVersion();
   });
 
   app.whenReady().then(() => {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { BookOpen, ChartColumn, Clock, Crown, Download, FolderOpen, House, Library, ListMusic, Mic, Search, ShieldCheck, Sparkle, User, Users, WifiOff } from 'lucide-react';
 import { useModeration } from '../store/moderation';
+import { DesktopUpdateBanner } from './DesktopUpdate';
 import { isStandalone } from '../lib/install';
 import { PlaylistDialogProvider } from './Playlists';
 import { AppMark, Wordmark } from './Wordmark';
@@ -189,6 +190,7 @@ export function Layout() {
               <WifiOff size={16} /> Hors-ligne : les épisodes téléchargés restent disponibles dans la Bibliothèque.
             </div>
           )}
+          <DesktopUpdateBanner />
           <div className="route-view" key={location.pathname}>
             <Outlet />
           </div>

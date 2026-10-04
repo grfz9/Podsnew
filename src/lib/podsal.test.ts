@@ -1,4 +1,4 @@
-import { desktopOs, detectPlatform, iosBrowser, isInAppBrowser } from './install';
+import { desktopOs, detectPlatform, iosBrowser, isInAppBrowser, isNewerVersion, manualDesktopVersion } from './install';
 import { describe, expect, it } from 'vitest';
 import { allowsEpisode, allowsPodcast, isReligiousContent, type PolicyState } from './policy';
 import { episodePath, podcastPath } from './paths';
@@ -196,6 +196,25 @@ describe('page d’installation', () => {
     expect(desktopOs('Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36')).toBe(null);
     expect(desktopOs(ANDROID)).toBe(null);
     expect(desktopOs(IPHONE)).toBe(null);
+  });
+
+  it('compare les versions de l’appli pour ordinateur', () => {
+    expect(isNewerVersion('1.2.0', '1.0.0')).toBe(true);
+    expect(isNewerVersion('1.10.0', '1.9.2')).toBe(true);
+    expect(isNewerVersion('1.2.0', '1.2.0')).toBe(false);
+    expect(isNewerVersion('1.1.9', '1.2.0')).toBe(false);
+  });
+
+  it('ne propose le bandeau qu’aux applis qui ne se mettent pas à jour seules', () => {
+    const w = window as Window & { podsalDesktop?: object };
+    expect(manualDesktopVersion()).toBe(null); // site web
+    w.podsalDesktop = { platform: 'win32' };
+    expect(manualDesktopVersion()).toBe('1.0.0');
+    w.podsalDesktop = { platform: 'win32', version: '1.3.0', autoUpdate: true };
+    expect(manualDesktopVersion()).toBe(null);
+    w.podsalDesktop = { platform: 'darwin', version: '1.3.0', autoUpdate: false };
+    expect(manualDesktopVersion()).toBe('1.3.0');
+    delete w.podsalDesktop;
   });
 
   it('repère les navigateurs où l’installation est impossible', () => {

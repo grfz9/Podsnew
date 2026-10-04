@@ -1471,3 +1471,7 @@ html, body, .main { overflow-x: clip; }
 .install-files { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .install-steps code { font-size: 12px; padding: 2px 6px; border-radius: 4px; background: var(--bg-elevated); word-break: break-all; }
 @media (max-width: 480px) { .install-how .tabs { gap: 0; } .install-how .tab { padding: 10px 8px; font-size: 13px; } }
+.update-banner { display: flex; align-items: center; gap: 10px; padding: 10px 32px; background: rgba(108, 196, 180, 0.14); color: var(--text); font-size: 13px; }
+.update-banner > svg { flex: none; color: var(--accent); }
+.update-banner > span { flex: 1; }
+@media (max-width: 767px) { .update-banner { padding: 10px 16px; flex-wrap: wrap; } }
