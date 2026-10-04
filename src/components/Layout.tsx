@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
-import { BookOpen, ChartColumn, Clock, Crown, Download, FolderOpen, House, Library, ListMusic, Mic, Search, ShieldCheck, Sparkle, User, Users, WifiOff } from 'lucide-react';
+import { BookOpen, BookOpenText, ChartColumn, Clock, Crown, Download, FolderOpen, House, Library, ListMusic, Mic, Search, ShieldCheck, Sparkle, User, Users, WifiOff } from 'lucide-react';
 import { useModeration } from '../store/moderation';
 import { DesktopUpdateBanner } from './DesktopUpdate';
 import { WhatsNew } from './WhatsNew';
@@ -23,6 +23,7 @@ import { Onboarding, SHOW_ONBOARDING_EVENT } from './Onboarding';
 const SIDEBAR_NAV = [
   { to: '/', label: 'Accueil', icon: House, end: true },
   { to: '/coran', label: 'Coran', icon: BookOpen },
+  { to: '/lire', label: 'Lire le Coran', icon: BookOpenText },
   { to: '/islam', label: 'Podcasts islamiques', icon: Mic },
   { to: '/search', label: 'Rechercher', icon: Search },
   { to: '/library', label: 'Bibliothèque', icon: Library },
