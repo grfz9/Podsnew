@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
-import { BookOpen, BookOpenText, ChevronLeft, ChevronRight, ListPlus, Pause, Play, Repeat, Search, Star } from 'lucide-react';
+import { BookOpen, BookOpenText, ChevronLeft, Info, ChevronRight, ListPlus, Pause, Play, Repeat, Search, Star } from 'lucide-react';
 import {
   ayahAt,
   BASMALA,
@@ -9,6 +9,7 @@ import {
   getReciters,
   getSurahText,
   surahEpisode,
+  SCHOLAR_NOTICE,
   TRANSLATIONS,
   type AyahTiming,
   type Moshaf,
@@ -491,7 +492,14 @@ export function SurahPage() {
             </label>
           )}
         </div>
-        {translation && <p className="small muted">{TRANSLATIONS.find((t) => t.id === translation)?.source} La traduction rend le sens, elle n'est pas le Coran.</p>}
+        {translation && (
+          <>
+            <p className="small muted">{TRANSLATIONS.find((t) => t.id === translation)?.source}</p>
+            <p className="scholar-notice">
+              <Info size={16} /> {SCHOLAR_NOTICE}
+            </p>
+          </>
+        )}
         {moshaf.riwaya && !moshaf.riwaya.startsWith('Hafs') && settings.showArabic && (
           <p className="small muted">Le texte affiché suit la lecture Hafs ; la récitation écoutée est en {moshaf.riwaya}.</p>
         )}
@@ -523,7 +531,6 @@ export function SurahPage() {
                         </p>
                       )}
                       {a.translation && <p className="ayah__translation">{a.translation}</p>}
-                      {a.footnotes && <p className="ayah__footnotes small muted">{a.footnotes}</p>}
                     </div>
                   </li>
                 );

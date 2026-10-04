@@ -5,7 +5,7 @@ import { allowsEpisode, allowsPodcast, isReligiousContent, type PolicyState } fr
 import { episodePath, podcastPath } from './paths';
 import { nextPrayer, prayerTimes } from './prayer';
 import { SURAHS } from '../data/surahs';
-import { ayahAt, BASMALA, parseMoshafName, recitationToReciter, surahAudioUrl, parseSurahEpisodeId, stripBasmala, surahEpisode, type Moshaf } from '../api/quran';
+import { ayahAt, stripNoteMarks, BASMALA, parseMoshafName, recitationToReciter, surahAudioUrl, parseSurahEpisodeId, stripBasmala, surahEpisode, type Moshaf } from '../api/quran';
 import { starPath } from '../components/Cover';
 import { parseSurahList, tracksFromLines, tracksFromPattern } from './recitationInput';
 import { isLocalId, isPublicationOutdated, mediaKindOf, titleFromName, toEpisode } from './localFiles';
@@ -247,5 +247,12 @@ describe('verset du jour', () => {
     const people = new Set(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((p) => JSON.stringify(dailyVerse(p, '2026-10-04'))));
     expect(people.size).toBeGreaterThan(3);
     expect(today(new Date(2026, 0, 5))).toBe('2026-01-05');
+  });
+});
+
+describe('traduction sans commentaires', () => {
+  it('retire les appels de note de la traduction', () => {
+    expect(stripNoteMarks('Au nom d’Allah, le Tout Miséricordieux, le Très Miséricordieux.[1]')).toBe('Au nom d’Allah, le Tout Miséricordieux, le Très Miséricordieux.');
+    expect(stripNoteMarks('Louange à Allah [2], Seigneur de l’univers.')).toBe('Louange à Allah, Seigneur de l’univers.');
   });
 });
