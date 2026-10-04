@@ -3,7 +3,7 @@
  * Le contenu vient du site, donc l'appli se met à jour toute seule, comme la version web ;
  * le service worker du site la garde utilisable hors-ligne après la première ouverture.
  */
-const { app, BrowserWindow, dialog, Menu, nativeTheme, net, powerMonitor, screen, session, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, powerMonitor, screen, session, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
 const path = require('path');
@@ -87,15 +87,45 @@ const isNewer = (a, b) => {
   return false;
 };
 let updateAnnounced = false;
+const testMode = !!process.env.PODSAL_PROFILE;
 
-async function announceUpdate(version, ready) {
+// Journal des mises à jour (userData/mises-a-jour.log), pour comprendre un échec.
+function logUpdate(...parts) {
+  try {
+    const file = path.join(app.getPath('userData'), 'mises-a-jour.log');
+    if (fs.existsSync(file) && fs.statSync(file).size > 200_000) fs.renameSync(file, `${file}.ancien`);
+    fs.appendFileSync(file, `${new Date().toISOString()} [${app.getVersion()}] ${parts.map(String).join(' ')}\n`);
+  } catch {
+    // journal facultatif
+  }
+}
+
+/** Notes de version (build/release-notes.md, publiées dans latest.yml) en texte simple. */
+function notesText(notes) {
+  const raw = Array.isArray(notes) ? notes.map((n) => n?.note ?? '').join('\n') : String(notes ?? '');
+  return raw
+    .replace(/<[^>]+>/g, '')
+    .split('\n')
+    .map((l) => l.trim().replace(/^[-*]\s+/, '• '))
+    .filter(Boolean)
+    .join('\n');
+}
+
+async function announceUpdate(version, ready, notes) {
   if (updateAnnounced) return;
   updateAnnounced = true;
+  logUpdate(ready ? 'prête :' : 'disponible :', version);
+  if (testMode) return; // essais de développement : pas de fenêtre
   const { response } = await dialog.showMessageBox(win && !win.isDestroyed() ? win : undefined, {
     type: 'info',
     title: 'Mise à jour de Podsal',
     message: `La version ${version} de Podsal est ${ready ? 'prête' : 'disponible'}.`,
-    detail: ready ? 'Redémarrez pour l’installer maintenant, sinon elle s’installera quand vous fermerez Podsal.' : 'Téléchargez-la depuis podsal.com/telecharger pour la mettre à jour.',
+    detail: [
+      notesText(notes) && `Nouveautés :\n${notesText(notes)}`,
+      ready ? 'Redémarrez pour l’installer maintenant, sinon elle s’installera quand vous fermerez Podsal.' : 'Téléchargez-la depuis podsal.com/telecharger pour la mettre à jour.',
+    ]
+      .filter(Boolean)
+      .join('\n\n'),
     buttons: [ready ? 'Redémarrer' : 'Télécharger', 'Plus tard'],
     defaultId: 0,
     cancelId: 1,
@@ -119,16 +149,19 @@ async function checkForUpdates() {
     } else {
       await autoUpdater.checkForUpdates();
     }
-  } catch {
-    // hors-ligne ou GitHub indisponible : on réessaiera plus tard
+  } catch (e) {
+    logUpdate('vérification impossible :', e?.message ?? e); // hors-ligne… : on réessaiera plus tard
   }
 }
 
 function setupUpdates() {
   if (!app.isPackaged) return;
   autoUpdater.disableDifferentialDownload = true;
-  autoUpdater.on('error', () => {});
-  autoUpdater.on('update-downloaded', (info) => void announceUpdate(info.version, true));
+  autoUpdater.on('error', (e) => logUpdate('erreur :', e?.message ?? e));
+  autoUpdater.on('checking-for-update', () => logUpdate('vérification…'));
+  autoUpdater.on('update-not-available', (info) => logUpdate('à jour, dernière version :', info?.version));
+  autoUpdater.on('update-available', (info) => logUpdate('téléchargement de', info?.version));
+  autoUpdater.on('update-downloaded', (info) => void announceUpdate(info.version, true, info.releaseNotes));
   setTimeout(checkForUpdates, 15_000);
   setInterval(checkForUpdates, SIX_HOURS);
 }
@@ -220,6 +253,10 @@ if (!app.requestSingleInstanceLock()) {
   app.on('activate', showWindow);
   app.on('window-all-closed', () => {
     if (!isMac) app.quit();
+  });
+
+  ipcMain.on('podsal:version', (e) => {
+    e.returnValue = app.getVersion();
   });
 
   app.whenReady().then(() => {

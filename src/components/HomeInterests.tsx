@@ -1,6 +1,7 @@
-import { BookOpen, Mic, Newspaper, PlayCircle } from 'lucide-react';
+import { BookOpen, Mic, Newspaper, PlayCircle, Sparkles } from 'lucide-react';
 import { ALL_INTERESTS, useLibrary, type Interest } from '../store/library';
 import { SHOW_ONBOARDING_EVENT } from './Onboarding';
+import { SHOW_WHATS_NEW_EVENT } from './WhatsNew';
 
 const CHOICES: { id: Interest; icon: typeof BookOpen; label: string }[] = [
   { id: 'quran', icon: BookOpen, label: 'Le Coran' },
@@ -31,6 +32,9 @@ export function HomeInterests() {
       </div>
       <button className="btn btn--ghost btn--small" onClick={() => window.dispatchEvent(new Event(SHOW_ONBOARDING_EVENT))}>
         <PlayCircle size={15} /> Revoir la présentation de Podsal
+      </button>
+      <button className="btn btn--ghost btn--small" onClick={() => window.dispatchEvent(new Event(SHOW_WHATS_NEW_EVENT))}>
+        <Sparkles size={15} /> Quoi de neuf ?
       </button>
     </section>
   );

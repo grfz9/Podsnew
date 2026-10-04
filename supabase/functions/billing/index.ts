@@ -7,6 +7,23 @@ const PRICES = {
   yearly: () => Deno.env.get('STRIPE_PRICE_YEARLY')?.trim(),
 };
 
+/**
+ * Prix choisi dans Stripe par sa « clé de recherche » (lookup key) : pour changer de prix, il suffit
+ * de donner cette clé au nouveau prix dans le tableau de bord Stripe (« Transférer la clé »).
+ * Sinon, prix indiqué dans les secrets STRIPE_PRICE_MONTHLY / STRIPE_PRICE_YEARLY.
+ */
+const LOOKUP_KEYS = { monthly: 'podsal_plus_mensuel', yearly: 'podsal_plus_annuel' };
+
+async function priceFor(plan: 'monthly' | 'yearly'): Promise<string | undefined> {
+  try {
+    const found = await stripe<{ data: { id: string }[] }>('GET', '/prices', { 'lookup_keys[]': LOOKUP_KEYS[plan], active: 'true', limit: '1' });
+    if (found.data[0]) return found.data[0].id;
+  } catch {
+    // Stripe injoignable : on se rabat sur le secret
+  }
+  return PRICES[plan]();
+}
+
 /** Seules les adresses de l'application (APP_URLS, séparées par des virgules) sont acceptées comme retour après paiement. */
 function returnUrl(raw: unknown): string {
   const allowed = (Deno.env.get('APP_URLS') ?? 'http://localhost:5173,http://127.0.0.1:5173')
@@ -48,7 +65,7 @@ serve(async (req) => {
   if (body.action !== 'checkout') throw new HttpError(400, 'Action inconnue.');
   if (row && ['active', 'trialing', 'past_due'].includes(row.status)) throw new HttpError(409, 'Vous êtes déjà abonné à Podsal+.');
   const plan = body.plan === 'yearly' ? 'yearly' : 'monthly';
-  const price = PRICES[plan]();
+  const price = await priceFor(plan);
   if (!price) throw new HttpError(503, "Le paiement n'est pas encore activé sur ce serveur.");
 
   // Client Stripe réutilisé d'un abonnement à l'autre.

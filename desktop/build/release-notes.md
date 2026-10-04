@@ -1,0 +1,4 @@
+- Menu en barre d'icônes quand la fenêtre est étroite, et menu qui défile quand elle est basse.
+- Barres de défilement plus discrètes.
+- Fenêtre « Quoi de neuf » après chaque mise à jour.
+- Journal des mises à jour pour mieux les suivre.

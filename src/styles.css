@@ -1471,3 +1471,57 @@ html, body, .main { overflow-x: clip; }
 .install-files { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .install-steps code { font-size: 12px; padding: 2px 6px; border-radius: 4px; background: var(--bg-elevated); word-break: break-all; }
 @media (max-width: 480px) { .install-how .tabs { gap: 0; } .install-how .tab { padding: 10px 8px; font-size: 13px; } }
+.update-banner { display: flex; align-items: center; gap: 10px; padding: 10px 32px; background: rgba(108, 196, 180, 0.14); color: var(--text); font-size: 13px; }
+.update-banner > svg { flex: none; color: var(--accent); }
+.update-banner > span { flex: 1; }
+@media (max-width: 767px) { .update-banner { padding: 10px 16px; flex-wrap: wrap; } }
+
+/* ---------- Fenêtres d'ordinateur petites ou basses (appli de bureau, navigateur réduit) ---------- */
+/* Barres de défilement fines et sombres. */
+* { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.16) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.26); }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* Le menu défile en entier quand la fenêtre est basse (plus rien n'est coupé). */
+.sidebar { overflow-y: auto; overflow-x: hidden; }
+.sidebar__subs { flex: 1 0 140px; }
+.nav-link__label { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-height: 760px) and (min-width: 801px) {
+  .sidebar { padding-top: 14px; gap: 4px; }
+  .brand { margin-bottom: 6px; }
+  .nav-link { padding: 7px 12px; }
+  .sidebar__subs { padding: 10px 0; }
+}
+
+/* Raccourcis de l'accueil : à la souris, ils passent à la ligne au lieu de déborder. */
+@media (pointer: fine) and (min-width: 801px) {
+  .shortcuts--row { grid-auto-flow: row; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); overflow: visible; }
+}
+
+/* Fenêtre étroite : le menu devient une barre d'icônes (infobulles au survol), comme Discord ou Spotify. */
+@media (min-width: 801px) and (max-width: 1100px) {
+  :root { --sidebar-w: 76px; }
+  .sidebar { padding: 16px 10px 10px; align-items: center; }
+  .brand { margin: 0 0 10px; align-self: center; }
+  .brand__wordmark, .nav-link__label, .sidebar__heading, .sidebar__subs > p, .sub-link > span { display: none; }
+  .sidebar__nav { width: 100%; }
+  .nav-link { justify-content: center; padding: 10px 0; gap: 0; }
+  .sidebar__subs { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .sub-link { padding: 4px; justify-content: center; }
+  .sidebar__account { width: 100%; }
+}
+
+/* « Quoi de neuf » */
+.whats-new { max-width: 460px; background: var(--bg-elevated); animation: install-pop 0.3s var(--ease, ease) both; }
+.whats-new .dialog__head h2 { display: inline-flex; align-items: center; gap: 8px; }
+.whats-new .dialog__head svg { color: var(--accent); }
+.whats-new__entry { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.whats-new__entry:first-of-type { border-top: 0; padding-top: 0; }
+.whats-new__entry h3 { font-size: 15px; margin: 0; }
+.whats-new__entry p { margin: 2px 0 8px; }
+.whats-new__entry ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; }
+.whats-new__entry li::marker { color: var(--accent); }
+.whats-new__ok { width: 100%; margin-top: 18px; }

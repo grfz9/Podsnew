@@ -95,6 +95,40 @@ export const DESKTOP_DOWNLOADS: Record<DesktopOs, { label: string; files: { labe
   },
 };
 
+/** « 1.10.0 » est plus récent que « 1.9.2 ». */
+export function isNewerVersion(a: string, b: string): boolean {
+  const [x, y] = [a, b].map((v) => v.split('.').map((n) => parseInt(n, 10) || 0));
+  for (let i = 0; i < 3; i++) if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) > (y[i] ?? 0);
+  return false;
+}
+
+interface DesktopInfo {
+  platform: string;
+  /** Absente avant la 1.3.0 (la 1.0.0 ne se met pas à jour toute seule). */
+  version?: string | null;
+  autoUpdate?: boolean;
+}
+
+/** Appli pour ordinateur qui ne peut pas se mettre à jour seule (1.0.0, Mac) : version installée, sinon null. */
+export function manualDesktopVersion(): string | null {
+  const info = (window as Window & { podsalDesktop?: DesktopInfo }).podsalDesktop;
+  if (!info) return null;
+  if (info.version && info.autoUpdate) return null; // electron-updater s'en occupe
+  return info.version ?? '1.0.0';
+}
+
+/** Dernière version publiée de l'appli pour ordinateur (release « desktop-vX.Y.Z »). */
+export async function latestDesktopVersion(): Promise<string | null> {
+  try {
+    const res = await fetch('https://api.github.com/repos/grfz9/Podsnew/releases/latest');
+    if (!res.ok) return null;
+    const tag = String((await res.json()).tag_name ?? '');
+    return tag.startsWith('desktop-v') ? tag.slice('desktop-v'.length) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Lien à partager pour installer Podsal. */
 export const INSTALL_URL = 'https://podsal.com/telecharger';
 
