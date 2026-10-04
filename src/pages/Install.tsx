@@ -1,11 +1,20 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
-import { Check, Compass, Copy, Download, EllipsisVertical, FolderOpen, MonitorDown, MousePointerClick, PartyPopper, Settings, Share, ShieldCheck, Smartphone, SquarePlus, Terminal } from 'lucide-react';
+import { BookOpenText, Check, Clock, Compass, Copy, Download, EllipsisVertical, FolderOpen, Headphones, Mic, MonitorDown, MousePointerClick, PartyPopper, Settings, Share, ShieldCheck, Smartphone, SquarePlus, Sun, Terminal, WifiOff } from 'lucide-react';
 import { AppMark } from '../components/Wordmark';
 import { Tabs } from '../components/common';
 import { desktopOs, DESKTOP_DOWNLOADS, detectPlatform, INSTALL_URL, iosBrowser, isInAppBrowser, isStandalone, useInstall, type DesktopOs } from '../lib/install';
 
-const PERKS = ['Gratuite, sans publicité', 'Écoute écran éteint', 'Hors-ligne', 'Mises à jour automatiques'];
+const PERKS = ['Gratuite, sans publicité', '100 % islamique', 'Hors-ligne', 'Mises à jour automatiques'];
+
+const FEATURES = [
+  { icon: Headphones, title: 'Écouter le Coran', text: 'De nombreux récitateurs, des récitations anciennes, et les versets qui défilent avec la traduction pendant l’écoute.' },
+  { icon: BookOpenText, title: 'Lire le Coran', text: '114 sourates en arabe avec la traduction officielle, marque-pages et reprise là où vous vous étiez arrêté.' },
+  { icon: Sun, title: 'Un verset par jour', text: 'Un verset différent chaque jour, propre à chacun, à lire et à méditer.' },
+  { icon: Clock, title: 'Prière', text: 'Les horaires pour votre ville, l’adhan de votre choix et la pause automatique de l’écoute.' },
+  { icon: Mic, title: 'Podcasts vérifiés', text: 'Cours, rappels et khoutbas validés par une modération. Aucun autre contenu.' },
+  { icon: WifiOff, title: 'Partout, même sans internet', text: 'Téléchargez vos sourates et épisodes. iPhone, Android, Windows, Mac et Linux.' },
+];
 
 type Target = 'ios' | 'android' | DesktopOs;
 const TARGETS: { id: Target; label: string }[] = [
@@ -168,6 +177,22 @@ export function InstallPage() {
           </p>
         ) : null}
       </header>
+
+      <section className="install-features" aria-label="Ce que contient Podsal">
+        <h2>Tout ce qu’il faut, au même endroit</h2>
+        <div className="install-features__grid">
+          {FEATURES.map(({ icon: Icon, title, text }) => (
+            <article key={title} className="install-feature">
+              <span className="install-feature__icon">
+                <Icon size={20} />
+              </span>
+              <h3>{title}</h3>
+              <p className="small muted">{text}</p>
+            </article>
+          ))}
+        </div>
+        <p className="small muted install-features__note">Une traduction ne rend le sens du Coran que de façon approchée : pour comprendre les versets, il est fortement conseillé de se tourner vers un savant.</p>
+      </section>
 
       <section className="panel install-how">
         <h2 className="panel__title">Comment l’installer</h2>
