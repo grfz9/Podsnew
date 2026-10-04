@@ -71,7 +71,7 @@ export const DEFAULT_SETTINGS: Settings = {
   episodeOrder: 'oldest',
   onboarded: false,
   interests: ['quran', 'islamic', 'general'],
-  quran: { translation: 'rashid', showArabic: true, favorites: [] },
+  quran: { translation: 'hamidullah', showArabic: true, favorites: [] },
   prayer: {
     enabled: false,
     latitude: null,

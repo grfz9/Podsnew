@@ -23,6 +23,7 @@ import { useModeration } from '../store/moderation';
 import { PrayerCard } from './Prayer';
 import { useLibrary } from '../store/library';
 import type { Episode } from '../types';
+import { DailyVerse } from '../components/DailyVerse';
 import { useAsync } from '../utils/hooks';
 import { hijriDate } from '../utils/format';
 
@@ -234,6 +235,7 @@ export function Home() {
       {resume && <ResumeHero episode={resume} />}
       <PrayerCard />
       <QuickAccess interests={interests} />
+      {(interests.includes('quran') || interests.includes('islamic')) && <DailyVerse />}
 
       <ContinueListening exclude={resume?.id} />
       {interests.includes('quran') && <QuranRow />}

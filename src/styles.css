@@ -1582,3 +1582,18 @@ html, body, .main { overflow-x: clip; }
   .read-ayah { padding: 16px 4px; }
   .read-tools .tab { padding: 8px 8px; font-size: 13px; }
 }
+
+/* Verset du jour et explications */
+.daily-verse { margin-bottom: 28px; padding: 18px 20px; border-radius: var(--radius-lg); background: linear-gradient(160deg, rgba(201, 168, 106, 0.14), rgba(108, 196, 180, 0.06) 70%); border: 1px solid rgba(201, 168, 106, 0.22); }
+.daily-verse__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.daily-verse__label { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #e2c485; }
+.daily-verse__arabic { font-family: 'Amiri Quran', 'Amiri', 'Scheherazade New', 'Noto Naskh Arabic', serif; font-size: 28px; line-height: 2; text-align: right; margin: 10px 0 6px; }
+.daily-verse__translation { margin: 0 0 12px; line-height: 1.7; }
+.daily-verse__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.daily-verse__explain, .read-explain { margin: 0 0 12px; padding: 12px 14px; border-radius: var(--radius); background: rgba(0, 0, 0, 0.22); line-height: 1.7; }
+.daily-verse__explain p, .read-explain p { margin: 0 0 6px; }
+.daily-verse__source { margin: 10px 0 0; }
+.read-explain { flex-basis: 100%; margin: 6px 8px 4px 0; max-height: 40vh; overflow-y: auto; border-radius: 14px; }
+.read-actions:has(.read-explain) { border-radius: 18px; }
+.read-ayah__notes { margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: var(--text-muted); white-space: pre-line; }
+.read-source { margin-top: 24px; }

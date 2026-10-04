@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
-import { Bookmark, BookmarkCheck, BookOpenText, ChevronLeft, ChevronRight, Copy, Headphones, Minus, Plus, Search, X } from 'lucide-react';
-import { BASMALA, getReciters, getSurahText, TRANSLATIONS, type TranslationId } from '../api/quran';
+import { Bookmark, BookmarkCheck, BookOpenText, ChevronLeft, ChevronRight, Copy, Headphones, Lightbulb, Minus, Plus, Search, X } from 'lucide-react';
+import { BASMALA, getReciters, getSurahTafsir, getSurahText, TAFSIR_SOURCE, TRANSLATIONS, type TranslationId } from '../api/quran';
+import { DailyVerse } from '../components/DailyVerse';
 import { ErrorState, Spinner, Tabs } from '../components/common';
 import { knownReciterRank, normalizeName } from '../data/reciters';
 import { getSurah, SURAHS } from '../data/surahs';
@@ -48,6 +49,7 @@ export function QuranReadHome() {
   return (
     <div className="page quran-read">
       <h1 className="page__title">Lire le Coran</h1>
+      <DailyVerse />
 
       {(last || bookmarks.length > 0) && (
         <div className="read-resume">
@@ -142,9 +144,11 @@ export function QuranReadSurah() {
   const { quran, set } = useQuranSettings();
   const mode: Mode = quran.readerMode ?? 'both';
   const size = quran.readerSize ?? DEFAULT_SIZE;
-  const translation: TranslationId = quran.translation === 'hamidullah' ? 'hamidullah' : 'rashid';
+  const translation: TranslationId = quran.translation === 'rashid' ? 'rashid' : 'hamidullah';
   const text = useAsync(() => getSurahText(number, mode === 'arabic' ? null : translation), [number, mode, translation]);
   const [selected, setSelected] = useState<number | null>(null);
+  const [explain, setExplain] = useState(false);
+  const tafsir = useAsync(() => (explain ? getSurahTafsir(number) : Promise.resolve(null)), [explain, number]);
   const [copied, setCopied] = useState(false);
   const verseRefs = useRef(new Map<number, HTMLElement>());
   const target = Number(params.get('v')) || null;
@@ -159,6 +163,7 @@ export function QuranReadSurah() {
   // Ouverture sur un verset précis (reprise, marque-page) ; sinon en haut de la sourate.
   useEffect(() => {
     setSelected(null);
+    setExplain(false);
     if (!text.data) return;
     const el = target ? verseRefs.current.get(target) : null;
     if (el) el.scrollIntoView({ block: 'center' });
@@ -308,6 +313,7 @@ export function QuranReadSurah() {
                 </p>
               )}
               {a.translation && <p className="read-ayah__translation">{a.translation}</p>}
+              {a.footnotes && <p className="read-ayah__notes">{a.footnotes}</p>}
             </li>
           ))}
         </ol>
@@ -321,14 +327,35 @@ export function QuranReadSurah() {
           <button className="btn btn--ghost btn--small" onClick={() => toggleBookmark(selected)}>
             {isBookmarked(selected) ? <BookmarkCheck size={15} /> : <Bookmark size={15} />} {isBookmarked(selected) ? 'Marqué' : 'Marque-page'}
           </button>
+          <button className={`btn btn--ghost btn--small ${explain ? 'btn--active' : ''}`} onClick={() => setExplain(!explain)}>
+            <Lightbulb size={15} /> Explication
+          </button>
           <button className="btn btn--ghost btn--small" onClick={() => void copy(selected)}>
             <Copy size={15} /> {copied ? 'Copié' : 'Copier'}
           </button>
           <button className="icon-btn" onClick={() => setSelected(null)} aria-label="Fermer">
             <X size={16} />
           </button>
+          {explain && (
+            <div className="read-explain">
+              {tafsir.loading ? (
+                <p className="small muted">Chargement de l’explication…</p>
+              ) : tafsir.error ? (
+                <p className="small error-text">Explication indisponible pour le moment.</p>
+              ) : (
+                <p>{tafsir.data?.[selected - 1] ?? 'Pas d’explication pour ce verset.'}</p>
+              )}
+              <p className="small muted">Source : {TAFSIR_SOURCE}</p>
+            </div>
+          )}
         </div>
       )}
+
+      <p className="small muted read-source">
+        Texte arabe : édition Uthmani (Hafs).{' '}
+        {mode !== 'arabic' && <>Traduction : {TRANSLATIONS.find((t) => t.id === translation)?.source} </>}
+        Podsal ne traduit ni n’explique jamais le Coran lui-même : seules des sources officielles revues par des savants sont affichées.
+      </p>
 
       <nav className="read-nav" aria-label="Sourates voisines">
         {number > 1 ? (
