@@ -43,17 +43,21 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
 
-  // Audio : servi depuis le cache des téléchargements s'il y est.
-  if (request.destination === 'audio' || request.headers.has('range')) {
+  // Audio : le streaming n'est JAMAIS intercepté. Sur iPhone, iOS suspend le service worker quand
+  // l'écran s'éteint ; un flux qui passerait par lui serait coupé et le lecteur resterait bloqué.
+  // Seuls les épisodes téléchargés dans ce cache (podcasts qui refusent le téléchargement direct)
+  // passent par une adresse dédiée : ./audio-cache?u=<adresse du fichier>.
+  if (url.origin === self.location.origin && url.pathname.endsWith('/audio-cache')) {
+    const target = url.searchParams.get('u');
     event.respondWith(
       (async () => {
         const cache = await caches.open(AUDIO_CACHE);
-        const hit = await cache.match(request.url);
-        return hit || fetch(request);
+        return (target && (await cache.match(target))) || fetch(target, { mode: 'no-cors' });
       })(),
     );
     return;
   }
+  if (request.destination === 'audio' || request.destination === 'video' || request.headers.has('range')) return;
 
   // Catalogue Apple (fiches et classements, pas les recherches) : réseau d'abord, cache si hors-ligne.
   if (url.hostname === 'itunes.apple.com' && (url.pathname.startsWith('/lookup') || url.pathname.includes('/rss/'))) {

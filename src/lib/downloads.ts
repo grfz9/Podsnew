@@ -42,11 +42,16 @@ export function unregisterLocalUrl(id: string) {
   localUrls.delete(id);
 }
 
+export function cachedAudioUrl(audioUrl: string): string {
+  return new URL(`audio-cache?u=${encodeURIComponent(audioUrl)}`, document.baseURI).href;
+}
+
 function register(record: DownloadRecord) {
   if (record.mode === 'blob' && record.blob) {
     localUrls.set(record.id, URL.createObjectURL(record.blob));
   } else {
-    localUrls.set(record.id, record.episode.audioUrl);
+    // Fichier gardé dans le cache du service worker : lu via son adresse dédiée (voir public/sw.js).
+    localUrls.set(record.id, cachedAudioUrl(record.episode.audioUrl));
   }
 }
 
