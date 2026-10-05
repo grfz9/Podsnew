@@ -12,6 +12,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-05b',
+    date: '5 octobre 2026',
+    title: 'Écoute plus fiable sur iPhone',
+    items: [
+      'L’écoute ne devrait plus se couper quand l’écran s’éteint.',
+      'Si l’iPhone interrompt quand même la lecture, le bouton lecture (dans l’appli ou sur l’écran verrouillé) la relance là où elle s’était arrêtée.',
+    ],
+  },
+  {
     id: '2026-10-05',
     date: '5 octobre 2026',
     title: 'Podsal devient 100 % islamique',

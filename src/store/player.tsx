@@ -284,19 +284,41 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     audioRef.current?.pause();
   }, []);
 
+  /**
+   * Relance la lecture. Si l'élément audio est resté bloqué (iPhone : coupure par le système écran
+   * éteint, flux interrompu, erreur réseau), on recharge le fichier à la même position puis on relance.
+   */
+  const resume = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || !audio.src) return;
+    const reload = () => {
+      const at = audio.currentTime || pendingSeek.current || 0;
+      pendingSeek.current = at;
+      setError(null);
+      audio.load();
+      void audio.play().catch(() => undefined);
+    };
+    if (audio.error || audio.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) return reload();
+    void audio.play().catch((e: DOMException) => {
+      // NotAllowedError : le navigateur exige un geste de l'utilisateur, recharger n'y changerait rien.
+      if (e?.name !== 'NotAllowedError' && e?.name !== 'AbortError') reload();
+    });
+  }, []);
+
   const toggle = useCallback(() => {
     const audio = audioRef.current;
     const ep = currentRef.current;
     if (!audio || !ep) return;
     if (loadedId.current !== ep.id) {
       load(ep, true);
-    } else if (audio.paused) {
-      void audio.play().catch(() => undefined);
+    } else if (audio.paused || audio.error) {
+      wantsPlay.current = true;
+      resume();
     } else {
       wantsPlay.current = false;
       audio.pause();
     }
-  }, [load]);
+  }, [load, resume]);
 
   const skip = useCallback(
     (delta: number) => {
@@ -430,7 +452,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const onVisible = () => {
       const audio = audioRef.current;
       if (document.visibilityState !== 'visible' || !audio || !wantsPlay.current || !audio.paused || !audio.src) return;
-      void audio.play().catch(() => undefined);
+      resume();
     };
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('pageshow', onVisible);
@@ -438,7 +460,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('pageshow', onVisible);
     };
-  }, []);
+  }, [resume]);
 
   // État et position de lecture pour l'écran verrouillé et le centre de contrôle.
   useEffect(() => {
