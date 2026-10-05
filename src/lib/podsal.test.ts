@@ -1,3 +1,4 @@
+import { angleDiff, cardinal, distanceToKaaba, qiblaBearing } from './qibla';
 import { daysBetween, fromDay, hijriParts, indexOf, placeAt, TOTAL_PAGES, planStatus, portion, ramadanInfo, toDay, TOTAL_AYAHS } from './khatma';
 import { frenchSpacing, wrapText } from './verseCard';
 import { DAILY_VERSES, dailyVerse, today } from '../data/dailyVerses';
@@ -308,5 +309,20 @@ describe('plan de lecture et Ramadan', () => {
     const during = ramadanInfo(new Date(info!.start.getFullYear(), info!.start.getMonth(), info!.start.getDate() + 4));
     expect(during!.day).toBe(5);
     expect(during!.daysUntil).toBe(0);
+  });
+});
+
+describe('Qibla', () => {
+  it('donne la direction et la distance de la Kaaba', () => {
+    const paris = qiblaBearing(48.8566, 2.3522);
+    expect(paris).toBeGreaterThan(118);
+    expect(paris).toBeLessThan(121);
+    expect(cardinal(paris)).toBe('sud-est');
+    expect(Math.round(distanceToKaaba(48.8566, 2.3522) / 100)).toBe(45); // environ 4 500 km
+    const casablanca = qiblaBearing(33.5731, -7.5898);
+    expect(casablanca).toBeGreaterThan(88);
+    expect(casablanca).toBeLessThan(96); // presque plein est
+    expect(angleDiff(10, 350)).toBe(20);
+    expect(angleDiff(350, 10)).toBe(-20);
   });
 });
