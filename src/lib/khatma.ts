@@ -5,7 +5,7 @@
  * - Le Ramadan est estimé avec le calendrier Umm al-Qura du navigateur : la date réelle dépend
  *   de l'observation du croissant et des autorités religieuses de chaque pays.
  */
-import { PAGE_STARTS } from '../data/mushaf';
+import { JUZ_STARTS, PAGE_STARTS } from '../data/mushaf';
 import { SURAHS } from '../data/surahs';
 
 export const TOTAL_PAGES = PAGE_STARTS.length;
@@ -145,3 +145,22 @@ export function ramadanInfo(now = new Date()): RamadanInfo | null {
     daysUntil: Math.max(0, startOffset),
   };
 }
+
+/** Dernier début (page ou juz) avant ou sur ce verset : numéro 1-based. */
+function lastStart(starts: [number, number][], place: Place): number {
+  const at = indexOf(place);
+  let lo = 0;
+  let hi = starts.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (indexOf({ surah: starts[mid][0], ayah: starts[mid][1] }) <= at) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo + 1;
+}
+
+/** Page du mushaf de Médine (1 à 604) où se trouve ce verset. */
+export const pageOf = (place: Place) => lastStart(PAGE_STARTS, place);
+
+/** Juz (1 à 30) de ce verset. */
+export const juzOf = (place: Place) => lastStart(JUZ_STARTS, place);

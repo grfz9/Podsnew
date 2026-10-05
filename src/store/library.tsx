@@ -103,7 +103,7 @@ export interface LibraryState extends SyncedData {
 }
 
 /** Réglages qui suivent le compte d'un appareil à l'autre. */
-const SYNCED_SETTINGS = ['quran', 'interests', 'episodeOrder'] as const;
+const SYNCED_SETTINGS = ['quran', 'interests', 'episodeOrder', 'prayer', 'wallpaper', 'sidebarWallpaper'] as const;
 
 /** Version légère d'un épisode pour les playlists (description raccourcie). */
 function lightEpisode(e: Episode): Episode {
@@ -363,8 +363,17 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
           const out: Partial<LibraryState> = { progress: data.progress, stats: data.stats, modified: data.modified };
           for (const key of LIST_KEYS) (out as Record<string, unknown>)[key] = data[key];
           if (data.prefs && data.prefs.updatedAt >= s.prefsModified) {
-            const { quran, interests, episodeOrder, updatedAt } = data.prefs;
-            out.settings = { ...s.settings, quran: { ...s.settings.quran, ...quran }, interests: interests.filter((i) => ALL_INTERESTS.includes(i)), episodeOrder };
+            const { quran, interests, episodeOrder, prayer, wallpaper, sidebarWallpaper, updatedAt } = data.prefs;
+            out.settings = {
+              ...s.settings,
+              quran: { ...s.settings.quran, ...quran },
+              interests: interests.filter((i) => ALL_INTERESTS.includes(i)),
+              episodeOrder,
+              // Adhan personnalisé : le fichier reste sur l'appareil où il a été importé.
+              ...(prayer ? { prayer: { ...s.settings.prayer, ...prayer, adhan: prayer.adhan === 'custom' && s.settings.prayer.adhan !== 'custom' ? s.settings.prayer.adhan : prayer.adhan } } : {}),
+              ...(wallpaper && wallpaper !== 'custom' ? { wallpaper } : {}),
+              ...(sidebarWallpaper && sidebarWallpaper !== 'custom' ? { sidebarWallpaper } : {}),
+            };
             out.prefsModified = updatedAt;
           }
           return { ...out, sync: { userId, lastSyncedAt: Date.now() } };

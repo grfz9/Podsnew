@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-06c',
+    date: '6 octobre 2026',
+    title: 'Lecture du Coran façon quran.com',
+    items: [
+      'Écouter en lisant : le verset récité est surligné et suit à l’écran.',
+      'Sur chaque verset : écouter à partir d’ici, marque-page, image, copier.',
+      'Bandeau avec la sourate, le juz et la page du mushaf ; pages indiquées en mode mushaf.',
+      'Navigation par juz, et choix Écouter / Lire directement dans le menu.',
+      'Compte à rebours de la prochaine prière à côté de « Prière ».',
+      'Votre ville, l’adhan et vos fonds d’écran sont maintenant enregistrés avec votre compte.',
+    ],
+  },
+  {
     id: '2026-10-06b',
     date: '6 octobre 2026',
     title: 'Un menu plus clair et des Paramètres',
