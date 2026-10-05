@@ -4,6 +4,7 @@ import { moveInQueue } from '../utils/queue';
 import { usePersistentState } from '../utils/hooks';
 import { addCompletion, addListening, emptyDeviceStats } from '../lib/stats';
 import { LIST_KEYS, type ListKey, type SyncedData } from '../lib/sync';
+import type { ReadingPlan } from '../lib/khatma';
 
 const HISTORY_LIMIT = 100;
 const HISTORY_DESCRIPTION_MAX = 600;
@@ -44,6 +45,8 @@ export interface Settings {
     favorites: number[];
     /** Lecture : dernier verset lu, marque-pages, affichage et taille du texte (suivent le compte). */
     lastRead?: QuranPlace;
+    /** Plan de lecture du Coran en cours (khatma). */
+    plan?: ReadingPlan | null;
     bookmarks?: QuranPlace[];
     readerMode?: 'both' | 'arabic' | 'translation';
     readerSize?: number;

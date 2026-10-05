@@ -1617,3 +1617,37 @@ html, body, .main { overflow-x: clip; }
 .verse-share__preview { margin: 14px 0 10px; display: grid; place-items: center; min-height: 240px; }
 .verse-share__preview img { width: 100%; max-height: 56vh; object-fit: contain; border-radius: 14px; box-shadow: 0 16px 40px -16px rgba(0, 0, 0, 0.9); }
 .verse-share__go { width: 100%; margin-top: 6px; }
+
+/* Plan de lecture */
+.plan-card { position: relative; margin-bottom: 24px; padding: 16px 18px; border-radius: var(--radius-lg); background: var(--bg-elevated); border: 1px solid rgba(108, 196, 180, 0.2); }
+.plan-card__head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.plan-card__label { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.plan-card__title { font-weight: 700; margin: 10px 0 2px; }
+.plan-card__bar { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; margin-top: 10px; }
+.plan-card__bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), #e2c485); transition: width 0.4s ease; }
+.plan-card__actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.plan-card__done { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.plan-card__done > svg { color: #e2c485; }
+.plan-card__stop { display: inline-flex; align-items: center; gap: 4px; margin-top: 10px; }
+.plan-choices { display: grid; gap: 8px; margin-top: 12px; }
+.plan-choice { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 12px 14px; border-radius: var(--radius); background: var(--bg-hover); text-align: left; transition: background 0.15s; }
+.plan-choice:hover { background: rgba(108, 196, 180, 0.14); }
+
+/* Ramadan */
+.ramadan-hero { text-align: center; padding: 28px 16px 22px; margin-bottom: 20px; border-radius: var(--radius-lg); background: radial-gradient(70% 90% at 50% 0%, rgba(175, 169, 236, 0.22), transparent 70%); }
+.ramadan-hero > svg { color: #e2c485; }
+.ramadan-hero h1 { font-size: 28px; margin: 10px 0 6px; }
+.ramadan-hero p { margin: 4px auto; max-width: 520px; }
+.ramadan-hero__note { display: block; margin-top: 12px !important; }
+.ramadan-hero__note svg { vertical-align: -2px; }
+.fast-card { margin-bottom: 24px; padding: 18px 20px; border-radius: var(--radius-lg); background: linear-gradient(135deg, rgba(175, 169, 236, 0.16), rgba(226, 196, 133, 0.1)); }
+.fast-card--setup { display: flex; align-items: center; gap: 10px; }
+.fast-card__next { display: flex; align-items: center; gap: 14px; }
+.fast-card__next > svg { color: #e2c485; flex: none; }
+.fast-card__next > span { display: flex; flex-direction: column; }
+.fast-card__next strong { font-size: 30px; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+.fast-card__times { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 12px; font-size: 14px; }
+.fast-card__times span { display: inline-flex; align-items: center; gap: 6px; }
+.ramadan-teaser { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding: 14px 16px; border-radius: var(--radius-lg); background: linear-gradient(135deg, rgba(175, 169, 236, 0.18), rgba(226, 196, 133, 0.1)); }
+.ramadan-teaser > svg { color: #e2c485; flex: none; }
+.ramadan-teaser > span { display: flex; flex-direction: column; }

@@ -22,6 +22,7 @@ import { AdminPage } from './pages/Admin';
 import { WallpapersPage } from './pages/Wallpapers';
 import { InstallPage } from './pages/Install';
 import { QuranReadHome, QuranReadSurah } from './pages/QuranRead';
+import { RamadanPage } from './pages/Ramadan';
 import { ModerationProvider } from './store/moderation';
 import { PremiumProvider } from './store/premium';
 import { CustomImagesProvider } from './store/customImages';
@@ -79,6 +80,7 @@ createRoot(document.getElementById('root')!).render(
                           <Route path="lire" element={<QuranReadHome />} />
                           <Route path="lire/:surah" element={<QuranReadSurah />} />
                           <Route path="priere" element={<PrayerPage />} />
+                          <Route path="ramadan" element={<RamadanPage />} />
                           <Route path="islam" element={<IslamPage />} />
                           <Route path="moderation" element={<ModerationPage />} />
                       <Route path="admin" element={<AdminPage />} />

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { Bookmark, BookmarkCheck, BookOpenText, ChevronLeft, ChevronRight, Copy, Headphones, Image as ImageIcon, Info, Minus, Plus, Search, X } from 'lucide-react';
 import { BASMALA, getReciters, getSurahText, SCHOLAR_NOTICE, TRANSLATIONS, type TranslationId } from '../api/quran';
 import { DailyVerse } from '../components/DailyVerse';
+import { ReadingPlanCard } from '../components/ReadingPlan';
 import { VerseShareDialog, type SharedVerse } from '../components/VerseShare';
 import { ErrorState, Spinner, Tabs } from '../components/common';
 import { knownReciterRank, normalizeName } from '../data/reciters';
@@ -51,6 +52,7 @@ export function QuranReadHome() {
     <div className="page quran-read">
       <h1 className="page__title">Lire le Coran</h1>
       <DailyVerse />
+      <ReadingPlanCard />
 
       {(last || bookmarks.length > 0) && (
         <div className="read-resume">

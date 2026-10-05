@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
-import { BookOpen, BookOpenText, ChartColumn, Clock, Crown, Download, FolderOpen, House, Library, ListMusic, Mic, Search, ShieldCheck, Sparkle, User, Users, WifiOff } from 'lucide-react';
+import { BookOpen, BookOpenText, Moon, ChartColumn, Clock, Crown, Download, FolderOpen, House, Library, ListMusic, Mic, Search, ShieldCheck, Sparkle, User, Users, WifiOff } from 'lucide-react';
 import { useModeration } from '../store/moderation';
 import { DesktopUpdateBanner } from './DesktopUpdate';
 import { WhatsNew } from './WhatsNew';
@@ -29,6 +29,7 @@ const SIDEBAR_NAV = [
   { to: '/library', label: 'Bibliothèque', icon: Library },
   { to: '/fichiers', label: 'Mes fichiers', icon: FolderOpen },
   { to: '/priere', label: 'Prière', icon: Clock },
+  { to: '/ramadan', label: 'Ramadan', icon: Moon },
   { to: '/queue', label: "File d'attente", icon: ListMusic },
   { to: '/friends', label: 'Amis', icon: Users },
   { to: '/stats', label: 'Statistiques', icon: ChartColumn },
