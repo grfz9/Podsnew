@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { Clock, LocateFixed, MapPin } from 'lucide-react';
+import { Clock, Compass, LocateFixed, MapPin } from 'lucide-react';
 import { CITIES, FIVE_PRAYERS, formatClock, formatCountdown, nextPrayer, PRAYER_METHODS, PRAYER_NAMES, prayerTimes, type PrayerKey } from '../lib/prayer';
 import { useLibrary, type PrayerSettings } from '../store/library';
 import { notificationsSupported, requestNotificationPermission } from '../lib/notifications';
@@ -106,7 +106,12 @@ export function PrayerPage() {
 
   return (
     <div className="page">
-      <h1 className="page__title">Horaires de prière</h1>
+      <div className="page__head-row">
+        <h1 className="page__title">Horaires de prière</h1>
+        <Link to="/qibla" className="btn btn--outline btn--small">
+          <Compass size={16} /> Qibla
+        </Link>
+      </div>
 
       {today && next && (
         <section className="prayer-today">

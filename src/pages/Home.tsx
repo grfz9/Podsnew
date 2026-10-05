@@ -20,6 +20,8 @@ import { PrayerCard } from './Prayer';
 import { useLibrary } from '../store/library';
 import type { Episode } from '../types';
 import { DailyVerse } from '../components/DailyVerse';
+import { ReadingPlanCard } from '../components/ReadingPlan';
+import { RamadanTeaser } from './Ramadan';
 import { useAsync } from '../utils/hooks';
 import { hijriDate } from '../utils/format';
 
@@ -187,8 +189,10 @@ export function Home() {
 
       {resume && <ResumeHero episode={resume} />}
       <PrayerCard />
+      <RamadanTeaser />
       <QuickAccess interests={interests} />
       {(interests.includes('quran') || interests.includes('islamic')) && <DailyVerse />}
+      <ReadingPlanCard compact />
 
       <ContinueListening exclude={resume?.id} />
       {interests.includes('quran') && <QuranRow />}

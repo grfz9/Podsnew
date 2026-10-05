@@ -206,6 +206,7 @@ export function SearchPage() {
             items={[
               { to: '/coran', label: 'Écouter le Coran', icon: BookOpen, color: '#e2c485' },
               { to: '/lire', label: 'Lire le Coran', icon: BookOpenText, color: '#c9a86a' },
+              { to: '/lire/recherche', label: 'Chercher un mot dans le Coran', icon: SearchIcon, color: '#85b7eb' },
               { to: '/islam', label: 'Podcasts islamiques', icon: Mic, color: '#6cc4b4' },
               { to: '/priere', label: 'Prière', icon: Clock, color: '#5dcaa5' },
             ]}

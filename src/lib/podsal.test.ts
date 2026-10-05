@@ -1,3 +1,7 @@
+import { highlightFr, indexVerses, normalizeAr, normalizeFr, searchVerses } from './quranSearch';
+import { angleDiff, cardinal, distanceToKaaba, qiblaBearing } from './qibla';
+import { daysBetween, fromDay, hijriParts, indexOf, placeAt, TOTAL_PAGES, planStatus, portion, ramadanInfo, toDay, TOTAL_AYAHS } from './khatma';
+import { frenchSpacing, wrapText } from './verseCard';
 import { DAILY_VERSES, dailyVerse, today } from '../data/dailyVerses';
 import { desktopOs, detectPlatform, iosBrowser, isInAppBrowser, isNewerVersion, manualDesktopVersion } from './install';
 import { describe, expect, it } from 'vitest';
@@ -249,5 +253,101 @@ describe('traduction sans commentaires', () => {
   it('retire les appels de note de la traduction', () => {
     expect(stripNoteMarks('Au nom d’Allah, le Tout Miséricordieux, le Très Miséricordieux.[1]')).toBe('Au nom d’Allah, le Tout Miséricordieux, le Très Miséricordieux.');
     expect(stripNoteMarks('Louange à Allah [2], Seigneur de l’univers.')).toBe('Louange à Allah, Seigneur de l’univers.');
+  });
+});
+
+describe('carte image d’un verset', () => {
+  it('garde la ponctuation française avec son mot et coupe aux espaces ordinaires', () => {
+    expect(frenchSpacing('« Une facilité ! »')).toBe('«\u00A0Une facilité\u00A0!\u00A0»');
+    const ctx = { measureText: (t: string) => ({ width: t.length * 10 }) as TextMetrics };
+    expect(wrapText(ctx, frenchSpacing('aaa bbb facilité !'), 120)).toEqual(['aaa bbb', 'facilité\u00A0!']);
+  });
+});
+
+describe('plan de lecture et Ramadan', () => {
+  it('découpe tout le Coran en portions sans trou ni chevauchement', () => {
+    expect(placeAt(0)).toEqual({ surah: 1, ayah: 1 });
+    expect(placeAt(7)).toEqual({ surah: 2, ayah: 1 });
+    expect(placeAt(TOTAL_AYAHS - 1)).toEqual({ surah: 114, ayah: 6 });
+    let total = 0;
+    for (let d = 0; d < 30; d++) total += portion(30, d).ayahs;
+    expect(total).toBe(TOTAL_AYAHS);
+    expect(portion(30, 0).from).toEqual({ surah: 1, ayah: 1 });
+    expect(portion(30, 29).to).toEqual({ surah: 114, ayah: 6 });
+    // Découpage par pages du mushaf : 20 ou 21 pages par jour, le 1er jour finit avant le 2e juz (2:142).
+    expect(portion(30, 0).pages).toEqual([1, 20]);
+    expect(indexOf(portion(30, 0).to)).toBeLessThan(indexOf({ surah: 2, ayah: 142 }));
+    for (let d = 0; d < 30; d++) {
+      const [a, b] = portion(30, d).pages;
+      expect(b - a + 1).toBeGreaterThanOrEqual(20);
+      expect(b - a + 1).toBeLessThanOrEqual(21);
+    }
+    expect(TOTAL_PAGES).toBe(604);
+  });
+
+  it('suit les jours lus et le retard', () => {
+    const plan = { start: '2026-10-01', days: 30, done: [0, 1], label: '30 jours' };
+    const s = planStatus(plan, new Date(2026, 9, 5)); // 5e jour
+    expect(s.today).toBe(4);
+    expect(s.next).toBe(2);
+    expect(s.due).toBe(3); // jours 3, 4 et 5 à lire pour être à jour
+    expect(planStatus({ ...plan, done: Array.from({ length: 30 }, (_, i) => i) }).finished).toBe(true);
+    expect(planStatus({ ...plan, start: '2026-12-01' }, new Date(2026, 9, 5)).started).toBe(false);
+  });
+
+  it('compte les jours sans être gêné par le changement d’heure', () => {
+    expect(daysBetween(new Date(2026, 9, 24), new Date(2026, 9, 26))).toBe(2);
+    expect(toDay(fromDay('2027-02-08'))).toBe('2027-02-08');
+  });
+
+  it('trouve le prochain Ramadan (calendrier Umm al-Qura)', () => {
+    const info = ramadanInfo(new Date(2026, 9, 5));
+    expect(info).not.toBeNull();
+    expect(info!.day).toBeNull();
+    expect(hijriParts(info!.start)).toMatchObject({ month: 9, day: 1 });
+    expect(info!.daysUntil).toBeGreaterThan(100);
+    expect(info!.daysUntil).toBeLessThan(160);
+    const during = ramadanInfo(new Date(info!.start.getFullYear(), info!.start.getMonth(), info!.start.getDate() + 4));
+    expect(during!.day).toBe(5);
+    expect(during!.daysUntil).toBe(0);
+  });
+});
+
+describe('Qibla', () => {
+  it('donne la direction et la distance de la Kaaba', () => {
+    const paris = qiblaBearing(48.8566, 2.3522);
+    expect(paris).toBeGreaterThan(118);
+    expect(paris).toBeLessThan(121);
+    expect(cardinal(paris)).toBe('sud-est');
+    expect(Math.round(distanceToKaaba(48.8566, 2.3522) / 100)).toBe(45); // environ 4 500 km
+    const casablanca = qiblaBearing(33.5731, -7.5898);
+    expect(casablanca).toBeGreaterThan(88);
+    expect(casablanca).toBeLessThan(96); // presque plein est
+    expect(angleDiff(10, 350)).toBe(20);
+    expect(angleDiff(350, 10)).toBe(-20);
+  });
+});
+
+describe('recherche dans le Coran', () => {
+  const index = indexVerses([
+    { surah: 2, ayah: 153, arabic: 'يَا أَيُّهَا الَّذِينَ آمَنُوا اسْتَعِينُوا بِالصَّبْرِ وَالصَّلَاةِ', french: 'Ô les croyants ! Cherchez secours dans l’endurance et la Salât.' },
+    { surah: 103, ayah: 3, arabic: 'وَتَوَاصَوْا بِالصَّبْرِ', french: 'et s’enjoignent mutuellement l’endurance.' },
+    { surah: 19, ayah: 16, arabic: 'وَاذْكُرْ فِي الْكِتَابِ مَرْيَمَ', french: 'Mentionne, dans le Livre, Marie.' },
+  ]);
+
+  it('ignore accents, majuscules et voyelles arabes', () => {
+    expect(normalizeFr('L’Éte, DÉJÀ !')).toBe('l ete deja');
+    expect(normalizeAr('بِالصَّبْرِ')).toBe('بالصبر');
+    expect(searchVerses(index, 'ENDURANCE').total).toBe(2);
+    expect(searchVerses(index, 'endur').total).toBe(2); // début de mot
+    expect(searchVerses(index, 'secours endurance').results.map((v) => v.ayah)).toEqual([153]); // tous les mots
+    expect(searchVerses(index, 'الصبر').total).toBe(2);
+    expect(searchVerses(index, 'marie').results[0].surah).toBe(19);
+    expect(searchVerses(index, 'x').total).toBe(0);
+  });
+
+  it('surligne les mots trouvés', () => {
+    const parts = highlightFr('dans l’endurance et la Salât.', 'endurance');
+    expect(parts.filter((p) => p.hit).map((p) => p.text)).toEqual(['l’endurance']);
   });
 });

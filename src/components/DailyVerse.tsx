@@ -1,5 +1,7 @@
 import { Link } from 'react-router';
-import { BookOpenText, Sun } from 'lucide-react';
+import { useState } from 'react';
+import { BookOpenText, Share2, Sun } from 'lucide-react';
+import { VerseShareDialog } from './VerseShare';
 import { getVerse, SCHOLAR_NOTICE, TRANSLATIONS, type TranslationId } from '../api/quran';
 import { dailyVerse, today } from '../data/dailyVerses';
 import { getSurah } from '../data/surahs';
@@ -16,8 +18,12 @@ export function DailyVerse() {
   const { surah, ayah } = dailyVerse(auth.userId ?? library.deviceId, day);
   const s = getSurah(surah)!;
   const verse = useAsync(() => getVerse(surah, ayah, translation), [surah, ayah, translation]);
+  const [sharing, setSharing] = useState(false);
 
   if (verse.error) return null;
+  const shared = verse.data && sharing && (
+    <VerseShareDialog verse={{ surah, ayah, arabic: verse.data.arabic, translation: verse.data.translation, translationId: translation }} onClose={() => setSharing(false)} />
+  );
   return (
     <section className="daily-verse" aria-label="Verset du jour">
       <header className="daily-verse__head">
@@ -38,6 +44,9 @@ export function DailyVerse() {
             <Link to={`/lire/${surah}?v=${ayah}`} className="btn btn--outline btn--small">
               <BookOpenText size={15} /> Lire la sourate
             </Link>
+            <button className="btn btn--ghost btn--small" onClick={() => setSharing(true)}>
+              <Share2 size={15} /> Partager
+            </button>
           </div>
           <p className="small muted daily-verse__source">
             Traduction : {TRANSLATIONS.find((t) => t.id === translation)?.label}. {SCHOLAR_NOTICE}
@@ -46,6 +55,7 @@ export function DailyVerse() {
       ) : (
         <p className="small muted">Chargement du verset…</p>
       )}
+      {shared}
     </section>
   );
 }
