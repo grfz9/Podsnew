@@ -1,6 +1,6 @@
 import { highlightFr, indexVerses, normalizeAr, normalizeFr, searchVerses } from './quranSearch';
 import { angleDiff, cardinal, distanceToKaaba, qiblaBearing } from './qibla';
-import { daysBetween, fromDay, hijriParts, indexOf, placeAt, TOTAL_PAGES, planStatus, portion, ramadanInfo, toDay, TOTAL_AYAHS } from './khatma';
+import { daysBetween, fromDay, hijriParts, indexOf, juzOf, pageOf, placeAt, TOTAL_PAGES, planStatus, portion, ramadanInfo, toDay, TOTAL_AYAHS } from './khatma';
 import { frenchSpacing, wrapText } from './verseCard';
 import { DAILY_VERSES, dailyVerse, today } from '../data/dailyVerses';
 import { desktopOs, detectPlatform, iosBrowser, isInAppBrowser, isNewerVersion, manualDesktopVersion } from './install';
@@ -349,5 +349,17 @@ describe('recherche dans le Coran', () => {
   it('surligne les mots trouvés', () => {
     const parts = highlightFr('dans l’endurance et la Salât.', 'endurance');
     expect(parts.filter((p) => p.hit).map((p) => p.text)).toEqual(['l’endurance']);
+  });
+});
+
+describe('pages et juz du mushaf', () => {
+  it('situe un verset dans le mushaf de Médine', () => {
+    expect(pageOf({ surah: 1, ayah: 1 })).toBe(1);
+    expect(pageOf({ surah: 2, ayah: 1 })).toBe(2);
+    expect(pageOf({ surah: 114, ayah: 6 })).toBe(604);
+    expect(juzOf({ surah: 2, ayah: 141 })).toBe(1);
+    expect(juzOf({ surah: 2, ayah: 142 })).toBe(2);
+    expect(juzOf({ surah: 18, ayah: 75 })).toBe(16);
+    expect(juzOf({ surah: 78, ayah: 1 })).toBe(30);
   });
 });

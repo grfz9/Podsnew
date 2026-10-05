@@ -10,6 +10,11 @@ export interface SyncedPrefs {
   quran: Settings['quran'];
   interests: Settings['interests'];
   episodeOrder: Settings['episodeOrder'];
+  /** Ville, méthode de calcul et adhan (absents des données enregistrées avant le 2026-10-06). */
+  prayer?: Settings['prayer'];
+  /** Fonds d'écran choisis (« custom » = image importée, propre à chaque appareil : jamais synchronisé). */
+  wallpaper?: string;
+  sidebarWallpaper?: string;
   /** Date de dernière modification (0 : jamais modifiées sur cet appareil). */
   updatedAt: number;
 }

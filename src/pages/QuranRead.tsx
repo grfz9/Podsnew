@@ -1,15 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
-import { Bookmark, BookmarkCheck, BookOpenText, ChevronLeft, ChevronRight, Brain, Copy, Eye, EyeOff, Headphones, Image as ImageIcon, Info, Minus, Repeat, Plus, Search, X } from 'lucide-react';
-import { BASMALA, getReciters, getSurahText, getTimedReads, SCHOLAR_NOTICE, TRANSLATIONS, type TranslationId } from '../api/quran';
+import { Bookmark, BookmarkCheck, BookOpenText, ChevronLeft, ChevronRight, Brain, Copy, Eye, EyeOff, Headphones, Image as ImageIcon, Info, Minus, Pause, Play, Repeat, Plus, Search, X } from 'lucide-react';
+import { ayahAt, BASMALA, getAyahTimings, getSurahText, SCHOLAR_NOTICE, surahEpisode, TRANSLATIONS, type AyahTiming, type TranslationId } from '../api/quran';
+import { JUZ_STARTS, PAGE_STARTS } from '../data/mushaf';
+import { juzOf, pageOf } from '../lib/khatma';
+import { usePlayer, usePlayerTime } from '../store/player';
 import { DailyVerse } from '../components/DailyVerse';
+import { useQuranReciter } from '../components/useQuranReciter';
 import { QuranTabs } from '../components/QuranTabs';
 import { ReadingPlanCard } from '../components/ReadingPlan';
 import { VerseShareDialog, type SharedVerse } from '../components/VerseShare';
 import { ErrorState, Spinner, Tabs } from '../components/common';
-import { knownReciterRank, normalizeName } from '../data/reciters';
+import { normalizeName } from '../data/reciters';
 import { getSurah, SURAHS } from '../data/surahs';
-import { isQuranId, QURAN_PREFIX } from '../lib/policy';
 import { useLibrary, type QuranPlace } from '../store/library';
 import { useAsync } from '../utils/hooks';
 
@@ -42,6 +45,7 @@ function placeLabel(p: QuranPlace) {
 export function QuranReadHome() {
   const { quran, set } = useQuranSettings();
   const [query, setQuery] = useState('');
+  const [browse, setBrowse] = useState<'surahs' | 'juz'>('surahs');
   const q = normalizeName(query.trim());
   const list = SURAHS.filter(
     (s) => !q || String(s.number) === q || normalizeName(s.name).includes(q) || normalizeName(s.meaning).includes(q) || s.arabic.includes(query.trim()),
@@ -98,6 +102,30 @@ export function QuranReadHome() {
         </div>
       )}
 
+      <Tabs
+        tabs={[
+          { id: 'surahs', label: 'Sourates' },
+          { id: 'juz', label: 'Juz' },
+        ]}
+        value={browse}
+        onChange={setBrowse}
+      />
+      {browse === 'juz' ? (
+        <div className="read-grid">
+          {JUZ_STARTS.map(([su, ay], i) => (
+            <Link key={i} to={`/lire/${su}?v=${ay}`} className="read-card">
+              <span className="read-card__number">{i + 1}</span>
+              <span className="read-card__text">
+                <strong>Juz {i + 1}</strong>
+                <span className="small muted">
+                  Commence à {getSurah(su)?.name} {ay} · page {pageOf({ surah: su, ayah: ay })}
+                </span>
+              </span>
+            </Link>
+          ))}
+        </div>
+      ) : (
+      <>
       <div className="search-box">
         <Search size={20} />
         <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Nom, numéro ou sens d’une sourate" aria-label="Rechercher une sourate" />
@@ -118,6 +146,8 @@ export function QuranReadHome() {
           </Link>
         ))}
       </div>
+      </>
+      )}
       <p className="small muted">Texte : édition Uthmani (Hafs) · Traductions : QuranEnc.com.</p>
     </div>
   );
@@ -126,29 +156,11 @@ export function QuranReadHome() {
 /* ---------- Écouter la sourate : dernier récitateur écouté, sinon un récitateur connu ---------- */
 
 function ListenLink({ surah, from, to, label = 'Écouter', icon = <Headphones size={15} /> }: { surah: number; from?: number; to?: number; label?: string; icon?: React.ReactNode }) {
-  const library = useLibrary();
-  const lastReciter = library.history.find((e) => isQuranId(e.podcastId))?.podcastId.slice(QURAN_PREFIX.length);
-  // Pour répéter un passage, il faut une récitation minutée verset par verset.
-  const needsTiming = from !== undefined;
-  const reciters = useAsync(
-    () => (lastReciter && !needsTiming ? Promise.resolve(null) : Promise.all([getReciters(), needsTiming ? getTimedReads() : Promise.resolve(null)])),
-    [lastReciter, needsTiming],
-  );
-  const choice = useMemo(() => {
-    if (!reciters.data) return lastReciter ? { id: lastReciter, moshaf: undefined as number | undefined } : null;
-    const [all, timed] = reciters.data;
-    const ranked = all.map((r) => ({ r, rank: knownReciterRank(r.name) })).filter((x) => x.rank >= 0).sort((a, b) => a.rank - b.rank).map((x) => x.r);
-    const candidates = [...all.filter((r) => String(r.id) === lastReciter), ...ranked];
-    for (const r of candidates) {
-      const m = timed ? r.moshaf.find((mo) => timed.has(mo.id) && mo.surahs.includes(surah)) : r.moshaf[0];
-      if (m) return { id: String(r.id), moshaf: timed ? m.id : undefined };
-    }
-    return lastReciter ? { id: lastReciter, moshaf: undefined } : null;
-  }, [reciters.data, lastReciter, surah]);
+  const choice = useQuranReciter(surah);
   if (!choice) return null;
-  const query = [choice.moshaf ? `m=${choice.moshaf}` : '', from ? `de=${from}&a=${to ?? from}` : ''].filter(Boolean).join('&');
+  const query = [`m=${choice.moshaf.id}`, from ? `de=${from}&a=${to ?? from}` : ''].filter(Boolean).join('&');
   return (
-    <Link to={`/coran/${choice.id}/${surah}${query ? `?${query}` : ''}`} className="btn btn--outline btn--small">
+    <Link to={`/coran/${choice.reciter.id}/${surah}?${query}`} className="btn btn--outline btn--small">
       {icon} {label}
     </Link>
   );
@@ -167,6 +179,31 @@ function HiddenArabic({ text, hint }: { text: string; hint: boolean }) {
       </span>
     </>
   );
+}
+
+/**
+ * Écouter en lisant (comme quran.com) : le verset récité est surligné et suivi à l'écran,
+ * sauf si l'on vient de faire défiler soi-même. Sans rendu : agit directement sur les versets affichés.
+ */
+function FollowAlong({ timings, active, verses }: { timings: AyahTiming[] | null; active: boolean; verses: Map<number, HTMLElement> }) {
+  const { time } = usePlayerTime();
+  const ayah = active && timings ? ayahAt(timings, time) : null;
+  const userScroll = useRef(0);
+  useEffect(() => {
+    const mark = () => (userScroll.current = Date.now());
+    window.addEventListener('wheel', mark, { passive: true });
+    window.addEventListener('touchmove', mark, { passive: true });
+    return () => {
+      window.removeEventListener('wheel', mark);
+      window.removeEventListener('touchmove', mark);
+    };
+  }, []);
+  useEffect(() => {
+    verses.forEach((el, n) => el.classList.toggle('is-playing', n === ayah));
+    const el = ayah ? verses.get(ayah) : null;
+    if (el && Date.now() - userScroll.current > 4000) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [ayah, verses]);
+  return null;
 }
 
 /* ---------- Lecture d'une sourate ---------- */
@@ -200,6 +237,27 @@ export function QuranReadSurah() {
   };
   const [copied, setCopied] = useState(false);
   const verseRefs = useRef(new Map<number, HTMLElement>());
+  // Verset en haut de l'écran : bandeau « sourate · juz · page ».
+  const [topAyah, setTopAyah] = useState(1);
+
+  // Écouter en lisant : récitateur minuté verset par verset.
+  const player = usePlayer();
+  const reciter = useQuranReciter(number);
+  const episode = reciter ? surahEpisode(reciter.reciter, reciter.moshaf, number) : null;
+  const timings = useAsync(() => (reciter ? getAyahTimings(number, reciter.moshaf.id) : Promise.resolve(null)), [number, reciter?.moshaf.id]);
+  const isCurrent = !!episode && player.current?.id === episode.id;
+  const listening = isCurrent && player.isPlaying;
+  const playFrom = (ayah?: number) => {
+    if (!episode) return;
+    const start = ayah ? timings.data?.find((t) => t.ayah === ayah)?.start : undefined;
+    if (isCurrent && start === undefined) return player.toggle();
+    if (isCurrent && start !== undefined) {
+      player.seek(start);
+      if (!player.isPlaying) player.toggle();
+      return;
+    }
+    player.play(episode, start);
+  };
   const target = Number(params.get('v')) || null;
 
   const bookmarks = quran.bookmarks ?? [];
@@ -233,6 +291,7 @@ export function QuranReadSurah() {
         const visible = entries.filter((e) => e.isIntersecting).map((e) => Number((e.target as HTMLElement).dataset.ayah));
         if (!visible.length) return;
         pending = Math.min(...visible);
+        setTopAyah(pending);
         clearTimeout(timer);
         timer = setTimeout(() => {
           const last = settingsRef.current.lastRead;
@@ -265,6 +324,8 @@ export function QuranReadSurah() {
     if (el) verseRefs.current.set(ayah, el);
     else verseRefs.current.delete(ayah);
   };
+  // Débuts de page du mushaf dans cette sourate (mode mushaf : « Page N » entre les versets).
+  const pageStarts = new Map(PAGE_STARTS.flatMap(([su, ay], i) => (su === number ? [[ay, i + 1] as const] : [])));
   const sizeIndex = Math.max(0, SIZES.indexOf(size));
   const style = { '--read-size': `${size}px` } as React.CSSProperties;
 
@@ -274,7 +335,11 @@ export function QuranReadSurah() {
         <Link to="/lire" className="btn btn--ghost btn--small">
           <ChevronLeft size={16} /> Sourates
         </Link>
-        <ListenLink surah={number} />
+        {reciter && (
+          <Link to={`/coran/${reciter.reciter.id}/${number}?m=${reciter.moshaf.id}`} className="small muted read-top__reciter" title="Changer de récitateur ou répéter un passage">
+            <Headphones size={14} /> {reciter.reciter.name}
+          </Link>
+        )}
       </div>
 
       <header className="read-head">
@@ -285,11 +350,28 @@ export function QuranReadSurah() {
           {s.number}. {s.name}
         </h1>
         <p className="muted">
-          {s.meaning} · {s.ayahs} versets · {s.revelation}
+          {s.meaning} · {s.ayahs} versets · {s.revelation} ·{' '}
+          {pageOf({ surah: number, ayah: 1 }) === pageOf({ surah: number, ayah: s.ayahs })
+            ? `page ${pageOf({ surah: number, ayah: 1 })}`
+            : `pages ${pageOf({ surah: number, ayah: 1 })}–${pageOf({ surah: number, ayah: s.ayahs })}`}
         </p>
       </header>
 
       <div className="read-tools">
+        <div className="read-sticky">
+          <button className={`read-sticky__play ${listening ? 'is-on' : ''}`} onClick={() => playFrom()} disabled={!episode} aria-label={listening ? 'Pause' : 'Écouter en lisant'}>
+            {listening ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
+          </button>
+          <span className="read-sticky__where">
+            <strong>
+              {s.name} · {number}:{topAyah}
+            </strong>
+            <span className="small muted">
+              Juz {juzOf({ surah: number, ayah: topAyah })} · Page {pageOf({ surah: number, ayah: topAyah })}
+              {episode ? (listening ? ' · lecture suivie' : ' · écouter en lisant') : ''}
+            </span>
+          </span>
+        </div>
         <Tabs tabs={MODES} value={mode} onChange={(readerMode) => set({ readerMode })} />
         <div className="read-tools__row">
           {mode !== 'arabic' && (
@@ -356,8 +438,13 @@ export function QuranReadSurah() {
       ) : mode === 'arabic' ? (
         <p className="read-mushaf" lang="ar" dir="rtl">
           {text.data?.map((a) => (
+            <span key={a.number}>
+            {a.number > 1 && pageStarts.has(a.number) && (
+              <span className="mushaf-page" dir="ltr">
+                Page {pageStarts.get(a.number)}
+              </span>
+            )}
             <span
-              key={a.number}
               ref={ref(a.number)}
               data-ayah={a.number}
               className={`read-mushaf__ayah ${selected === a.number ? 'is-selected' : ''} ${target === a.number ? 'is-target' : ''}`}
@@ -368,6 +455,7 @@ export function QuranReadSurah() {
                 {arabicNumber(a.number)}
               </span>{' '}
             </span>
+            </span>
           ))}
         </p>
       ) : (
@@ -377,14 +465,35 @@ export function QuranReadSurah() {
               key={a.number}
               ref={ref(a.number)}
               data-ayah={a.number}
-              className={`read-ayah ${selected === a.number ? 'is-selected' : ''} ${target === a.number ? 'is-target' : ''}`}
-              onClick={() => onVerse(a.number)}
+              className={`read-ayah ${target === a.number ? 'is-target' : ''}`}
+              onClick={() => isHidden(a.number) && onVerse(a.number)}
             >
               <span className="read-ayah__head">
                 <span className="read-ayah__number">
                   {s.number}:{a.number}
                 </span>
-                {isBookmarked(a.number) && <BookmarkCheck size={15} className="read-ayah__mark" aria-label="Marque-page" />}
+                <span className="read-ayah__actions" onClick={(e) => e.stopPropagation()}>
+                  {timings.data && (
+                    <button className="icon-btn" onClick={() => playFrom(a.number)} aria-label={`Écouter à partir du verset ${a.number}`} title="Écouter à partir d’ici">
+                      <Play size={15} />
+                    </button>
+                  )}
+                  <button className={`icon-btn ${isBookmarked(a.number) ? 'icon-btn--active' : ''}`} onClick={() => toggleBookmark(a.number)} aria-label="Marque-page" title={isBookmarked(a.number) ? 'Retirer le marque-page' : 'Marque-page'}>
+                    {isBookmarked(a.number) ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
+                  </button>
+                  <button
+                    className="icon-btn"
+                    onClick={() => setSharing({ surah: number, ayah: a.number, arabic: a.arabic, translation: a.translation, translationId: a.translation ? translation : undefined })}
+                    aria-label="Partager en image"
+                    title="Partager en image"
+                  >
+                    <ImageIcon size={15} />
+                  </button>
+                  <button className="icon-btn" onClick={() => void copy(a.number)} aria-label="Copier" title={copied ? 'Copié' : 'Copier'}>
+                    <Copy size={15} />
+                  </button>
+                  {memoOn && <ListenLink surah={number} from={a.number} label="" icon={<Repeat size={15} />} />}
+                </span>
               </span>
               {mode === 'both' && (
                 <p className="read-ayah__arabic" lang="ar" dir="rtl">
@@ -397,7 +506,9 @@ export function QuranReadSurah() {
         </ol>
       )}
 
-      {selected !== null && (
+      <FollowAlong timings={timings.data ?? null} active={isCurrent} verses={verseRefs.current} />
+
+      {selected !== null && mode === 'arabic' && (
         <div className="read-actions" role="toolbar" aria-label={`Verset ${selected}`}>
           <span className="small">
             {s.name} · verset {selected}

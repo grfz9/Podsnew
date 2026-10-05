@@ -1756,3 +1756,39 @@ a.settings-row:hover, button.settings-row:hover { background: var(--bg-hover); }
   .settings-row { flex-wrap: wrap; }
   .settings-select { flex-basis: 100%; max-width: none; margin-left: 34px; }
 }
+
+/* Menu : choix Écouter / Lire sous « Coran », compte à rebours de la prière */
+.nav-group { display: flex; flex-direction: column; }
+.nav-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 2px 4px 6px 42px; }
+.nav-choice__btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 8px; border-radius: 999px; font-size: 13px; font-weight: 700; color: var(--text-muted); background: var(--bg-hover); border: 1px solid transparent; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+.nav-choice__btn:hover { color: var(--text); border-color: var(--border); }
+.nav-choice__btn.active { background: var(--accent); color: #0d1111; }
+.nav-countdown { margin-left: auto; display: inline-flex; align-items: baseline; gap: 4px; font-size: 12px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.nav-countdown strong { font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 800; }
+.nav-countdown--soon strong { color: #e2c485; }
+@media (min-width: 801px) and (max-width: 1100px) {
+  .nav-choice, .nav-countdown { display: none; }
+}
+
+/* Lecture façon quran.com : bandeau, écoute suivie, actions par verset, pages du mushaf */
+.read-top__reciter { display: inline-flex; align-items: center; gap: 6px; max-width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.read-top__reciter:hover { color: var(--text); }
+.read-sticky { display: flex; align-items: center; gap: 12px; }
+.read-sticky__play { flex: none; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: var(--accent); color: #0d1111; transition: transform 0.15s, box-shadow 0.2s; }
+.read-sticky__play:hover:not(:disabled) { transform: scale(1.06); }
+.read-sticky__play.is-on { box-shadow: 0 0 0 6px rgba(108, 196, 180, 0.2); }
+.read-sticky__play:disabled { opacity: 0.4; }
+.read-sticky__where { display: flex; flex-direction: column; min-width: 0; }
+.read-sticky__where strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.read-ayah { cursor: default; }
+.read-ayah__head { justify-content: space-between; }
+.read-ayah__actions { display: inline-flex; align-items: center; gap: 2px; opacity: 0.55; transition: opacity 0.15s; }
+.read-ayah:hover .read-ayah__actions, .read-ayah:focus-within .read-ayah__actions { opacity: 1; }
+.read-ayah__actions .icon-btn { width: 30px; height: 30px; }
+.read-ayah__actions .btn { padding: 4px 8px; border: 0; }
+.read-ayah.is-playing { background: rgba(108, 196, 180, 0.1); box-shadow: inset 3px 0 0 var(--accent); }
+.read-ayah.is-playing .read-ayah__arabic { color: #bff0e6; }
+.read-mushaf__ayah.is-playing { background: rgba(108, 196, 180, 0.18); }
+.mushaf-page { display: flex; align-items: center; gap: 12px; margin: 14px 0; font-family: Inter, system-ui, sans-serif; font-size: 12px; font-weight: 700; color: var(--text-muted); text-align: center; }
+.mushaf-page::before, .mushaf-page::after { content: ''; flex: 1; height: 1px; background: rgba(201, 168, 106, 0.3); }
+@media (hover: none) { .read-ayah__actions { opacity: 0.85; } }

@@ -36,7 +36,15 @@ const AuthContext = createContext<AuthValue | null>(null);
 
 function syncedPart(s: LibraryState): SyncedData {
   const { subscriptions, savedEpisodes, history, clips, playlists, progress, stats, modified, settings } = s;
-  const prefs = { quran: settings.quran, interests: settings.interests, episodeOrder: settings.episodeOrder, updatedAt: s.prefsModified };
+  const prefs = {
+    quran: settings.quran,
+    interests: settings.interests,
+    episodeOrder: settings.episodeOrder,
+    prayer: settings.prayer,
+    wallpaper: settings.wallpaper,
+    sidebarWallpaper: settings.sidebarWallpaper,
+    updatedAt: s.prefsModified,
+  };
   return { subscriptions, savedEpisodes, history, clips, playlists, progress, stats, modified, prefs };
 }
 

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
-import { BookOpen, Clock, FolderOpen, House, Library, Mic, Moon, Search, Settings, Sparkle, User, Users, WifiOff } from 'lucide-react';
+import { BookOpen, BookOpenText, Clock, Headphones, FolderOpen, House, Library, Mic, Moon, Search, Settings, Sparkle, User, Users, WifiOff } from 'lucide-react';
 import { ramadanInfo } from '../lib/khatma';
+import { formatClock, nextPrayer, PRAYER_NAMES } from '../lib/prayer';
 import { useModeration } from '../store/moderation';
 import { DesktopUpdateBanner } from './DesktopUpdate';
 import { WhatsNew } from './WhatsNew';
@@ -57,6 +58,28 @@ function SidebarSearch() {
         <Search size={22} />
       </NavLink>
     </>
+  );
+}
+
+/** Compte à rebours jusqu'à la prochaine prière, à côté de « Prière » (seconde par seconde). */
+function PrayerCountdown() {
+  const { settings } = useLibrary();
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const next = nextPrayer(settings.prayer, now);
+  if (!next) return null;
+  const total = Math.max(0, Math.floor((next.time.getTime() - now.getTime()) / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const left = h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
+  return (
+    <span className={`nav-countdown ${total < 15 * 60 ? 'nav-countdown--soon' : ''}`} title={`${PRAYER_NAMES[next.key]} à ${formatClock(next.time)}`}>
+      <span>{PRAYER_NAMES[next.key]}</span> <strong>{left}</strong>
+    </span>
   );
 }
 
@@ -197,16 +220,29 @@ export function Layout() {
           <SidebarSearch />
           <nav className="sidebar__nav">
             {SIDEBAR_NAV.map(({ to, label, icon: Icon, end, also }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={end}
-                className={({ isActive }) => `nav-link ${isActive || (also && location.pathname.startsWith(also)) ? 'active' : ''}`}
-                title={label}
-              >
-                <Icon size={22} />
-                <span className="nav-link__label">{label}</span>
-              </NavLink>
+              <div key={to} className="nav-group">
+                <NavLink
+                  to={to}
+                  end={end}
+                  className={({ isActive }) => `nav-link ${isActive || (also && location.pathname.startsWith(also)) ? 'active' : ''}`}
+                  title={label}
+                >
+                  <Icon size={22} />
+                  <span className="nav-link__label">{label}</span>
+                  {to === '/priere' && <PrayerCountdown />}
+                </NavLink>
+                {to === '/coran' && (
+                  // Choisir d'écouter ou de lire avant même d'ouvrir la rubrique.
+                  <div className="nav-choice" role="group" aria-label="Coran">
+                    <NavLink to="/coran" className="nav-choice__btn" title="Écouter le Coran">
+                      <Headphones size={15} /> Écouter
+                    </NavLink>
+                    <NavLink to="/lire" className="nav-choice__btn" title="Lire le Coran">
+                      <BookOpenText size={15} /> Lire
+                    </NavLink>
+                  </div>
+                )}
+              </div>
             ))}
             {ramadanSoon && (
               <NavLink to="/ramadan" className="nav-link" title="Ramadan">
