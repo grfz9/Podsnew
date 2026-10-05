@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
-import { BookOpen, BookOpenText, ChevronLeft, Info, ChevronRight, ListPlus, Pause, Play, Repeat, Search, Star } from 'lucide-react';
+import { QuranTabs } from '../components/QuranTabs';
+import { BookOpen, ChevronLeft, Info, ChevronRight, ListPlus, Pause, Play, Repeat, Search, Star } from 'lucide-react';
 import {
   ayahAt,
   BASMALA,
@@ -101,9 +102,7 @@ export function QuranHome() {
     <div className="page">
       <div className="page__head-row">
         <h1 className="page__title">Coran</h1>
-        <Link to="/lire" className="btn btn--outline btn--small">
-          <BookOpenText size={16} /> Lire le Coran
-        </Link>
+        <QuranTabs />
       </div>
 
       {recent.length > 0 && (

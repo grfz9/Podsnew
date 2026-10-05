@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, NavLink, Outlet, useLocation } from 'react-router';
-import { BookOpen, BookOpenText, Moon, ChartColumn, Clock, Crown, Download, FolderOpen, House, Library, ListMusic, Mic, Search, ShieldCheck, Sparkle, User, Users, WifiOff } from 'lucide-react';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
+import { BookOpen, Clock, FolderOpen, House, Library, Mic, Moon, Search, Settings, Sparkle, User, Users, WifiOff } from 'lucide-react';
+import { ramadanInfo } from '../lib/khatma';
 import { useModeration } from '../store/moderation';
 import { DesktopUpdateBanner } from './DesktopUpdate';
 import { WhatsNew } from './WhatsNew';
-import { isStandalone } from '../lib/install';
 import { PlaylistDialogProvider } from './Playlists';
 import { AppMark, Wordmark } from './Wordmark';
 import { resolveBackground, sidebarBackground } from '../data/wallpapers';
@@ -22,22 +22,62 @@ import { Onboarding, SHOW_ONBOARDING_EVENT } from './Onboarding';
 
 const SIDEBAR_NAV = [
   { to: '/', label: 'Accueil', icon: House, end: true },
-  { to: '/coran', label: 'Coran', icon: BookOpen },
-  { to: '/lire', label: 'Lire le Coran', icon: BookOpenText },
+  // « Coran » regroupe l'écoute (/coran) et la lecture (/lire).
+  { to: '/coran', label: 'Coran', icon: BookOpen, also: '/lire' },
   { to: '/islam', label: 'Podcasts islamiques', icon: Mic },
-  { to: '/search', label: 'Rechercher', icon: Search },
+  { to: '/priere', label: 'Prière', icon: Clock },
   { to: '/library', label: 'Bibliothèque', icon: Library },
   { to: '/fichiers', label: 'Mes fichiers', icon: FolderOpen },
-  { to: '/priere', label: 'Prière', icon: Clock },
-  { to: '/ramadan', label: 'Ramadan', icon: Moon },
-  { to: '/queue', label: "File d'attente", icon: ListMusic },
-  { to: '/friends', label: 'Amis', icon: Users },
-  { to: '/stats', label: 'Statistiques', icon: ChartColumn },
 ];
+
+/** Événement envoyé par la barre de recherche du menu à la page Rechercher. */
+export const SEARCH_INPUT_EVENT = 'podsal:search-input';
+
+/** Barre de recherche toujours visible en haut du menu (comme Spotify). */
+function SidebarSearch() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [value, setValue] = useState(() => new URLSearchParams(location.search).get('q') ?? '');
+  const onSearch = location.pathname === '/search';
+  useEffect(() => {
+    if (!onSearch) setValue('');
+  }, [onSearch]);
+  const change = (v: string) => {
+    setValue(v);
+    window.dispatchEvent(new CustomEvent(SEARCH_INPUT_EVENT, { detail: v }));
+    if (!onSearch) navigate(`/search?q=${encodeURIComponent(v)}`);
+  };
+  return (
+    <>
+      <form className="sidebar-search" role="search" onSubmit={(e) => (e.preventDefault(), change(value))}>
+        <Search size={18} />
+        <input type="search" value={value} onChange={(e) => change(e.target.value)} placeholder="Rechercher" aria-label="Rechercher dans Podsal" />
+      </form>
+      <NavLink to="/search" className="nav-link sidebar-search__icon" title="Rechercher">
+        <Search size={22} />
+      </NavLink>
+    </>
+  );
+}
+
+/** Podsal+ mis en avant : carte dorée (abonné) ou invitation. */
+function PremiumCard({ active }: { active: boolean }) {
+  return (
+    <NavLink to="/premium" className={`premium-card ${active ? 'premium-card--active' : ''}`} title="Podsal+">
+      <span className="premium-card__icon">
+        <Sparkle size={18} />
+      </span>
+      <span className="premium-card__text">
+        <strong>{active ? 'Podsal+ actif' : 'Passer à Podsal+'}</strong>
+        <span>{active ? 'Merci pour votre soutien' : 'Fonds, téléchargements illimités…'}</span>
+      </span>
+    </NavLink>
+  );
+}
 
 const MOBILE_NAV = [
   { to: '/', label: 'Accueil', icon: House, end: true },
-  { to: '/coran', label: 'Coran', icon: BookOpen },
+  { to: '/coran', label: 'Coran', icon: BookOpen, also: '/lire' },
   { to: '/search', label: 'Rechercher', icon: Search },
   { to: '/library', label: 'Bibliothèque', icon: Library },
   { to: '/account', label: 'Moi', icon: User },
@@ -77,6 +117,7 @@ function AccountLink() {
   const auth = useAuth();
   const name = auth.profile?.display_name || auth.profile?.username;
   return (
+    <div className="sidebar__footer">
     <NavLink to="/account" className="nav-link sidebar__account" title={name ?? 'Compte'}>
       {name ? (
         <span className="avatar avatar--small" aria-hidden>
@@ -87,6 +128,13 @@ function AccountLink() {
       )}
       <span className="nav-link__label">{name ?? (auth.enabled ? 'Se connecter' : 'Compte')}</span>
     </NavLink>
+      <NavLink to="/friends" className="icon-btn sidebar__footer-btn" title="Amis" aria-label="Amis">
+        <Users size={20} />
+      </NavLink>
+      <NavLink to="/parametres" className="icon-btn sidebar__footer-btn" title="Paramètres" aria-label="Paramètres">
+        <Settings size={20} />
+      </NavLink>
+    </div>
   );
 }
 
@@ -97,7 +145,10 @@ export function Layout() {
   const images = useCustomImages();
   const wallpaper = resolveBackground('main', settings.wallpaper, isPremium, images.wallpaperUrl('main'));
   const sidebarBg = resolveBackground('sidebar', settings.sidebarWallpaper, isPremium, images.wallpaperUrl('sidebar'));
-  const { isAdmin, isModerator, filterPodcasts } = useModeration();
+  const { filterPodcasts } = useModeration();
+  // Ramadan dans le menu seulement pendant le mois et les 60 jours qui précèdent (sinon : Prière, Paramètres).
+  const ramadan = ramadanInfo();
+  const ramadanSoon = !!ramadan && (ramadan.day !== null || ramadan.daysUntil <= 60);
   // Anciens abonnements non islamiques : masqués (Podsal est 100 % islamique).
   const subscriptions = filterPodcasts(allSubscriptions);
   const { current } = usePlayer();
@@ -143,36 +194,28 @@ export function Layout() {
             </span>
             <Wordmark className="brand__wordmark" title="" />
           </Link>
+          <SidebarSearch />
           <nav className="sidebar__nav">
-            {SIDEBAR_NAV.map(({ to, label, icon: Icon, end }) => (
-              <NavLink key={to} to={to} end={end} className="nav-link" title={label}>
+            {SIDEBAR_NAV.map(({ to, label, icon: Icon, end, also }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                className={({ isActive }) => `nav-link ${isActive || (also && location.pathname.startsWith(also)) ? 'active' : ''}`}
+                title={label}
+              >
                 <Icon size={22} />
                 <span className="nav-link__label">{label}</span>
               </NavLink>
             ))}
-            <NavLink to="/premium" className="nav-link nav-link--premium" title="Podsal+">
-              <Sparkle size={22} />
-              <span className="nav-link__label">{isPremium ? 'Podsal+ · actif' : 'Podsal+'}</span>
-            </NavLink>
-            {isModerator && (
-              <NavLink to="/moderation" className="nav-link" title="Modération">
-                <ShieldCheck size={22} />
-                <span className="nav-link__label">Modération</span>
-              </NavLink>
-            )}
-            {isAdmin && (
-              <NavLink to="/admin" className="nav-link" title="Administration">
-                <Crown size={22} />
-                <span className="nav-link__label">Administration</span>
-              </NavLink>
-            )}
-            {!isStandalone() && (
-              <NavLink to="/telecharger" className="nav-link" title="Télécharger l’appli">
-                <Download size={22} />
-                <span className="nav-link__label">Télécharger l’appli</span>
+            {ramadanSoon && (
+              <NavLink to="/ramadan" className="nav-link" title="Ramadan">
+                <Moon size={22} />
+                <span className="nav-link__label">Ramadan</span>
               </NavLink>
             )}
           </nav>
+          <PremiumCard active={isPremium} />
           <div className="sidebar__subs">
             <div className="sidebar__heading">Vos abonnements</div>
             {subscriptions.length === 0 && <p className="small muted">Abonnez-vous à des podcasts pour les retrouver ici.</p>}
@@ -204,8 +247,8 @@ export function Layout() {
         <PlayerBar onExpand={() => setExpanded(true)} />
 
         <nav className="bottom-nav">
-          {MOBILE_NAV.map(({ to, label, icon: Icon, end }) => (
-            <NavLink key={to} to={to} end={end} className="bottom-nav__link">
+          {MOBILE_NAV.map(({ to, label, icon: Icon, end, also }) => (
+            <NavLink key={to} to={to} end={end} className={({ isActive }) => `bottom-nav__link ${isActive || (also && location.pathname.startsWith(also)) ? 'active' : ''}`}>
               <Icon size={22} />
               <span>{label}</span>
             </NavLink>

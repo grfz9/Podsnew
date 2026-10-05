@@ -12,6 +12,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-06b',
+    date: '6 octobre 2026',
+    title: 'Un menu plus clair et des Paramètres',
+    items: [
+      'Menu de gauche allégé, avec la recherche toujours visible en haut et Podsal+ mis en avant.',
+      'Coran : écouter et lire au même endroit, avec les onglets « Écouter » et « Lire ».',
+      'Nouveaux Paramètres : compte, mot de passe, statistiques, traduction, prière, notifications…',
+      'Amis et Paramètres à côté de votre compte ; la file d’attente est dans la barre d’écoute.',
+    ],
+  },
+  {
     id: '2026-10-06',
     date: '6 octobre 2026',
     title: 'Partage, plan de lecture, Ramadan, Qibla et plus',
