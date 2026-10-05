@@ -1,3 +1,4 @@
+import { parseTajweed } from '../api/quranCom';
 import { highlightFr, indexVerses, normalizeAr, normalizeFr, searchVerses } from './quranSearch';
 import { angleDiff, cardinal, distanceToKaaba, qiblaBearing } from './qibla';
 import { daysBetween, fromDay, hijriParts, indexOf, juzOf, pageOf, placeAt, TOTAL_PAGES, planStatus, portion, ramadanInfo, toDay, TOTAL_AYAHS } from './khatma';
@@ -361,5 +362,13 @@ describe('pages et juz du mushaf', () => {
     expect(juzOf({ surah: 2, ayah: 142 })).toBe(2);
     expect(juzOf({ surah: 18, ayah: 75 })).toBe(16);
     expect(juzOf({ surah: 78, ayah: 1 })).toBe(30);
+  });
+});
+
+describe('tajwid (quran.com)', () => {
+  it('découpe le texte en morceaux colorables sans garder de HTML', () => {
+    const parts = parseTajweed('بِسْمِ <tajweed class=ham_wasl>ٱ</tajweed>للَّهِ <span class=end>١</span>');
+    expect(parts).toEqual([{ text: 'بِسْمِ ' }, { text: 'ٱ', rule: 'ham_wasl' }, { text: 'للَّهِ' }]);
+    expect(parseTajweed('<b>x</b>نص').map((p) => p.text).join('')).toBe('xنص');
   });
 });

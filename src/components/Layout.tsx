@@ -62,7 +62,8 @@ function SidebarSearch() {
 }
 
 /** Compte à rebours jusqu'à la prochaine prière, à côté de « Prière » (seconde par seconde). */
-function PrayerCountdown() {
+/** Prochaine prière et temps restant, mis à jour chaque seconde (null sans ville réglée). */
+function usePrayerCountdown() {
   const { settings } = useLibrary();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -76,10 +77,72 @@ function PrayerCountdown() {
   const m = Math.floor((total % 3600) / 60);
   const s = total % 60;
   const left = h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
+  return { name: PRAYER_NAMES[next.key], at: formatClock(next.time), left, soon: total < 15 * 60 };
+}
+
+function PrayerCountdown() {
+  const c = usePrayerCountdown();
+  if (!c) return null;
   return (
-    <span className={`nav-countdown ${total < 15 * 60 ? 'nav-countdown--soon' : ''}`} title={`${PRAYER_NAMES[next.key]} à ${formatClock(next.time)}`}>
-      <span>{PRAYER_NAMES[next.key]}</span> <strong>{left}</strong>
+    <span className={`nav-countdown ${c.soon ? 'nav-countdown--soon' : ''}`} title={`${c.name} à ${c.at}`}>
+      <span>{c.name}</span> <strong>{c.left}</strong>
     </span>
+  );
+}
+
+/** Barre du bas (téléphone) : Coran avec choix Écouter / Lire, Prière avec le temps restant. */
+function BottomNav() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const countdown = usePrayerCountdown();
+  const [choosing, setChoosing] = useState(false);
+  const inQuran = location.pathname.startsWith('/coran') || location.pathname.startsWith('/lire');
+  useEffect(() => setChoosing(false), [location.pathname]);
+  const go = (to: string) => {
+    setChoosing(false);
+    navigate(to);
+  };
+  return (
+    <>
+      {choosing && (
+        <div className="quran-chooser-backdrop" onClick={() => setChoosing(false)}>
+          <div className="quran-chooser" role="dialog" aria-label="Coran" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => go('/coran')}>
+              <Headphones size={22} />
+              <strong>Écouter</strong>
+              <span className="small muted">Récitateurs et sourates</span>
+            </button>
+            <button onClick={() => go('/lire')}>
+              <BookOpenText size={22} />
+              <strong>Lire</strong>
+              <span className="small muted">Texte et traduction</span>
+            </button>
+          </div>
+        </div>
+      )}
+      <nav className="bottom-nav">
+        <NavLink to="/" end className="bottom-nav__link">
+          <House size={22} />
+          <span>Accueil</span>
+        </NavLink>
+        <button className={`bottom-nav__link ${inQuran ? 'active' : ''}`} onClick={() => setChoosing((c) => !c)} aria-expanded={choosing}>
+          <BookOpen size={22} />
+          <span>Coran</span>
+        </button>
+        <NavLink to="/priere" className={`bottom-nav__link ${countdown?.soon ? 'bottom-nav__link--soon' : ''}`}>
+          <Clock size={22} />
+          <span className="bottom-nav__countdown">{countdown ? `${countdown.name} ${countdown.left}` : 'Prière'}</span>
+        </NavLink>
+        <NavLink to="/search" className="bottom-nav__link">
+          <Search size={22} />
+          <span>Rechercher</span>
+        </NavLink>
+        <NavLink to="/account" className="bottom-nav__link">
+          <User size={22} />
+          <span>Moi</span>
+        </NavLink>
+      </nav>
+    </>
   );
 }
 
@@ -98,13 +161,6 @@ function PremiumCard({ active }: { active: boolean }) {
   );
 }
 
-const MOBILE_NAV = [
-  { to: '/', label: 'Accueil', icon: House, end: true },
-  { to: '/coran', label: 'Coran', icon: BookOpen, also: '/lire' },
-  { to: '/search', label: 'Rechercher', icon: Search },
-  { to: '/library', label: 'Bibliothèque', icon: Library },
-  { to: '/account', label: 'Moi', icon: User },
-];
 
 /**
  * Raccourcis clavier : espace = lecture/pause, ← / → = reculer / avancer, M = couper le son,
@@ -282,14 +338,7 @@ export function Layout() {
 
         <PlayerBar onExpand={() => setExpanded(true)} />
 
-        <nav className="bottom-nav">
-          {MOBILE_NAV.map(({ to, label, icon: Icon, end, also }) => (
-            <NavLink key={to} to={to} end={end} className={({ isActive }) => `bottom-nav__link ${isActive || (also && location.pathname.startsWith(also)) ? 'active' : ''}`}>
-              <Icon size={22} />
-              <span>{label}</span>
-            </NavLink>
-          ))}
-        </nav>
+        <BottomNav />
 
         {expanded && <FullPlayer onClose={closePlayer} />}
         {(tour || !settings.onboarded) && <Onboarding onDone={() => setTour(false)} />}
