@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { Bookmark, BookmarkCheck, BookOpenText, ChevronLeft, ChevronRight, Brain, Copy, Eye, EyeOff, Headphones, Image as ImageIcon, Info, Minus, Repeat, Plus, Search, X } from 'lucide-react';
 import { BASMALA, getReciters, getSurahText, getTimedReads, SCHOLAR_NOTICE, TRANSLATIONS, type TranslationId } from '../api/quran';
 import { DailyVerse } from '../components/DailyVerse';
+import { QuranTabs } from '../components/QuranTabs';
 import { ReadingPlanCard } from '../components/ReadingPlan';
 import { VerseShareDialog, type SharedVerse } from '../components/VerseShare';
 import { ErrorState, Spinner, Tabs } from '../components/common';
@@ -51,11 +52,12 @@ export function QuranReadHome() {
   return (
     <div className="page quran-read">
       <div className="page__head-row">
-        <h1 className="page__title">Lire le Coran</h1>
-        <Link to="/lire/recherche" className="btn btn--outline btn--small">
-          <Search size={16} /> Rechercher dans le Coran
-        </Link>
+        <h1 className="page__title">Coran</h1>
+        <QuranTabs />
       </div>
+      <Link to="/lire/recherche" className="read-search-link">
+        <Search size={18} /> Rechercher un mot dans le Coran
+      </Link>
       <DailyVerse />
       <ReadingPlanCard />
 

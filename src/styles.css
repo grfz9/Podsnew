@@ -1686,3 +1686,73 @@ html, body, .main { overflow-x: clip; }
 .search-verse mark { background: rgba(226, 196, 133, 0.28); color: inherit; border-radius: 3px; padding: 0 2px; }
 .quran-search__source { margin-top: 20px; }
 .quran-search__source svg { vertical-align: -2px; }
+
+/* ---------- Menu de gauche allégé ---------- */
+.sidebar-search { display: flex; align-items: center; gap: 8px; margin: 0 4px 10px; padding: 0 12px; height: 40px; border-radius: 999px; background: var(--bg-hover); border: 1px solid transparent; color: var(--text-muted); transition: border-color 0.15s, background 0.15s; }
+.sidebar-search:focus-within { border-color: var(--accent); background: var(--bg-elevated); color: var(--text); }
+.sidebar-search input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font: inherit; font-size: 14px; outline: none; }
+.sidebar-search__icon { display: none !important; }
+@media (min-width: 1101px) { .search-page__box { display: none; } }
+
+.premium-card { display: flex; align-items: center; gap: 12px; margin: 12px 4px 4px; padding: 12px; border-radius: 14px; background: linear-gradient(135deg, rgba(226, 196, 133, 0.22), rgba(226, 196, 133, 0.06)); border: 1px solid rgba(226, 196, 133, 0.35); color: var(--text); transition: transform 0.15s, background 0.15s; }
+.premium-card:hover { transform: translateY(-1px); background: linear-gradient(135deg, rgba(226, 196, 133, 0.3), rgba(226, 196, 133, 0.1)); }
+.premium-card__icon { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, #e2c485, #b8924a); color: #1a1406; }
+.premium-card__text { display: flex; flex-direction: column; min-width: 0; }
+.premium-card__text strong { font-size: 14px; }
+.premium-card__text span { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.premium-card--active .premium-card__text strong { color: #e2c485; }
+
+.sidebar__footer { display: flex; align-items: center; gap: 4px; border-top: 1px solid var(--border); padding-top: 10px; }
+.sidebar__footer .sidebar__account { flex: 1; min-width: 0; border-top: 0; padding-top: 9px; }
+.sidebar__footer-btn { flex: none; color: var(--text-muted); }
+.sidebar__footer-btn.active, .sidebar__footer-btn:hover { color: var(--text); }
+
+@media (min-width: 801px) and (max-width: 1100px) {
+  .sidebar-search { display: none; }
+  .sidebar-search__icon { display: flex !important; width: 100%; }
+  .premium-card { margin: 8px 0; padding: 8px; justify-content: center; }
+  .premium-card__text { display: none; }
+  .sidebar__footer { flex-direction: column; width: 100%; }
+  .sidebar__footer .sidebar__account { width: 100%; }
+}
+
+/* Coran : Écouter | Lire */
+.quran-tabs { display: inline-flex; padding: 4px; gap: 4px; border-radius: 999px; background: var(--bg-elevated); border: 1px solid var(--border); }
+.quran-tabs__tab { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 999px; font-weight: 700; font-size: 14px; color: var(--text-muted); transition: background 0.15s, color 0.15s; }
+.quran-tabs__tab:hover { color: var(--text); }
+.quran-tabs__tab.active { background: var(--accent); color: #0d1111; }
+.read-search-link { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; padding: 12px 16px; border-radius: 999px; background: var(--bg-hover); color: var(--text-muted); }
+.read-search-link:hover { color: var(--text); }
+
+/* ---------- Paramètres (inspiré de Spotify) ---------- */
+.settings-page { max-width: 760px; }
+.settings-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 26px; }
+.settings-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 18px 10px; border-radius: var(--radius-lg); background: var(--bg-elevated); text-align: center; transition: background 0.15s, transform 0.15s; }
+.settings-tile:hover { background: var(--bg-hover); transform: translateY(-1px); }
+.settings-tile .small { color: var(--text-muted); }
+.settings-tile--gold { background: linear-gradient(135deg, rgba(226, 196, 133, 0.24), rgba(226, 196, 133, 0.06)); }
+.settings-tile--gold svg, .settings-tile--gold strong { color: #e2c485; }
+.settings-group { margin-bottom: 22px; }
+.settings-group > h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 0 0 8px 4px; }
+.settings-group__rows { border-radius: var(--radius-lg); background: var(--bg-elevated); overflow: hidden; }
+.settings-row { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px; text-align: left; color: var(--text); border-bottom: 1px solid var(--border); transition: background 0.15s; }
+.settings-group__rows > :last-child { border-bottom: 0; }
+a.settings-row:hover, button.settings-row:hover { background: var(--bg-hover); }
+.settings-row__icon { flex: none; display: grid; place-items: center; color: var(--text-muted); }
+.settings-row__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.settings-row__text strong { font-size: 15px; }
+.settings-row__chevron { flex: none; color: var(--text-muted); }
+.settings-select { width: auto; max-width: 220px; padding: 6px 8px; font-size: 13px; }
+.settings-embed { padding: 4px 16px 14px; border-bottom: 1px solid var(--border); }
+.settings-embed .settings { margin: 0; }
+.settings-form { display: grid; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.settings-form label { display: grid; gap: 4px; font-size: 13px; }
+.settings-note { padding: 0 16px 12px; margin: 0; }
+.settings-about { margin: 8px 4px 20px; }
+.settings-logout { display: flex; margin: 0 auto 24px; padding: 12px 28px; border-radius: 999px; background: var(--text); color: var(--bg); font-weight: 800; }
+@media (max-width: 800px) { .settings-tiles { gap: 8px; } .settings-tile { padding: 14px 6px; } }
+.settings-embed h2 { font-size: 15px; margin: 10px 0 8px; }
+@media (max-width: 600px) {
+  .settings-row { flex-wrap: wrap; }
+  .settings-select { flex-basis: 100%; max-width: none; margin-left: 34px; }
+}

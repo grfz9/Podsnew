@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Link } from 'react-router';
-import { BookOpenText, ChartColumn, Compass, Moon, Clock, Cloud, CloudOff, Crown, FolderOpen, Image, ListMusic, ListOrdered, LogOut, Mail, Mic, ShieldCheck, Smartphone, Sparkle, Users } from 'lucide-react';
+import { BookOpenText, ChartColumn, Compass, Moon, Settings, Clock, Cloud, CloudOff, Crown, FolderOpen, Image, ListMusic, ListOrdered, LogOut, Mail, Mic, ShieldCheck, Smartphone, Sparkle, Users } from 'lucide-react';
 import { Shortcuts, type Shortcut } from '../components/Shortcuts';
 import { HomeInterests } from '../components/HomeInterests';
 import { normalizePhone } from '../utils/phone';
@@ -342,6 +342,7 @@ function MeShortcuts() {
   const { isAdmin, isModerator } = useModeration();
   const { isPremium } = usePremium();
   const items: Shortcut[] = [
+    { to: '/parametres', label: 'Paramètres', icon: Settings, color: '#b4b2a9' },
     { to: '/premium', label: isPremium ? 'Podsal+ actif' : 'Podsal+', icon: Sparkle, color: '#e2c485' },
     { to: '/lire', label: 'Lire le Coran', icon: BookOpenText, color: '#c9a86a' },
     { to: '/ramadan', label: 'Ramadan', icon: Moon, color: '#afa9ec' },

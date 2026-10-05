@@ -25,6 +25,8 @@ interface AuthValue {
   /** Renvoie true si une confirmation par e-mail est nécessaire. */
   signUp: (email: string, password: string, username: string, displayName: string) => Promise<boolean>;
   resetPassword: (email: string) => Promise<void>;
+  /** Nouveau mot de passe pour le compte connecté (aussi pour un compte créé avec Google ou Apple). */
+  changePassword: (password: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (patch: Partial<Pick<Profile, 'display_name'>>) => Promise<void>;
   syncNow: () => void;
@@ -179,6 +181,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       resetPassword: async (email) => {
         const { error } = await supabase!.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}${location.pathname}#/account` });
         if (error) throw new Error(error.message);
+      },
+      changePassword: async (password) => {
+        const { error } = await supabase!.auth.updateUser({ password });
+        if (error) {
+          throw new Error(
+            /same/i.test(error.message)
+              ? 'Le nouveau mot de passe doit être différent de l’ancien.'
+              : /reauth|recent/i.test(error.message)
+                ? 'Par sécurité, déconnectez-vous puis reconnectez-vous avant de changer de mot de passe.'
+                : error.message,
+          );
+        }
       },
       signOut: async () => {
         if (userId) await push(userId);

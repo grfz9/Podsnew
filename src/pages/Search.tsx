@@ -6,6 +6,7 @@ import { searchEpisodes } from '../api/itunes';
 import { reciterMatches } from '../data/reciters';
 import { getReciters } from '../api/quran';
 import { Shortcuts } from '../components/Shortcuts';
+import { SEARCH_INPUT_EVENT } from '../components/Layout';
 import { searchTranscripts } from '../api/ai';
 import { searchLocalTranscripts } from '../lib/feed';
 import { EpisodeList, EpisodeRow, episodePath } from '../components/EpisodeRow';
@@ -140,6 +141,13 @@ export function SearchPage() {
   const tab: Tab = tabParam === 'episodes' || tabParam === 'transcripts' ? tabParam : 'podcasts';
   const term = useDebounced(input.trim());
 
+  // Saisie dans la barre de recherche du menu (ordinateur) : même recherche ici.
+  useEffect(() => {
+    const onInput = (e: Event) => setInput((e as CustomEvent<string>).detail);
+    window.addEventListener(SEARCH_INPUT_EVENT, onInput);
+    return () => window.removeEventListener(SEARCH_INPUT_EVENT, onInput);
+  }, []);
+
   // Garde la recherche dans l'URL (partage de lien, bouton retour).
   useEffect(() => {
     setParams(
@@ -165,7 +173,7 @@ export function SearchPage() {
 
   return (
     <div className="page">
-      <div className="search-box">
+      <div className="search-box search-page__box">
         <SearchIcon size={20} />
         <input
           type="search"
