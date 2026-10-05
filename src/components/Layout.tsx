@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
-import { BookOpen, BookOpenText, Clock, Headphones, FolderOpen, House, Library, Mic, Moon, Search, Settings, Sparkle, User, Users, WifiOff } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType } from 'react-router';
+import { BookOpen, BookOpenText, ChevronLeft, Clock, Headphones, FolderOpen, House, Library, Mic, Moon, Search, Settings, Sparkle, User, Users, WifiOff } from 'lucide-react';
 import { ramadanInfo } from '../lib/khatma';
 import { formatClock, nextPrayer, PRAYER_NAMES } from '../lib/prayer';
 import { useModeration } from '../store/moderation';
 import { DesktopUpdateBanner } from './DesktopUpdate';
 import { WhatsNew } from './WhatsNew';
+import { CommandPalette, ShortcutsHelp } from './CommandPalette';
+import { Toaster } from './Toaster';
 import { PlaylistDialogProvider } from './Playlists';
 import { AppMark, Wordmark } from './Wordmark';
 import { resolveBackground, sidebarBackground } from '../data/wallpapers';
@@ -34,6 +36,23 @@ const SIDEBAR_NAV = [
 /** Événement envoyé par la barre de recherche du menu à la page Rechercher. */
 export const SEARCH_INPUT_EVENT = 'podsal:search-input';
 
+/** Pages principales (barre du bas) : pas de bouton retour. Le lecteur a déjà son lien « Sourates ». */
+const ROOT_PATHS = ['/', '/coran', '/lire', '/priere', '/search', '/account'];
+
+/** Téléphone : bouton Retour en haut des pages secondaires (l'appli installée n'a pas celui du navigateur). */
+function MobileBackBar() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  if (ROOT_PATHS.includes(location.pathname) || location.pathname.startsWith('/lire/')) return null;
+  return (
+    <div className="mobile-back">
+      <button className="btn btn--ghost btn--small" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}>
+        <ChevronLeft size={18} /> Retour
+      </button>
+    </div>
+  );
+}
+
 /** Barre de recherche toujours visible en haut du menu (comme Spotify). */
 function SidebarSearch() {
   const navigate = useNavigate();
@@ -53,6 +72,9 @@ function SidebarSearch() {
       <form className="sidebar-search" role="search" onSubmit={(e) => (e.preventDefault(), change(value))}>
         <Search size={18} />
         <input type="search" value={value} onChange={(e) => change(e.target.value)} placeholder="Rechercher" aria-label="Rechercher dans Podsal" />
+        <button type="button" className="sidebar-search__kbd" onClick={() => window.dispatchEvent(new Event('podsal:palette'))} title="Palette de commandes">
+          Ctrl K
+        </button>
       </form>
       <NavLink to="/search" className="nav-link sidebar-search__icon" title="Rechercher">
         <Search size={22} />
@@ -253,9 +275,50 @@ export function Layout() {
     return () => window.removeEventListener(EXPAND_PLAYER_EVENT, onExpand);
   }, []);
 
-  // Remonte en haut de page à chaque navigation.
+  // Nouvelle page : en haut. Retour en arrière : on retrouve la position de défilement d'avant.
+  const navType = useNavigationType();
+  const scrolls = useRef(new Map<string, number>());
+  // Position de la page qu'on quitte, lue au moment du changement de page (avant que son contenu ne disparaisse).
+  const shownKey = useRef(location.key);
+  if (shownKey.current !== location.key) {
+    const main = document.querySelector('.main');
+    if (main) scrolls.current.set(shownKey.current, main.scrollTop);
+    shownKey.current = location.key;
+  }
   useEffect(() => {
-    document.querySelector('.main')?.scrollTo({ top: 0 });
+    const main = document.querySelector('.main');
+    if (!main) return;
+    const saved = navType === 'POP' ? scrolls.current.get(location.key) : undefined;
+    if (!saved) {
+      main.scrollTo({ top: 0 });
+      return;
+    }
+    // Le contenu peut arriver un peu après (chargement) : une fois tout chargé, la mise en page est la même
+    // qu'avant, donc la même position montre les mêmes éléments. On la réapplique 1,5 s, sauf si l'on fait défiler.
+    let userMoved = false;
+    const stop = () => (userMoved = true);
+    main.addEventListener('wheel', stop, { passive: true });
+    main.addEventListener('touchstart', stop, { passive: true });
+    const started = Date.now();
+    const timer = setInterval(() => {
+      if (userMoved || Date.now() - started > 1500) {
+        clearInterval(timer);
+        main.removeEventListener('wheel', stop);
+        main.removeEventListener('touchstart', stop);
+        return;
+      }
+      if (Math.abs(main.scrollTop - saved) > 2) main.scrollTo({ top: saved });
+    }, 50);
+    main.scrollTo({ top: saved });
+    return () => {
+      clearInterval(timer);
+      main.removeEventListener('wheel', stop);
+      main.removeEventListener('touchstart', stop);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
+
+  useEffect(() => {
   }, [location.pathname]);
 
   return (
@@ -331,6 +394,7 @@ export function Layout() {
             </div>
           )}
           <DesktopUpdateBanner />
+          <MobileBackBar />
           <div className="route-view" key={location.pathname}>
             <Outlet />
           </div>
@@ -343,6 +407,9 @@ export function Layout() {
         {expanded && <FullPlayer onClose={closePlayer} />}
         {(tour || !settings.onboarded) && <Onboarding onDone={() => setTour(false)} />}
         {!tour && <WhatsNew />}
+        <CommandPalette />
+        <ShortcutsHelp />
+        <Toaster />
       </div>
     </PlaylistDialogProvider>
   );

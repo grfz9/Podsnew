@@ -6,6 +6,7 @@ import { JUZ_STARTS, PAGE_STARTS } from '../data/mushaf';
 import { juzOf, pageOf } from '../lib/khatma';
 import { usePlayer, usePlayerTime } from '../store/player';
 import { DailyVerse } from '../components/DailyVerse';
+import { toast } from '../components/Toaster';
 import { ArabicText, DEFAULT_SIZE, ReaderSettings } from '../components/QuranText';
 import { getTajweed, getWords } from '../api/quranCom';
 import { Menu } from '../components/common';
@@ -250,6 +251,7 @@ export function QuranReadSurah() {
     else delete next[noteKey(ayah)];
     set({ notes: next });
     setNoteFor(null);
+    toast(value.trim() ? 'Note enregistrée' : 'Note supprimée');
   };
   const arabicOf = (ayah: number, plain: string) => (
     <ArabicText text={plain} tajweed={tajweed.data?.get(ayah)} words={words.data?.get(ayah)} inline={!!quran.wordInline} />
@@ -258,6 +260,7 @@ export function QuranReadSurah() {
     try {
       await navigator.clipboard.writeText(content);
       setCopied(true);
+      toast('Copié');
       setTimeout(() => setCopied(false), 1500);
     } catch {
       // presse-papiers indisponible
@@ -289,10 +292,13 @@ export function QuranReadSurah() {
 
   const bookmarks = quran.bookmarks ?? [];
   const isBookmarked = (ayah: number) => bookmarks.some((b) => b.surah === number && b.ayah === ayah);
-  const toggleBookmark = (ayah: number) =>
+  const toggleBookmark = (ayah: number) => {
+    const had = isBookmarked(ayah);
     set({
-      bookmarks: isBookmarked(ayah) ? bookmarks.filter((b) => b.surah !== number || b.ayah !== ayah) : [...bookmarks, { surah: number, ayah, at: Date.now() }],
+      bookmarks: had ? bookmarks.filter((b) => b.surah !== number || b.ayah !== ayah) : [...bookmarks, { surah: number, ayah, at: Date.now() }],
     });
+    toast(had ? 'Marque-page retiré' : `Marque-page ajouté : ${s.name} ${ayah}`);
+  };
 
   // Ouverture sur un verset précis (reprise, marque-page) ; sinon en haut de la sourate.
   useEffect(() => {
@@ -341,6 +347,7 @@ export function QuranReadSurah() {
     try {
       await navigator.clipboard.writeText(content);
       setCopied(true);
+      toast('Verset copié');
       setTimeout(() => setCopied(false), 1500);
     } catch {
       // presse-papiers indisponible

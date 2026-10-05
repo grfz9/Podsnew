@@ -4,6 +4,7 @@ import { BookOpenCheck, Check, ChevronRight, PartyPopper, RotateCcw, X } from 'l
 import { getSurah } from '../data/surahs';
 import { fromDay, planStatus, portion, ramadanInfo, toDay, type Place, type ReadingPlan } from '../lib/khatma';
 import { useLibrary } from '../store/library';
+import { toast } from './Toaster';
 
 const placeName = (p: Place) => `${getSurah(p.surah)?.name ?? p.surah} ${p.ayah}`;
 const longDate = (d: Date) => d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -81,7 +82,10 @@ export function ReadingPlanCard({ compact = false }: { compact?: boolean }) {
   }
 
   const status = planStatus(plan);
-  const markDone = (day: number) => setPlan({ ...plan, done: [...new Set([...plan.done, day])].sort((a, b) => a - b) });
+  const markDone = (day: number) => {
+    setPlan({ ...plan, done: [...new Set([...plan.done, day])].sort((a, b) => a - b) });
+    toast(`Jour ${day + 1} lu, qu’Allah vous récompense`);
+  };
   const percent = Math.round(status.progress * 100);
 
   return (
