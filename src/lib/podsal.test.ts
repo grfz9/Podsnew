@@ -1,3 +1,4 @@
+import { frenchSpacing, wrapText } from './verseCard';
 import { DAILY_VERSES, dailyVerse, today } from '../data/dailyVerses';
 import { desktopOs, detectPlatform, iosBrowser, isInAppBrowser, isNewerVersion, manualDesktopVersion } from './install';
 import { describe, expect, it } from 'vitest';
@@ -249,5 +250,13 @@ describe('traduction sans commentaires', () => {
   it('retire les appels de note de la traduction', () => {
     expect(stripNoteMarks('Au nom d’Allah, le Tout Miséricordieux, le Très Miséricordieux.[1]')).toBe('Au nom d’Allah, le Tout Miséricordieux, le Très Miséricordieux.');
     expect(stripNoteMarks('Louange à Allah [2], Seigneur de l’univers.')).toBe('Louange à Allah, Seigneur de l’univers.');
+  });
+});
+
+describe('carte image d’un verset', () => {
+  it('garde la ponctuation française avec son mot et coupe aux espaces ordinaires', () => {
+    expect(frenchSpacing('« Une facilité ! »')).toBe('«\u00A0Une facilité\u00A0!\u00A0»');
+    const ctx = { measureText: (t: string) => ({ width: t.length * 10 }) as TextMetrics };
+    expect(wrapText(ctx, frenchSpacing('aaa bbb facilité !'), 120)).toEqual(['aaa bbb', 'facilité\u00A0!']);
   });
 });

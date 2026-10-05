@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
-import { Bookmark, BookmarkCheck, BookOpenText, ChevronLeft, ChevronRight, Copy, Headphones, Info, Minus, Plus, Search, X } from 'lucide-react';
+import { Bookmark, BookmarkCheck, BookOpenText, ChevronLeft, ChevronRight, Copy, Headphones, Image as ImageIcon, Info, Minus, Plus, Search, X } from 'lucide-react';
 import { BASMALA, getReciters, getSurahText, SCHOLAR_NOTICE, TRANSLATIONS, type TranslationId } from '../api/quran';
 import { DailyVerse } from '../components/DailyVerse';
+import { VerseShareDialog, type SharedVerse } from '../components/VerseShare';
 import { ErrorState, Spinner, Tabs } from '../components/common';
 import { knownReciterRank, normalizeName } from '../data/reciters';
 import { getSurah, SURAHS } from '../data/surahs';
@@ -147,6 +148,7 @@ export function QuranReadSurah() {
   const translation: TranslationId = quran.translation === 'rashid' ? 'rashid' : 'hamidullah';
   const text = useAsync(() => getSurahText(number, mode === 'arabic' ? null : translation), [number, mode, translation]);
   const [selected, setSelected] = useState<number | null>(null);
+  const [sharing, setSharing] = useState<SharedVerse | null>(null);
   const [copied, setCopied] = useState(false);
   const verseRefs = useRef(new Map<number, HTMLElement>());
   const target = Number(params.get('v')) || null;
@@ -329,6 +331,15 @@ export function QuranReadSurah() {
           <button className="btn btn--ghost btn--small" onClick={() => toggleBookmark(selected)}>
             {isBookmarked(selected) ? <BookmarkCheck size={15} /> : <Bookmark size={15} />} {isBookmarked(selected) ? 'Marqué' : 'Marque-page'}
           </button>
+          <button
+            className="btn btn--ghost btn--small"
+            onClick={() => {
+              const a = text.data?.find((x) => x.number === selected);
+              if (a) setSharing({ surah: number, ayah: selected, arabic: a.arabic, translation: a.translation, translationId: a.translation ? translation : undefined });
+            }}
+          >
+            <ImageIcon size={15} /> Image
+          </button>
           <button className="btn btn--ghost btn--small" onClick={() => void copy(selected)}>
             <Copy size={15} /> {copied ? 'Copié' : 'Copier'}
           </button>
@@ -343,6 +354,8 @@ export function QuranReadSurah() {
         {mode !== 'arabic' && <>Traduction : {TRANSLATIONS.find((t) => t.id === translation)?.source} </>}
         Podsal ne traduit jamais le Coran lui-même : seules des traductions officielles revues par des savants sont affichées.
       </p>
+
+      {sharing && <VerseShareDialog verse={sharing} onClose={() => setSharing(null)} />}
 
       <nav className="read-nav" aria-label="Sourates voisines">
         {number > 1 ? (
