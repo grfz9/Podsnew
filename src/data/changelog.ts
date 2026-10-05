@@ -12,6 +12,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-06e',
+    date: '6 octobre 2026',
+    title: 'Plus simple à utiliser',
+    items: [
+      'En revenant en arrière, vous retrouvez la page exactement où vous l’aviez laissée.',
+      'Sur téléphone, un bouton « Retour » en haut des pages secondaires.',
+      'Ctrl + K (ou /) : ouvrez une sourate (« kahf », « 18 »), une page ou une action en tapant quelques lettres.',
+      'Des confirmations visibles : copié, marque-page ajouté, note enregistrée, jour de lecture validé…',
+      'Touche « ? » : la liste des raccourcis clavier.',
+    ],
+  },
+  {
     id: '2026-10-06d',
     date: '6 octobre 2026',
     title: 'Encore plus proche de quran.com',
