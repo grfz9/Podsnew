@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-06',
+    date: '6 octobre 2026',
+    title: 'Partage, plan de lecture, Ramadan, Qibla et plus',
+    items: [
+      'Partagez un verset en belle image (WhatsApp, Instagram…) depuis la lecture ou le verset du jour.',
+      'Plan de lecture : finissez le Coran en 30, 60 ou 90 jours, avant ou pendant le Ramadan, page après page.',
+      'Page Ramadan : compte à rebours, fin du suhoor et iftar en direct pendant le mois.',
+      'Boussole de la Qibla, depuis Prière ou « Moi ».',
+      'Mode mémorisation : texte masqué, premier mot en indice, et répétition d’un verset à l’écoute.',
+      'Recherche d’un mot dans tout le Coran, en français ou en arabe, même hors-ligne.',
+    ],
+  },
+  {
     id: '2026-10-05b',
     date: '5 octobre 2026',
     title: 'Écoute plus fiable sur iPhone',

@@ -1674,3 +1674,15 @@ html, body, .main { overflow-x: clip; }
 .memo-bar { margin: 6px 0 14px; padding: 12px 14px; border-radius: var(--radius); background: rgba(108, 196, 180, 0.08); border: 1px solid rgba(108, 196, 180, 0.22); }
 .memo-bar p { margin: 0 0 8px; }
 .memo-bar__hint { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; margin-right: 6px; }
+
+/* Recherche dans le Coran */
+.quran-search__help { margin: 12px 0; }
+.search-verses { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 10px; }
+.search-verse { display: grid; gap: 6px; padding: 14px 16px; border-radius: var(--radius-lg); background: var(--bg-elevated); transition: background 0.15s; }
+.search-verse:hover { background: var(--bg-hover); }
+.search-verse__ref { font-size: 12px; font-weight: 800; color: var(--accent); }
+.search-verse__arabic { font-family: 'Amiri Quran', 'Amiri', 'Scheherazade New', 'Noto Naskh Arabic', serif; font-size: 22px; line-height: 1.9; text-align: right; }
+.search-verse__fr { font-size: 14px; line-height: 1.6; }
+.search-verse mark { background: rgba(226, 196, 133, 0.28); color: inherit; border-radius: 3px; padding: 0 2px; }
+.quran-search__source { margin-top: 20px; }
+.quran-search__source svg { vertical-align: -2px; }

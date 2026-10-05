@@ -50,7 +50,12 @@ export function QuranReadHome() {
 
   return (
     <div className="page quran-read">
-      <h1 className="page__title">Lire le Coran</h1>
+      <div className="page__head-row">
+        <h1 className="page__title">Lire le Coran</h1>
+        <Link to="/lire/recherche" className="btn btn--outline btn--small">
+          <Search size={16} /> Rechercher dans le Coran
+        </Link>
+      </div>
       <DailyVerse />
       <ReadingPlanCard />
 

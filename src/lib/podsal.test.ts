@@ -1,3 +1,4 @@
+import { highlightFr, indexVerses, normalizeAr, normalizeFr, searchVerses } from './quranSearch';
 import { angleDiff, cardinal, distanceToKaaba, qiblaBearing } from './qibla';
 import { daysBetween, fromDay, hijriParts, indexOf, placeAt, TOTAL_PAGES, planStatus, portion, ramadanInfo, toDay, TOTAL_AYAHS } from './khatma';
 import { frenchSpacing, wrapText } from './verseCard';
@@ -324,5 +325,29 @@ describe('Qibla', () => {
     expect(casablanca).toBeLessThan(96); // presque plein est
     expect(angleDiff(10, 350)).toBe(20);
     expect(angleDiff(350, 10)).toBe(-20);
+  });
+});
+
+describe('recherche dans le Coran', () => {
+  const index = indexVerses([
+    { surah: 2, ayah: 153, arabic: 'يَا أَيُّهَا الَّذِينَ آمَنُوا اسْتَعِينُوا بِالصَّبْرِ وَالصَّلَاةِ', french: 'Ô les croyants ! Cherchez secours dans l’endurance et la Salât.' },
+    { surah: 103, ayah: 3, arabic: 'وَتَوَاصَوْا بِالصَّبْرِ', french: 'et s’enjoignent mutuellement l’endurance.' },
+    { surah: 19, ayah: 16, arabic: 'وَاذْكُرْ فِي الْكِتَابِ مَرْيَمَ', french: 'Mentionne, dans le Livre, Marie.' },
+  ]);
+
+  it('ignore accents, majuscules et voyelles arabes', () => {
+    expect(normalizeFr('L’Éte, DÉJÀ !')).toBe('l ete deja');
+    expect(normalizeAr('بِالصَّبْرِ')).toBe('بالصبر');
+    expect(searchVerses(index, 'ENDURANCE').total).toBe(2);
+    expect(searchVerses(index, 'endur').total).toBe(2); // début de mot
+    expect(searchVerses(index, 'secours endurance').results.map((v) => v.ayah)).toEqual([153]); // tous les mots
+    expect(searchVerses(index, 'الصبر').total).toBe(2);
+    expect(searchVerses(index, 'marie').results[0].surah).toBe(19);
+    expect(searchVerses(index, 'x').total).toBe(0);
+  });
+
+  it('surligne les mots trouvés', () => {
+    const parts = highlightFr('dans l’endurance et la Salât.', 'endurance');
+    expect(parts.filter((p) => p.hit).map((p) => p.text)).toEqual(['l’endurance']);
   });
 });
