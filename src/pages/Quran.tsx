@@ -332,12 +332,15 @@ export function SurahPage() {
   const currentAyah = isCurrent && timings.data ? ayahAt(timings.data, time) : null;
 
   const [times, setTimes] = useState(1);
-  const [from, setFrom] = useState(1);
-  const [to, setTo] = useState(s.ayahs);
+  // « Répéter » depuis la lecture (mémorisation) : versets choisis dans l'adresse (?de=…&a=…).
+  const askedFrom = Math.min(s.ayahs, Math.max(1, Number(params.get('de')) || 1));
+  const askedTo = Math.min(s.ayahs, Math.max(askedFrom, Number(params.get('a')) || s.ayahs));
+  const [from, setFrom] = useState(askedFrom);
+  const [to, setTo] = useState(askedTo);
   useEffect(() => {
-    setFrom(1);
-    setTo(s.ayahs);
-  }, [s.ayahs]);
+    setFrom(askedFrom);
+    setTo(askedTo);
+  }, [askedFrom, askedTo]);
 
   const activeRef = useRef<HTMLLIElement>(null);
   const [follow, setFollow] = useState(true);

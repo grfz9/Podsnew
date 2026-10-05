@@ -317,6 +317,19 @@ export interface AyahTiming {
  * Début et fin de chaque verset dans l'enregistrement (disponible pour une partie des récitateurs).
  * Sert à surligner le verset en cours et à répéter un passage précis.
  */
+let timedReads: Promise<Set<number>> | null = null;
+
+/** Récitations (moshaf) dont mp3quran.net fournit le minutage verset par verset : répétition d'un passage possible. */
+export function getTimedReads(): Promise<Set<number>> {
+  timedReads ??= getJson<{ id: number }[]>(`${MP3QURAN}/ayat_timing/reads`)
+    .then((list) => new Set(list.map((r) => r.id)))
+    .catch(() => {
+      timedReads = null;
+      return new Set<number>();
+    });
+  return timedReads;
+}
+
 export async function getAyahTimings(surah: number, moshafId: number): Promise<AyahTiming[] | null> {
   // Pas de minutage des versets pour les récitations ajoutées à la main.
   if (isCustomRecitation(moshafId)) return null;

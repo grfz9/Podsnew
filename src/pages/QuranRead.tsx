@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
-import { Bookmark, BookmarkCheck, BookOpenText, ChevronLeft, ChevronRight, Copy, Headphones, Image as ImageIcon, Info, Minus, Plus, Search, X } from 'lucide-react';
-import { BASMALA, getReciters, getSurahText, SCHOLAR_NOTICE, TRANSLATIONS, type TranslationId } from '../api/quran';
+import { Bookmark, BookmarkCheck, BookOpenText, ChevronLeft, ChevronRight, Brain, Copy, Eye, EyeOff, Headphones, Image as ImageIcon, Info, Minus, Repeat, Plus, Search, X } from 'lucide-react';
+import { BASMALA, getReciters, getSurahText, getTimedReads, SCHOLAR_NOTICE, TRANSLATIONS, type TranslationId } from '../api/quran';
 import { DailyVerse } from '../components/DailyVerse';
 import { ReadingPlanCard } from '../components/ReadingPlan';
 import { VerseShareDialog, type SharedVerse } from '../components/VerseShare';
@@ -118,21 +118,47 @@ export function QuranReadHome() {
 
 /* ---------- Écouter la sourate : dernier récitateur écouté, sinon un récitateur connu ---------- */
 
-function ListenLink({ surah }: { surah: number }) {
+function ListenLink({ surah, from, to, label = 'Écouter', icon = <Headphones size={15} /> }: { surah: number; from?: number; to?: number; label?: string; icon?: React.ReactNode }) {
   const library = useLibrary();
   const lastReciter = library.history.find((e) => isQuranId(e.podcastId))?.podcastId.slice(QURAN_PREFIX.length);
-  const reciters = useAsync(() => (lastReciter ? Promise.resolve(null) : getReciters()), [lastReciter]);
-  const fallback = useMemo(() => {
-    const ranked = (reciters.data ?? []).map((r) => ({ r, rank: knownReciterRank(r.name) })).filter((x) => x.rank >= 0);
-    ranked.sort((a, b) => a.rank - b.rank);
-    return ranked[0]?.r.id;
-  }, [reciters.data]);
-  const id = lastReciter ?? fallback;
-  if (!id) return null;
+  // Pour répéter un passage, il faut une récitation minutée verset par verset.
+  const needsTiming = from !== undefined;
+  const reciters = useAsync(
+    () => (lastReciter && !needsTiming ? Promise.resolve(null) : Promise.all([getReciters(), needsTiming ? getTimedReads() : Promise.resolve(null)])),
+    [lastReciter, needsTiming],
+  );
+  const choice = useMemo(() => {
+    if (!reciters.data) return lastReciter ? { id: lastReciter, moshaf: undefined as number | undefined } : null;
+    const [all, timed] = reciters.data;
+    const ranked = all.map((r) => ({ r, rank: knownReciterRank(r.name) })).filter((x) => x.rank >= 0).sort((a, b) => a.rank - b.rank).map((x) => x.r);
+    const candidates = [...all.filter((r) => String(r.id) === lastReciter), ...ranked];
+    for (const r of candidates) {
+      const m = timed ? r.moshaf.find((mo) => timed.has(mo.id) && mo.surahs.includes(surah)) : r.moshaf[0];
+      if (m) return { id: String(r.id), moshaf: timed ? m.id : undefined };
+    }
+    return lastReciter ? { id: lastReciter, moshaf: undefined } : null;
+  }, [reciters.data, lastReciter, surah]);
+  if (!choice) return null;
+  const query = [choice.moshaf ? `m=${choice.moshaf}` : '', from ? `de=${from}&a=${to ?? from}` : ''].filter(Boolean).join('&');
   return (
-    <Link to={`/coran/${id}/${surah}`} className="btn btn--outline btn--small">
-      <Headphones size={15} /> Écouter
+    <Link to={`/coran/${choice.id}/${surah}${query ? `?${query}` : ''}`} className="btn btn--outline btn--small">
+      {icon} {label}
     </Link>
+  );
+}
+
+/** Mémorisation : texte arabe masqué (flou), avec le premier mot en indice si demandé. */
+function HiddenArabic({ text, hint }: { text: string; hint: boolean }) {
+  const space = text.indexOf(' ');
+  const first = hint && space > 0 ? text.slice(0, space) : '';
+  const rest = first ? text.slice(space) : text;
+  return (
+    <>
+      {first}
+      <span className="memo-hidden" aria-label="Verset masqué, touchez pour le révéler">
+        {rest}
+      </span>
+    </>
   );
 }
 
@@ -151,6 +177,20 @@ export function QuranReadSurah() {
   const text = useAsync(() => getSurahText(number, mode === 'arabic' ? null : translation), [number, mode, translation]);
   const [selected, setSelected] = useState<number | null>(null);
   const [sharing, setSharing] = useState<SharedVerse | null>(null);
+  // Mémorisation : arabe masqué ; on touche un verset pour le révéler après l'avoir récité.
+  const [memo, setMemo] = useState(false);
+  const [hint, setHint] = useState(true);
+  const [revealed, setRevealed] = useState<Set<number>>(new Set());
+  const memoOn = memo && mode !== 'translation';
+  const isHidden = (ayah: number) => memoOn && !revealed.has(ayah);
+  const onVerse = (ayah: number) => {
+    if (isHidden(ayah)) {
+      setRevealed((r) => new Set(r).add(ayah));
+      setSelected(ayah);
+      return;
+    }
+    setSelected(selected === ayah ? null : ayah);
+  };
   const [copied, setCopied] = useState(false);
   const verseRefs = useRef(new Map<number, HTMLElement>());
   const target = Number(params.get('v')) || null;
@@ -165,6 +205,7 @@ export function QuranReadSurah() {
   // Ouverture sur un verset précis (reprise, marque-page) ; sinon en haut de la sourate.
   useEffect(() => {
     setSelected(null);
+    setRevealed(new Set());
     if (!text.data) return;
     const el = target ? verseRefs.current.get(target) : null;
     if (el) el.scrollIntoView({ block: 'center' });
@@ -253,6 +294,11 @@ export function QuranReadSurah() {
               ))}
             </select>
           )}
+          {mode !== 'translation' && (
+            <button className={`btn btn--small ${memo ? 'btn--primary' : 'btn--outline'}`} onClick={() => setMemo(!memo)} aria-pressed={memo}>
+              <Brain size={15} /> Mémoriser
+            </button>
+          )}
           <span className="read-size" role="group" aria-label="Taille du texte">
             <button className="icon-btn" disabled={sizeIndex === 0} onClick={() => set({ readerSize: SIZES[sizeIndex - 1] })} aria-label="Texte plus petit">
               <Minus size={16} />
@@ -264,6 +310,25 @@ export function QuranReadSurah() {
           </span>
         </div>
       </div>
+
+      {memoOn && (
+        <div className="memo-bar">
+          <p className="small">
+            Récitez chaque verset de mémoire, puis touchez-le pour vérifier. Pour répéter un passage à l’écoute, choisissez un verset puis « Répéter ».
+          </p>
+          <div className="row-actions">
+            <label className="memo-bar__hint">
+              <input type="checkbox" checked={hint} onChange={(e) => setHint(e.target.checked)} /> Indice : premier mot
+            </label>
+            <button className="btn btn--ghost btn--small" onClick={() => setRevealed(new Set(text.data?.map((x) => x.number) ?? []))}>
+              <Eye size={15} /> Tout révéler
+            </button>
+            <button className="btn btn--ghost btn--small" onClick={() => setRevealed(new Set())}>
+              <EyeOff size={15} /> Tout masquer
+            </button>
+          </div>
+        </div>
+      )}
 
       {mode !== 'arabic' && (
         <p className="scholar-notice">
@@ -289,9 +354,9 @@ export function QuranReadSurah() {
               ref={ref(a.number)}
               data-ayah={a.number}
               className={`read-mushaf__ayah ${selected === a.number ? 'is-selected' : ''} ${target === a.number ? 'is-target' : ''}`}
-              onClick={() => setSelected(selected === a.number ? null : a.number)}
+              onClick={() => onVerse(a.number)}
             >
-              {a.arabic}{' '}
+              {isHidden(a.number) ? <HiddenArabic text={a.arabic} hint={hint} /> : a.arabic}{' '}
               <span className="read-marker" aria-label={`verset ${a.number}`}>
                 {arabicNumber(a.number)}
               </span>{' '}
@@ -306,7 +371,7 @@ export function QuranReadSurah() {
               ref={ref(a.number)}
               data-ayah={a.number}
               className={`read-ayah ${selected === a.number ? 'is-selected' : ''} ${target === a.number ? 'is-target' : ''}`}
-              onClick={() => setSelected(selected === a.number ? null : a.number)}
+              onClick={() => onVerse(a.number)}
             >
               <span className="read-ayah__head">
                 <span className="read-ayah__number">
@@ -316,7 +381,7 @@ export function QuranReadSurah() {
               </span>
               {mode === 'both' && (
                 <p className="read-ayah__arabic" lang="ar" dir="rtl">
-                  {a.arabic} <span className="read-marker">{arabicNumber(a.number)}</span>
+                  {isHidden(a.number) ? <HiddenArabic text={a.arabic} hint={hint} /> : a.arabic} <span className="read-marker">{arabicNumber(a.number)}</span>
                 </p>
               )}
               {a.translation && <p className="read-ayah__translation">{a.translation}</p>}
@@ -342,6 +407,7 @@ export function QuranReadSurah() {
           >
             <ImageIcon size={15} /> Image
           </button>
+          <ListenLink surah={number} from={selected} label="Répéter" icon={<Repeat size={15} />} />
           <button className="btn btn--ghost btn--small" onClick={() => void copy(selected)}>
             <Copy size={15} /> {copied ? 'Copié' : 'Copier'}
           </button>
