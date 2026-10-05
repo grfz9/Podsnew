@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
-import { Bookmark, BookmarkCheck, BookOpenText, ChevronLeft, ChevronRight, Brain, Copy, Eye, EyeOff, Headphones, Image as ImageIcon, Info, Minus, Pause, Play, Repeat, Plus, Search, X } from 'lucide-react';
+import { Bookmark, BookmarkCheck, BookOpenText, ChevronLeft, ChevronRight, Brain, Copy, Ellipsis, Eye, EyeOff, Headphones, Image as ImageIcon, Info, Languages, Link2, NotebookPen, Pause, Play, Repeat, Search, Settings2, X } from 'lucide-react';
 import { ayahAt, BASMALA, getAyahTimings, getSurahText, SCHOLAR_NOTICE, surahEpisode, TRANSLATIONS, type AyahTiming, type TranslationId } from '../api/quran';
 import { JUZ_STARTS, PAGE_STARTS } from '../data/mushaf';
 import { juzOf, pageOf } from '../lib/khatma';
 import { usePlayer, usePlayerTime } from '../store/player';
 import { DailyVerse } from '../components/DailyVerse';
+import { ArabicText, DEFAULT_SIZE, ReaderSettings } from '../components/QuranText';
+import { getTajweed, getWords } from '../api/quranCom';
+import { Menu } from '../components/common';
 import { useQuranReciter } from '../components/useQuranReciter';
 import { QuranTabs } from '../components/QuranTabs';
 import { ReadingPlanCard } from '../components/ReadingPlan';
@@ -22,8 +25,6 @@ const MODES: { id: Mode; label: string }[] = [
   { id: 'arabic', label: 'Arabe (mushaf)' },
   { id: 'translation', label: 'Traduction' },
 ];
-const SIZES = [22, 26, 30, 34, 40, 46];
-const DEFAULT_SIZE = 30;
 
 const ARABIC_DIGITS = '٠١٢٣٤٥٦٧٨٩';
 const arabicNumber = (n: number) => String(n).replace(/\d/g, (d) => ARABIC_DIGITS[Number(d)]);
@@ -236,6 +237,32 @@ export function QuranReadSurah() {
     setSelected(selected === ayah ? null : ayah);
   };
   const [copied, setCopied] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [noteFor, setNoteFor] = useState<number | null>(null);
+  const [noteDraft, setNoteDraft] = useState('');
+  const tajweed = useAsync(() => (quran.script === 'tajweed' && mode !== 'translation' ? getTajweed(number) : Promise.resolve(null)), [number, quran.script, mode]);
+  const words = useAsync(() => (quran.wordByWord && mode !== 'translation' ? getWords(number) : Promise.resolve(null)), [number, quran.wordByWord, mode]);
+  const notes = quran.notes ?? {};
+  const noteKey = (ayah: number) => `${number}:${ayah}`;
+  const saveNote = (ayah: number, value: string) => {
+    const next = { ...notes };
+    if (value.trim()) next[noteKey(ayah)] = value.trim().slice(0, 2000);
+    else delete next[noteKey(ayah)];
+    set({ notes: next });
+    setNoteFor(null);
+  };
+  const arabicOf = (ayah: number, plain: string) => (
+    <ArabicText text={plain} tajweed={tajweed.data?.get(ayah)} words={words.data?.get(ayah)} inline={!!quran.wordInline} />
+  );
+  const copyText = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // presse-papiers indisponible
+    }
+  };
   const verseRefs = useRef(new Map<number, HTMLElement>());
   // Verset en haut de l'écran : bandeau « sourate · juz · page ».
   const [topAyah, setTopAyah] = useState(1);
@@ -326,8 +353,7 @@ export function QuranReadSurah() {
   };
   // Débuts de page du mushaf dans cette sourate (mode mushaf : « Page N » entre les versets).
   const pageStarts = new Map(PAGE_STARTS.flatMap(([su, ay], i) => (su === number ? [[ay, i + 1] as const] : [])));
-  const sizeIndex = Math.max(0, SIZES.indexOf(size));
-  const style = { '--read-size': `${size}px` } as React.CSSProperties;
+  const style = { '--read-size': `${size}px`, '--read-tsize': `${quran.translationSize ?? 16}px` } as React.CSSProperties;
 
   return (
     <div className="page quran-read" style={style}>
@@ -374,29 +400,14 @@ export function QuranReadSurah() {
         </div>
         <Tabs tabs={MODES} value={mode} onChange={(readerMode) => set({ readerMode })} />
         <div className="read-tools__row">
-          {mode !== 'arabic' && (
-            <select className="input read-tools__select" value={translation} onChange={(e) => set({ translation: e.target.value as TranslationId })} aria-label="Traduction">
-              {TRANSLATIONS.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          )}
           {mode !== 'translation' && (
             <button className={`btn btn--small ${memo ? 'btn--primary' : 'btn--outline'}`} onClick={() => setMemo(!memo)} aria-pressed={memo}>
               <Brain size={15} /> Mémoriser
             </button>
           )}
-          <span className="read-size" role="group" aria-label="Taille du texte">
-            <button className="icon-btn" disabled={sizeIndex === 0} onClick={() => set({ readerSize: SIZES[sizeIndex - 1] })} aria-label="Texte plus petit">
-              <Minus size={16} />
-            </button>
-            <span className="small">Aa</span>
-            <button className="icon-btn" disabled={sizeIndex === SIZES.length - 1} onClick={() => set({ readerSize: SIZES[sizeIndex + 1] })} aria-label="Texte plus grand">
-              <Plus size={16} />
-            </button>
-          </span>
+          <button className="btn btn--outline btn--small" onClick={() => setSettingsOpen(true)}>
+            <Settings2 size={15} /> Réglages
+          </button>
         </div>
       </div>
 
@@ -450,7 +461,7 @@ export function QuranReadSurah() {
               className={`read-mushaf__ayah ${selected === a.number ? 'is-selected' : ''} ${target === a.number ? 'is-target' : ''}`}
               onClick={() => onVerse(a.number)}
             >
-              {isHidden(a.number) ? <HiddenArabic text={a.arabic} hint={hint} /> : a.arabic}{' '}
+              {isHidden(a.number) ? <HiddenArabic text={a.arabic} hint={hint} /> : arabicOf(a.number, a.arabic)}{' '}
               <span className="read-marker" aria-label={`verset ${a.number}`}>
                 {arabicNumber(a.number)}
               </span>{' '}
@@ -469,10 +480,10 @@ export function QuranReadSurah() {
               onClick={() => isHidden(a.number) && onVerse(a.number)}
             >
               <span className="read-ayah__head">
+                <span className="read-ayah__actions read-ayah__actions--left" onClick={(e) => e.stopPropagation()}>
                 <span className="read-ayah__number">
                   {s.number}:{a.number}
                 </span>
-                <span className="read-ayah__actions" onClick={(e) => e.stopPropagation()}>
                   {timings.data && (
                     <button className="icon-btn" onClick={() => playFrom(a.number)} aria-label={`Écouter à partir du verset ${a.number}`} title="Écouter à partir d’ici">
                       <Play size={15} />
@@ -480,6 +491,11 @@ export function QuranReadSurah() {
                   )}
                   <button className={`icon-btn ${isBookmarked(a.number) ? 'icon-btn--active' : ''}`} onClick={() => toggleBookmark(a.number)} aria-label="Marque-page" title={isBookmarked(a.number) ? 'Retirer le marque-page' : 'Marque-page'}>
                     {isBookmarked(a.number) ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
+                  </button>
+                </span>
+                <span className="read-ayah__actions" onClick={(e) => e.stopPropagation()}>
+                  <button className="icon-btn" onClick={() => void copy(a.number)} aria-label="Copier" title={copied ? 'Copié' : 'Copier'}>
+                    <Copy size={15} />
                   </button>
                   <button
                     className="icon-btn"
@@ -489,18 +505,58 @@ export function QuranReadSurah() {
                   >
                     <ImageIcon size={15} />
                   </button>
-                  <button className="icon-btn" onClick={() => void copy(a.number)} aria-label="Copier" title={copied ? 'Copié' : 'Copier'}>
-                    <Copy size={15} />
+                  <button
+                    className={`icon-btn ${notes[noteKey(a.number)] ? 'icon-btn--active' : ''}`}
+                    onClick={() => {
+                      setNoteDraft(notes[noteKey(a.number)] ?? '');
+                      setNoteFor(noteFor === a.number ? null : a.number);
+                    }}
+                    aria-label="Note personnelle"
+                    title="Note personnelle"
+                  >
+                    <NotebookPen size={15} />
                   </button>
+                  <Menu
+                    label={`Plus d’options pour le verset ${a.number}`}
+                    trigger={<Ellipsis size={16} />}
+                    items={[
+                      ...(reciter
+                        ? [{ label: 'Répéter ce verset', icon: <Repeat size={15} />, onSelect: () => navigate(`/coran/${reciter.reciter.id}/${number}?m=${reciter.moshaf.id}&de=${a.number}&a=${a.number}`) }]
+                        : []),
+                      { label: 'Copier le lien du verset', icon: <Link2 size={15} />, onSelect: () => void copyText(`https://podsal.com/#/lire/${number}?v=${a.number}`) },
+                      { label: 'Copier l’arabe seul', icon: <Copy size={15} />, onSelect: () => void copyText(a.arabic) },
+                      { label: quran.wordByWord ? 'Masquer le mot par mot' : 'Mot par mot', icon: <Languages size={15} />, onSelect: () => set({ wordByWord: !quran.wordByWord }) },
+                      { label: 'Réglages de lecture', icon: <Settings2 size={15} />, onSelect: () => setSettingsOpen(true) },
+                    ]}
+                  />
                   {memoOn && <ListenLink surah={number} from={a.number} label="" icon={<Repeat size={15} />} />}
                 </span>
               </span>
               {mode === 'both' && (
                 <p className="read-ayah__arabic" lang="ar" dir="rtl">
-                  {isHidden(a.number) ? <HiddenArabic text={a.arabic} hint={hint} /> : a.arabic} <span className="read-marker">{arabicNumber(a.number)}</span>
+                  {isHidden(a.number) ? <HiddenArabic text={a.arabic} hint={hint} /> : arabicOf(a.number, a.arabic)} <span className="read-marker">{arabicNumber(a.number)}</span>
                 </p>
               )}
               {a.translation && <p className="read-ayah__translation">{a.translation}</p>}
+              {noteFor === a.number ? (
+                <div className="read-note read-note--edit" onClick={(e) => e.stopPropagation()}>
+                  <textarea className="input" rows={3} value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} placeholder="Ma note sur ce verset (privée)" autoFocus />
+                  <div className="row-actions">
+                    <button className="btn btn--primary btn--small" onClick={() => saveNote(a.number, noteDraft)}>
+                      Enregistrer
+                    </button>
+                    <button className="btn btn--ghost btn--small" onClick={() => setNoteFor(null)}>
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                notes[noteKey(a.number)] && (
+                  <p className="read-note" onClick={(e) => (e.stopPropagation(), setNoteDraft(notes[noteKey(a.number)]), setNoteFor(a.number))}>
+                    <NotebookPen size={13} /> {notes[noteKey(a.number)]}
+                  </p>
+                )
+              )}
             </li>
           ))}
         </ol>
@@ -541,6 +597,12 @@ export function QuranReadSurah() {
         Podsal ne traduit jamais le Coran lui-même : seules des traductions officielles revues par des savants sont affichées.
       </p>
 
+      {settingsOpen && (
+        <ReaderSettings
+          onClose={() => setSettingsOpen(false)}
+          reciter={reciter ? { id: reciter.reciter.id, name: reciter.reciter.name, moshafId: reciter.moshaf.id, surah: number } : undefined}
+        />
+      )}
       {sharing && <VerseShareDialog verse={sharing} onClose={() => setSharing(null)} />}
 
       <nav className="read-nav" aria-label="Sourates voisines">

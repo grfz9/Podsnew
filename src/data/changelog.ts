@@ -12,6 +12,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-06d',
+    date: '6 octobre 2026',
+    title: 'Encore plus proche de quran.com',
+    items: [
+      'Réglages de lecture : Uthmani ou tajwid en couleurs (avec légende), tailles de l’arabe et de la traduction, récitateur.',
+      'Mot par mot : phonétique et sens de chaque mot au survol ou sous le mot (en anglais, quran.com).',
+      'Notes personnelles sur chaque verset, enregistrées avec votre compte.',
+      'Menu « ⋯ » sur chaque verset : répéter, copier le lien, copier l’arabe, mot par mot.',
+      'Sur téléphone : choix Écouter / Lire en touchant « Coran », et temps avant la prochaine prière dans la barre du bas.',
+    ],
+  },
+  {
     id: '2026-10-06c',
     date: '6 octobre 2026',
     title: 'Lecture du Coran façon quran.com',

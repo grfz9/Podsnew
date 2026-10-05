@@ -50,6 +50,14 @@ export interface Settings {
     bookmarks?: QuranPlace[];
     readerMode?: 'both' | 'arabic' | 'translation';
     readerSize?: number;
+    /** Écriture : uthmani simple, ou avec les couleurs du tajwid (quran.com). */
+    script?: 'uthmani' | 'tajweed';
+    /** Mot par mot : phonétique et sens au survol ; `wordInline` les affiche sous chaque mot. */
+    wordByWord?: boolean;
+    wordInline?: boolean;
+    translationSize?: number;
+    /** Notes personnelles par verset (« 18:10 » → texte), privées et synchronisées. */
+    notes?: Record<string, string>;
   };
   prayer: PrayerSettings;
   /** Fond d'écran de l'application (voir src/data/wallpapers.ts ; « custom » = image importée). */
