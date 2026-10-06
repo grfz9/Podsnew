@@ -24,6 +24,18 @@ class HttpError extends Error {}
 
 /** Adresse locale jouable pour chaque épisode téléchargé (lue de façon synchrone par le lecteur). */
 const localUrls = new Map<string, string>();
+/** Vidéos importées : fichier complet pour l'image (le son de `localUrls` peut être la piste son seule). */
+const videoUrls = new Map<string, string>();
+
+export function localVideoUrlFor(episodeId: string): string | undefined {
+  return videoUrls.get(episodeId);
+}
+
+export function registerLocalVideoUrl(id: string, url: string) {
+  const previous = videoUrls.get(id);
+  if (previous?.startsWith('blob:') && previous !== url) URL.revokeObjectURL(previous);
+  videoUrls.set(id, url);
+}
 
 export function localUrlFor(episodeId: string): string | undefined {
   return localUrls.get(episodeId);
@@ -32,7 +44,8 @@ export function localUrlFor(episodeId: string): string | undefined {
 /** Fichiers importés (« Mes fichiers ») : lus par le lecteur comme un épisode téléchargé. */
 export function registerLocalUrl(id: string, url: string) {
   const previous = localUrls.get(id);
-  if (previous?.startsWith('blob:') && previous !== url) URL.revokeObjectURL(previous);
+  // L'adresse du fichier vidéo complet sert aussi à l'image : on ne la libère pas.
+  if (previous?.startsWith('blob:') && previous !== url && previous !== videoUrls.get(id)) URL.revokeObjectURL(previous);
   localUrls.set(id, url);
 }
 
@@ -40,6 +53,9 @@ export function unregisterLocalUrl(id: string) {
   const url = localUrls.get(id);
   if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
   localUrls.delete(id);
+  const video = videoUrls.get(id);
+  if (video?.startsWith('blob:') && video !== url) URL.revokeObjectURL(video);
+  videoUrls.delete(id);
 }
 
 export function cachedAudioUrl(audioUrl: string): string {

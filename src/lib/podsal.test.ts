@@ -1,3 +1,5 @@
+import { canExtractAudio } from './extractAudio';
+import { localUrlFor, localVideoUrlFor, registerLocalUrl, registerLocalVideoUrl, unregisterLocalUrl } from './downloads';
 import { parseTajweed } from '../api/quranCom';
 import { highlightFr, indexVerses, normalizeAr, normalizeFr, searchVerses } from './quranSearch';
 import { angleDiff, cardinal, distanceToKaaba, qiblaBearing } from './qibla';
@@ -5,7 +7,7 @@ import { daysBetween, fromDay, hijriParts, indexOf, juzOf, pageOf, placeAt, TOTA
 import { frenchSpacing, wrapText } from './verseCard';
 import { DAILY_VERSES, dailyVerse, today } from '../data/dailyVerses';
 import { desktopOs, detectPlatform, iosBrowser, isInAppBrowser, isNewerVersion, manualDesktopVersion } from './install';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { allowsEpisode, allowsPodcast, isReligiousContent, type PolicyState } from './policy';
 import { episodePath, podcastPath } from './paths';
 import { nextPrayer, prayerTimes } from './prayer';
@@ -370,5 +372,28 @@ describe('tajwid (quran.com)', () => {
     const parts = parseTajweed('بِسْمِ <tajweed class=ham_wasl>ٱ</tajweed>للَّهِ <span class=end>١</span>');
     expect(parts).toEqual([{ text: 'بِسْمِ ' }, { text: 'ٱ', rule: 'ham_wasl' }, { text: 'للَّهِ' }]);
     expect(parseTajweed('<b>x</b>نص').map((p) => p.text).join('')).toBe('xنص');
+  });
+});
+
+describe('vidéos en arrière-plan (iPhone)', () => {
+  it('reconnaît les formats dont on sait extraire la piste son', () => {
+    expect(canExtractAudio('video/mp4')).toBe(true);
+    expect(canExtractAudio('video/quicktime')).toBe(true);
+    expect(canExtractAudio('', 'film.MOV')).toBe(true);
+    expect(canExtractAudio('video/webm', 'film.webm')).toBe(false);
+  });
+
+  it('garde l’adresse de l’image quand la piste son remplace le son', () => {
+    const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    registerLocalVideoUrl('v1', 'blob:video');
+    registerLocalUrl('v1', 'blob:video');
+    registerLocalUrl('v1', 'blob:son');
+    expect(revoke).not.toHaveBeenCalledWith('blob:video');
+    expect(localUrlFor('v1')).toBe('blob:son');
+    expect(localVideoUrlFor('v1')).toBe('blob:video');
+    unregisterLocalUrl('v1');
+    expect(revoke).toHaveBeenCalledWith('blob:son');
+    expect(revoke).toHaveBeenCalledWith('blob:video');
+    revoke.mockRestore();
   });
 });

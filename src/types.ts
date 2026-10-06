@@ -32,6 +32,8 @@ export interface Episode {
   explicit?: boolean;
   /** Fichier importé par l'utilisateur (« Mes fichiers ») : audio seul ou vidéo. */
   mediaKind?: 'audio' | 'video';
+  /** Vidéo : adresse de l'image (le son, `audioUrl`, peut être la piste son seule pour l'arrière-plan sur iPhone). */
+  videoUrl?: string;
 }
 
 export interface EpisodeProgress {

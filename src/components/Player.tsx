@@ -228,12 +228,25 @@ export function PlayerBar({ onExpand }: { onExpand: () => void }) {
   const ep = player.current;
   if (!ep) return null;
 
+  const swipeUp = useRef<number | null>(null);
   return (
     <footer className="player-bar">
       {/* Fine barre de progression (mobile) */}
       <div className="player-bar__line" style={{ width: `${duration ? (time / duration) * 100 : 0}%` }} />
 
-      <div className="player-bar__info" onClick={onExpand} role="button" tabIndex={0} aria-label="Ouvrir le lecteur">
+      <div
+        className="player-bar__info"
+        onClick={onExpand}
+        role="button"
+        tabIndex={0}
+        aria-label="Ouvrir le lecteur"
+        onTouchStart={(e) => (swipeUp.current = e.touches[0].clientY)}
+        onTouchEnd={(e) => {
+          const y0 = swipeUp.current;
+          swipeUp.current = null;
+          if (y0 !== null && y0 - e.changedTouches[0].clientY > 40) onExpand();
+        }}
+      >
         <span className="player-bar__art">
           <Artwork alt={ep.podcastTitle} size={56} podcastId={ep.podcastId} genre={ep.genre} />
           {player.isPlaying && <NowPlaying />}
@@ -269,7 +282,37 @@ export function PlayerBar({ onExpand }: { onExpand: () => void }) {
 }
 
 /** Lecteur plein écran (mobile / clic sur la pochette). */
+/**
+ * Glisser vers le bas pour fermer le lecteur plein écran (comme Spotify ou Musique).
+ * Ignoré sur les zones qui ont leur propre geste (barre de progression, versets, vidéo, curseurs).
+ */
+function useSwipeDown(onClose: () => void) {
+  const start = useRef<{ y: number; x: number; scroll: number } | null>(null);
+  const [offset, setOffset] = useState(0);
+  const onTouchStart = (e: React.TouchEvent<HTMLElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('input, [role="slider"], .progress, .verses, .local-video, textarea, select')) return;
+    // Seulement tout en haut du lecteur : sinon le geste sert à faire défiler.
+    const scroll = e.currentTarget.scrollTop + ((target.closest('.full-player__content') as HTMLElement | null)?.scrollTop ?? 0);
+    start.current = { y: e.touches[0].clientY, x: e.touches[0].clientX, scroll };
+  };
+  const onTouchMove = (e: React.TouchEvent<HTMLElement>) => {
+    const s0 = start.current;
+    if (!s0 || s0.scroll > 0) return;
+    const dy = e.touches[0].clientY - s0.y;
+    const dx = Math.abs(e.touches[0].clientX - s0.x);
+    if (dy > 0 && dy > dx) setOffset(dy);
+  };
+  const onTouchEnd = () => {
+    if (offset > 110) onClose();
+    setOffset(0);
+    start.current = null;
+  };
+  return { offset, handlers: { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel: onTouchEnd } };
+}
+
 export function FullPlayer({ onClose }: { onClose: () => void }) {
+  const swipe = useSwipeDown(onClose);
   const player = usePlayer();
   const { country } = useLibrary();
   const { time } = usePlayerTime();
@@ -312,7 +355,15 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="full-player" role="dialog" aria-modal="true" aria-label="Lecteur">
+    <div
+      className={`full-player ${swipe.offset ? 'is-dragging' : ''}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Lecteur"
+      {...swipe.handlers}
+      style={swipe.offset ? { transform: `translateY(${swipe.offset}px)`, opacity: Math.max(0.4, 1 - swipe.offset / 600) } : undefined}
+    >
+      <button className="full-player__handle" onClick={onClose} aria-label="Fermer le lecteur (ou glisser vers le bas)" />
       <div className={`full-player__content ${ep.mediaKind === 'video' ? 'full-player__content--video' : ''}`}>
         <div className="full-player__top">
           <button className="icon-btn" onClick={onClose} aria-label="Fermer le lecteur">
@@ -337,7 +388,7 @@ export function FullPlayer({ onClose }: { onClose: () => void }) {
         {ep.mediaKind === 'video' ? (
           <LocalVideo
             episodeId={ep.id}
-            fallbackSrc={ep.audioUrl}
+            fallbackSrc={ep.videoUrl ?? ep.audioUrl}
             title={ep.title}
             controls={
               <>

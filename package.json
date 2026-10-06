@@ -21,6 +21,7 @@
     "adhan": "^4.4.6",
     "fast-xml-parser": "^5.11.2",
     "lucide-react": "^1.48.0",
+    "mp4box": "2.4.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router": "^8.4.0"
