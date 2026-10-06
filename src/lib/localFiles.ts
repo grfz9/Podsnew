@@ -1,5 +1,6 @@
 import type { Episode } from '../types';
-import { registerLocalUrl, unregisterLocalUrl } from './downloads';
+import { registerLocalUrl, registerLocalVideoUrl, unregisterLocalUrl } from './downloads';
+import { canExtractAudio, extractAudioTrack } from './extractAudio';
 import { idbDelete, idbGet, idbGetAll, idbPut } from './idb';
 
 /**
@@ -21,9 +22,11 @@ export interface LocalFileRecord {
   duration: number;
   createdAt: number;
   blob: Blob;
+  /** Vidéos : piste son seule (lue en arrière-plan sur iPhone). `false` : extraction impossible (format, pas de son). */
+  audioBlob?: Blob | false;
 }
 
-export type LocalFile = Omit<LocalFileRecord, 'blob'>;
+export type LocalFile = Omit<LocalFileRecord, 'blob' | 'audioBlob'>;
 
 const AUDIO_EXT = ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'oga', 'opus', 'flac', 'weba'];
 const VIDEO_EXT = ['mp4', 'm4v', 'mov', 'webm', 'mkv', '3gp'];
@@ -91,11 +94,36 @@ function readDuration(url: string, kind: 'audio' | 'video'): Promise<number> {
 export async function loadLocalFiles(): Promise<LocalFile[]> {
   try {
     const records = await idbGetAll<LocalFileRecord>('files');
-    for (const r of records) registerLocalUrl(r.id, URL.createObjectURL(r.blob));
-    return records.map(({ blob: _blob, ...info }) => info).sort((a, b) => b.createdAt - a.createdAt);
+    for (const r of records) registerRecord(r);
+    // Vidéos importées avant cette version : piste son extraite une fois, en arrière-plan.
+    const pending = records.filter((r) => r.kind === 'video' && r.audioBlob === undefined);
+    if (pending.length) setTimeout(() => void extractPending(pending), 3000);
+    return records.map(({ blob: _blob, audioBlob: _audio, ...info }) => info).sort((a, b) => b.createdAt - a.createdAt);
   } catch {
     return [];
   }
+}
+
+/** Son : piste son seule si on l'a, sinon le fichier ; image (vidéos) : le fichier complet. */
+function registerRecord(r: LocalFileRecord) {
+  const full = URL.createObjectURL(r.blob);
+  if (r.kind === 'video') registerLocalVideoUrl(r.id, full);
+  registerLocalUrl(r.id, r.kind === 'video' && r.audioBlob ? URL.createObjectURL(r.audioBlob) : full);
+}
+
+/** Extrait et enregistre la piste son d'une vidéo (une seule fois ; échec mémorisé). */
+export async function ensureAudioTrack(id: string): Promise<Blob | null> {
+  const record = await idbGet<LocalFileRecord>('files', id);
+  if (!record || record.kind !== 'video') return null;
+  if (record.audioBlob !== undefined) return record.audioBlob || null;
+  const audio = canExtractAudio(record.mime, record.title) ? await extractAudioTrack(record.blob).catch(() => null) : null;
+  await idbPut('files', { ...record, audioBlob: audio ?? false }).catch(() => undefined);
+  if (audio) registerLocalUrl(id, URL.createObjectURL(audio));
+  return audio;
+}
+
+async function extractPending(records: LocalFileRecord[]) {
+  for (const r of records) await ensureAudioTrack(r.id);
 }
 
 export async function importLocalFile(file: File): Promise<LocalFile> {
@@ -127,6 +155,10 @@ export async function importLocalFile(file: File): Promise<LocalFile> {
       : new Error(`Impossible d’enregistrer « ${file.name} ».`);
   }
   registerLocalUrl(record.id, url);
+  if (kind === 'video') {
+    registerLocalVideoUrl(record.id, url);
+    void ensureAudioTrack(record.id);
+  }
   const { blob: _blob, ...info } = record;
   return info;
 }

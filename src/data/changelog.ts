@@ -12,6 +12,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-06f',
+    date: '6 octobre 2026',
+    title: 'Vidéos en arrière-plan sur iPhone',
+    items: [
+      'Le son de vos vidéos continue écran éteint ou appli fermée : Podsal en extrait la piste son à l’import (vidéos déjà importées : une fois, automatiquement).',
+      'Pareil pour les vidéos des groupes partagés par vos amis, après une nouvelle publication du groupe.',
+      'Glissez vers le bas pour fermer le lecteur, vers le haut sur le mini-lecteur pour l’ouvrir.',
+      'Boutons plus faciles à toucher sur téléphone.',
+    ],
+  },
+  {
     id: '2026-10-06e',
     date: '6 octobre 2026',
     title: 'Plus simple à utiliser',

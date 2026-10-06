@@ -1,5 +1,5 @@
 import { requireBackend, type Profile } from '../lib/supabase';
-import { getLocalFileBlob, type FileGroup, type LocalFile } from '../lib/localFiles';
+import { ensureAudioTrack, getLocalFileBlob, type FileGroup, type LocalFile } from '../lib/localFiles';
 import type { Episode } from '../types';
 
 /**
@@ -13,6 +13,9 @@ export const MAX_SHARED_FILE_BYTES = 50 * 1024 * 1024;
 /** Durée de validité des liens de lecture. */
 const SIGNED_URL_SECONDS = 12 * 60 * 60;
 export const SHARED_PREFIX = 'shared:';
+
+/** Piste son d'une vidéo publiée, à côté du fichier : écoute en arrière-plan sur iPhone pour les amis. */
+const audioPathFor = (videoPath: string) => `${videoPath}.son.m4a`;
 
 export interface SharedItem {
   id: string;
@@ -117,11 +120,22 @@ export async function publishGroup(
     onProgress?.(++done, wanted.length);
   }
 
+  // Vidéos : piste son seule envoyée à côté (une fois), si elle manque encore.
+  const folder = `${userId}/${remoteId}`;
+  const { data: listed } = await client.storage.from(BUCKET).list(folder, { limit: 1000 });
+  const present = new Set((listed ?? []).map((o) => `${folder}/${o.name}`));
+  const { data: items } = await client.from('shared_group_items').select('local_id, kind, storage_path').eq('group_id', remoteId).returns<Pick<SharedItem, 'local_id' | 'kind' | 'storage_path'>[]>();
+  for (const item of items ?? []) {
+    if (item.kind !== 'video' || present.has(audioPathFor(item.storage_path))) continue;
+    const audio = await ensureAudioTrack(item.local_id).catch(() => null);
+    if (audio) await client.storage.from(BUCKET).upload(audioPathFor(item.storage_path), audio, { upsert: true, contentType: 'audio/mp4' });
+  }
+
   // Fichiers retirés du groupe (ou supprimés de l'appareil) : retirés du serveur aussi.
   const keep = new Set(wanted.map((f) => f.id));
   const removed = (existing ?? []).filter((i) => !keep.has(i.local_id));
   if (removed.length) {
-    await client.storage.from(BUCKET).remove(removed.map((i) => i.storage_path));
+    await client.storage.from(BUCKET).remove(removed.flatMap((i) => [i.storage_path, audioPathFor(i.storage_path)]));
     const { error } = await client.from('shared_group_items').delete().in('id', removed.map((i) => i.id));
     if (error) throw new Error(error.message);
   }
@@ -132,7 +146,7 @@ export async function publishGroup(
 export async function deleteSharedGroup(remoteId: string): Promise<void> {
   const client = requireBackend();
   const { data: items } = await client.from('shared_group_items').select('storage_path').eq('group_id', remoteId).returns<Pick<SharedItem, 'storage_path'>[]>();
-  if (items?.length) await client.storage.from(BUCKET).remove(items.map((i) => i.storage_path));
+  if (items?.length) await client.storage.from(BUCKET).remove(items.flatMap((i) => [i.storage_path, audioPathFor(i.storage_path)]));
   const { error } = await client.from('shared_groups').delete().eq('id', remoteId);
   if (error) throw new Error(error.message);
 }
@@ -181,11 +195,12 @@ export async function sharedGroupEpisodes(group: SharedGroup, ownerUsername: str
   const { data, error } = await requireBackend()
     .storage.from(BUCKET)
     .createSignedUrls(
-      items.map((i) => i.storage_path),
+      // Vidéos : on demande aussi la piste son seule (absente si le groupe a été publié avant).
+      items.flatMap((i) => (i.kind === 'video' ? [i.storage_path, audioPathFor(i.storage_path)] : [i.storage_path])),
       SIGNED_URL_SECONDS,
     );
   if (error) throw new Error('Fichiers indisponibles pour le moment.');
-  const urls = new Map((data ?? []).map((d) => [d.path, d.signedUrl]));
+  const urls = new Map((data ?? []).filter((d) => d.signedUrl && !d.error).map((d) => [d.path, d.signedUrl as string]));
   return items
     .filter((i) => urls.get(i.storage_path))
     .map((i) => ({
@@ -194,7 +209,8 @@ export async function sharedGroupEpisodes(group: SharedGroup, ownerUsername: str
       podcastTitle: group.name,
       title: i.title,
       description: '',
-      audioUrl: urls.get(i.storage_path)!,
+      audioUrl: urls.get(audioPathFor(i.storage_path)) ?? urls.get(i.storage_path)!,
+      videoUrl: i.kind === 'video' ? urls.get(i.storage_path) : undefined,
       duration: i.duration,
       releaseDate: group.updated_at,
       artwork: '',

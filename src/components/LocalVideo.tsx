@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Maximize, Minimize } from 'lucide-react';
-import { localUrlFor } from '../lib/downloads';
+import { localUrlFor, localVideoUrlFor } from '../lib/downloads';
 import { usePlayer } from '../store/player';
 
 /** Écart toléré entre l'image et le son avant de recaler la vidéo (en secondes). */
@@ -41,7 +41,7 @@ export function LocalVideo({
   const [idle, setIdle] = useState(false);
   const idleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const clickTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const src = localUrlFor(episodeId) ?? (fallbackSrc || undefined);
+  const src = localVideoUrlFor(episodeId) ?? (fallbackSrc || localUrlFor(episodeId) || undefined);
 
   useEffect(() => {
     const video = videoRef.current;

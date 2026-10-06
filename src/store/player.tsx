@@ -12,7 +12,7 @@ import type { Episode } from '../types';
 import { usePersistentState } from '../utils/hooks';
 import { isFinished, resumePosition } from '../utils/progress';
 import * as Q from '../utils/queue';
-import { localUrlFor } from '../lib/downloads';
+import { localUrlFor, localVideoUrlFor } from '../lib/downloads';
 import { isLocalId } from '../lib/localFiles';
 import { isNativeId, trackNativePlay } from '../api/native';
 import { useLibrary } from './library';
@@ -415,6 +415,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setIsBuffering(false);
       setIsPlaying(false);
       if (currentRef.current && isLocalId(currentRef.current.id)) {
+        // Piste son seule illisible sur cet appareil : on revient au fichier vidéo complet.
+        const full = localVideoUrlFor(currentRef.current.id);
+        if (full && audio.src !== full) {
+          const at = audio.currentTime;
+          pendingSeek.current = at;
+          audio.src = full;
+          void audio.play().catch(() => undefined);
+          return;
+        }
         setError('Impossible de lire ce fichier : son format n’est peut-être pas pris en charge par cet appareil.');
         return;
       }
