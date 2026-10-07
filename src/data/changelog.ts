@@ -12,6 +12,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-07',
+    date: '7 octobre 2026',
+    title: 'Image dans l’image et « Moi » plus simple',
+    items: [
+      'Vidéos : bouton « image dans l’image » (⧉) ; la vidéo flotte au-dessus de vos autres applis et continue écran éteint.',
+      '« Moi » réorganisé : Podsal+ mis en avant, l’essentiel en 4 tuiles, le reste en liste courte, Paramètres en haut à droite.',
+      'Sur iPhone, le haut des pages ne passe plus sous l’heure, et le bas ne passe plus sous le mini-lecteur.',
+      'Ramadan et Qibla accessibles depuis la page Prière.',
+    ],
+  },
+  {
     id: '2026-10-06f',
     date: '6 octobre 2026',
     title: 'Vidéos en arrière-plan sur iPhone',
