@@ -1,12 +1,25 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { Maximize, Minimize } from 'lucide-react';
+import { Maximize, Minimize, PictureInPicture2 } from 'lucide-react';
 import { localUrlFor, localVideoUrlFor } from '../lib/downloads';
-import { usePlayer } from '../store/player';
+import { pipState, usePlayer } from '../store/player';
 
 /** Écart toléré entre l'image et le son avant de recaler la vidéo (en secondes). */
 const MAX_DRIFT = 0.3;
 /** Délai avant de masquer les commandes en plein écran. */
 const HIDE_CONTROLS_MS = 2500;
+
+type WebkitVideo = HTMLVideoElement & {
+  webkitSupportsPresentationMode?: (mode: string) => boolean;
+  webkitSetPresentationMode?: (mode: 'inline' | 'picture-in-picture' | 'fullscreen') => void;
+  webkitPresentationMode?: string;
+  autoPictureInPicture?: boolean;
+};
+
+/** Image dans l'image possible (API standard, ou API de Safari sur iPhone). */
+function pipSupported(video: WebkitVideo | null): boolean {
+  if (!video) return false;
+  return (document.pictureInPictureEnabled && typeof video.requestPictureInPicture === 'function') || !!video.webkitSupportsPresentationMode?.('picture-in-picture');
+}
 
 /**
  * Image d'une vidéo importée. Le son vient toujours de l'élément audio du lecteur : il continue
@@ -47,7 +60,7 @@ export function LocalVideo({
     const video = videoRef.current;
     if (!audio || !video) return;
     const sync = (force = false) => {
-      if (video.readyState === 0) return;
+      if (video.readyState === 0 || pipState.active) return;
       if (force || Math.abs(video.currentTime - audio.currentTime) > MAX_DRIFT) video.currentTime = audio.currentTime;
       if (video.playbackRate !== audio.playbackRate) video.playbackRate = audio.playbackRate;
       if (audio.paused && !video.paused) video.pause();
@@ -78,6 +91,69 @@ export function LocalVideo({
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [audio, src]);
+
+  /*
+   * Image dans l'image : sur iPhone, une vidéo en image dans l'image continue avec le son quand on quitte
+   * l'appli ou qu'on éteint l'écran. Le temps qu'elle flotte, c'est elle qui joue le son (le lecteur audio
+   * se met en pause et lui passe la main à la même seconde) ; au retour, le lecteur audio reprend.
+   */
+  const [pip, setPip] = useState(false);
+  const [canPip, setCanPip] = useState(false);
+  useEffect(() => {
+    const video = videoRef.current as WebkitVideo | null;
+    if (!video || !audio) return;
+    setCanPip(pipSupported(video));
+    // Demande à passer seul en image dans l'image quand on quitte l'appli pendant la lecture (si le système l'accepte).
+    video.setAttribute('autopictureinpicture', '');
+    video.autoPictureInPicture = true;
+    const enter = () => {
+      if (pipState.active) return;
+      pipState.active = true;
+      setPip(true);
+      const playing = !audio.paused;
+      video.currentTime = audio.currentTime;
+      video.playbackRate = audio.playbackRate;
+      video.volume = audio.volume;
+      video.muted = false;
+      if (playing) {
+        void video.play().catch(() => undefined);
+        audio.pause();
+      }
+    };
+    const leave = () => {
+      if (!pipState.active) return;
+      const playing = !video.paused;
+      audio.currentTime = video.currentTime;
+      video.muted = true;
+      pipState.active = false;
+      setPip(false);
+      if (playing) void audio.play().catch(() => undefined);
+      else video.pause();
+    };
+    const onWebkit = () => ((video.webkitPresentationMode === 'picture-in-picture' ? enter : leave)());
+    video.addEventListener('enterpictureinpicture', enter);
+    video.addEventListener('leavepictureinpicture', leave);
+    video.addEventListener('webkitpresentationmodechanged', onWebkit);
+    return () => {
+      video.removeEventListener('enterpictureinpicture', enter);
+      video.removeEventListener('leavepictureinpicture', leave);
+      video.removeEventListener('webkitpresentationmodechanged', onWebkit);
+      if (pipState.active) leave();
+    };
+  }, [audio, src]);
+
+  const togglePip = useCallback(async () => {
+    const video = videoRef.current as WebkitVideo | null;
+    if (!video) return;
+    try {
+      if (document.pictureInPictureElement === video) await document.exitPictureInPicture();
+      else if (video.webkitPresentationMode === 'picture-in-picture') video.webkitSetPresentationMode?.('inline');
+      else if (document.pictureInPictureEnabled && video.requestPictureInPicture) await video.requestPictureInPicture();
+      else video.webkitSetPresentationMode?.('picture-in-picture');
+    } catch {
+      // refusé par le navigateur
+    }
+  }, []);
 
   const toggleFullscreen = useCallback(() => {
     const wrapper = wrapperRef.current;
@@ -176,6 +252,16 @@ export function LocalVideo({
           <p className="local-video__title">{title}</p>
           {controls}
         </div>
+      )}
+      {canPip && (
+        <button
+          className={`local-video__pip icon-btn ${pip ? 'icon-btn--active' : ''}`}
+          onClick={() => void togglePip()}
+          aria-label={pip ? 'Revenir dans l’appli' : 'Image dans l’image (écoute hors de l’appli)'}
+          title={pip ? 'Revenir dans l’appli' : 'Image dans l’image : la vidéo continue hors de l’appli et écran éteint'}
+        >
+          <PictureInPicture2 size={18} />
+        </button>
       )}
       <button
         className="local-video__fullscreen icon-btn"

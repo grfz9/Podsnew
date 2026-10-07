@@ -1,16 +1,14 @@
 import { useState, type FormEvent } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Link } from 'react-router';
-import { BookOpenText, ChartColumn, Compass, Library as LibraryIcon, Moon, Settings, Clock, Cloud, CloudOff, Crown, FolderOpen, Image, ListMusic, ListOrdered, LogOut, Mail, Mic, ShieldCheck, Smartphone, Sparkle, Users } from 'lucide-react';
+import { ChartColumn, ChevronRight, LogIn, Library as LibraryIcon, Settings, Cloud, Crown, FolderOpen, Image, ListMusic, ListOrdered, LogOut, Mail, Mic, ShieldCheck, Smartphone, Sparkle, Users } from 'lucide-react';
 import { Shortcuts, type Shortcut } from '../components/Shortcuts';
-import { HomeInterests } from '../components/HomeInterests';
 import { normalizePhone } from '../utils/phone';
 import { usePremium } from '../store/premium';
 import { useModeration } from '../store/moderation';
 import { isUsernameAvailable } from '../api/social';
 import { EmptyState, Tabs } from '../components/common';
 import { useAuth } from '../store/auth';
-import { formatReleaseDate } from '../utils/format';
 import { isStandalone } from '../lib/install';
 
 const USERNAME = /^[a-z0-9_]{3,24}$/;
@@ -273,6 +271,7 @@ function ProfileSettings() {
 
   return (
     <>
+      <MeHead>
       <header className="profile-head">
         <span className="avatar avatar--large" aria-hidden>
           {(p?.display_name || p?.username || '?').slice(0, 1).toUpperCase()}
@@ -289,26 +288,13 @@ function ProfileSettings() {
           </p>
         </div>
       </header>
+      </MeHead>
 
       <ChooseUsername />
 
-      <div className="sync-status">
-        {auth.syncStatus === 'error' ? <CloudOff size={18} /> : <Cloud size={18} />}
-        <span>
-          {auth.syncStatus === 'syncing' && 'Synchronisation…'}
-          {auth.syncStatus === 'synced' && `Synchronisé${auth.lastSyncedAt ? ` · ${formatReleaseDate(new Date(auth.lastSyncedAt).toISOString()).toLowerCase()}` : ''}`}
-          {auth.syncStatus === 'error' && 'La synchronisation a échoué.'}
-          {auth.syncStatus === 'off' && 'Synchronisation inactive'}
-        </span>
-        <button className="btn btn--ghost btn--small" onClick={auth.syncNow}>
-          Synchroniser maintenant
-        </button>
-      </div>
+      <MeHub />
 
-      <MeShortcuts />
-      <HomeInterests />
-
-      <section className="settings">
+      <section className="settings me-profile">
         <h2>Profil</h2>
         <form
           className="form form--inline"
@@ -337,30 +323,94 @@ function ProfileSettings() {
   );
 }
 
-/** Toutes les fonctions de l'appli, visibles d'un coup d'œil (onglet « Moi » sur téléphone). */
-function MeShortcuts() {
-  const { isAdmin, isModerator } = useModeration();
+/** Podsal+ mis en avant (comme dans le menu sur ordinateur). */
+function PremiumBanner() {
   const { isPremium } = usePremium();
-  const items: Shortcut[] = [
-    { to: '/parametres', label: 'Paramètres', icon: Settings, color: '#b4b2a9' },
+  return (
+    <Link to="/premium" className={`me-premium ${isPremium ? 'me-premium--active' : ''}`}>
+      <span className="me-premium__icon">
+        <Sparkle size={22} />
+      </span>
+      <span className="me-premium__text">
+        <strong>{isPremium ? 'Podsal+ actif' : 'Passer à Podsal+'}</strong>
+        <span>{isPremium ? 'Merci pour votre soutien · gérer l’abonnement' : 'Fonds d’écran, téléchargements et fichiers illimités…'}</span>
+      </span>
+      <ChevronRight size={20} />
+    </Link>
+  );
+}
+
+/** Onglet « Moi » : l'essentiel en tuiles, le reste en liste compacte (comme les réglages de Spotify). */
+function MeHub() {
+  const { isAdmin, isModerator } = useModeration();
+  const tiles: Shortcut[] = [
     { to: '/library', label: 'Bibliothèque', icon: LibraryIcon, color: '#85b7eb' },
-    { to: '/premium', label: isPremium ? 'Podsal+ actif' : 'Podsal+', icon: Sparkle, color: '#e2c485' },
-    { to: '/lire', label: 'Lire le Coran', icon: BookOpenText, color: '#c9a86a' },
-    { to: '/ramadan', label: 'Ramadan', icon: Moon, color: '#afa9ec' },
-    { to: '/qibla', label: 'Qibla', icon: Compass, color: '#e2c485' },
     { to: '/fichiers', label: 'Mes fichiers', icon: FolderOpen, color: '#f0997b' },
-    { to: '/priere', label: 'Prière', icon: Clock, color: '#6cc4b4' },
+    { to: '/friends', label: 'Amis', icon: Users, color: '#6cc4b4' },
     { to: '/stats', label: 'Statistiques', icon: ChartColumn, color: '#afa9ec' },
-    { to: '/friends', label: 'Amis', icon: Users, color: '#85b7eb' },
-    { to: '/library?tab=playlists', label: 'Playlists', icon: ListMusic, color: '#ed93b1' },
-    { to: '/queue', label: "File d'attente", icon: ListOrdered, color: '#97c459' },
-    { to: '/fonds-ecran', label: "Fonds d'écran", icon: Image, color: '#5dcaa5' },
-    { to: '/studio', label: 'Studio créateur', icon: Mic, color: '#f09595' },
-    { to: '/telecharger', label: isStandalone() ? 'Partager l’appli' : 'Installer l’appli', icon: Smartphone, color: '#6cc4b4' },
   ];
-  if (isModerator) items.push({ to: '/moderation', label: 'Modération', icon: ShieldCheck, color: '#d85a30' });
-  if (isAdmin) items.push({ to: '/admin', label: 'Administration', icon: Crown, color: '#e2c485' });
-  return <Shortcuts items={items} label="Fonctions de Podsal" />;
+  const rows: { to: string; label: string; icon: typeof Users }[] = [
+    { to: '/library?tab=playlists', label: 'Playlists', icon: ListMusic },
+    { to: '/queue', label: 'File d’attente', icon: ListOrdered },
+    { to: '/fonds-ecran', label: 'Fonds d’écran', icon: Image },
+    { to: '/studio', label: 'Studio créateur', icon: Mic },
+    { to: '/telecharger', label: isStandalone() ? 'Partager l’appli' : 'Installer l’appli', icon: Smartphone },
+    ...(isModerator ? [{ to: '/moderation', label: 'Modération', icon: ShieldCheck }] : []),
+    ...(isAdmin ? [{ to: '/admin', label: 'Administration', icon: Crown }] : []),
+    { to: '/parametres', label: 'Paramètres', icon: Settings },
+  ];
+  return (
+    <>
+      <PremiumBanner />
+      <Shortcuts items={tiles} label="L’essentiel" />
+      <nav className="me-list" aria-label="Plus">
+        {rows.map(({ to, label, icon: Icon }) => (
+          <Link key={to} to={to} className="me-list__row">
+            <Icon size={20} />
+            <span>{label}</span>
+            <ChevronRight size={18} className="muted" />
+          </Link>
+        ))}
+      </nav>
+    </>
+  );
+}
+
+/** Sans compte : une carte compacte qui ouvre le formulaire de connexion au toucher. */
+function LoginCard() {
+  const [open, setOpen] = useState(false);
+  if (open) {
+    return (
+      <section className="me-login me-login--open">
+        <h2 className="section-title account-login-title">Se connecter</h2>
+        <AuthForms />
+      </section>
+    );
+  }
+  return (
+    <button className="me-login" onClick={() => setOpen(true)}>
+      <span className="me-login__avatar">
+        <LogIn size={22} />
+      </span>
+      <span className="me-login__text">
+        <strong>Se connecter ou créer un compte</strong>
+        <span>Votre bibliothèque, vos favoris et votre plan de lecture sur tous vos appareils</span>
+      </span>
+      <ChevronRight size={20} />
+    </button>
+  );
+}
+
+/** En-tête de « Moi » : titre (ou profil) et accès direct aux Paramètres. */
+function MeHead({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="me-head">
+      <div className="me-head__main">{children}</div>
+      <Link to="/parametres" className="icon-btn me-head__settings" aria-label="Paramètres" title="Paramètres">
+        <Settings size={22} />
+      </Link>
+    </div>
+  );
 }
 
 export function AccountPage() {
@@ -368,9 +418,10 @@ export function AccountPage() {
   if (!auth.enabled) {
     return (
       <div className="page">
-        <h1 className="page__title">Moi</h1>
-        <MeShortcuts />
-      <HomeInterests />
+        <MeHead>
+          <h1 className="page__title">Moi</h1>
+        </MeHead>
+        <MeHub />
         <EmptyState icon={<Cloud size={32} />} title="Les comptes ne sont pas activés sur cette installation">
           Podsal fonctionne entièrement sur cet appareil : abonnements, progression, téléchargements et statistiques y sont conservés.
         </EmptyState>
@@ -387,11 +438,11 @@ export function AccountPage() {
   }
   return (
     <div className="page">
-      <h1 className="page__title">Moi</h1>
-      <MeShortcuts />
-      <HomeInterests />
-      <h2 className="section-title account-login-title">Se connecter</h2>
-      <AuthForms />
+      <MeHead>
+        <h1 className="page__title">Moi</h1>
+      </MeHead>
+      <LoginCard />
+      <MeHub />
     </div>
   );
 }

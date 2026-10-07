@@ -20,6 +20,9 @@ import { useLibrary } from './library';
 export const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 1.75, 2];
 export const SKIP_BACK = 15;
 export const SKIP_FORWARD = 30;
+
+/** Image dans l'image : la vidéo joue elle-même le son, le lecteur audio attend son retour. */
+export const pipState = { active: false };
 const SAVE_EVERY_MS = 5000;
 /** Le temps d'écoute est enregistré par paquets pour limiter les écritures. */
 const LISTEN_FLUSH_SECONDS = 15;
@@ -461,6 +464,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const onVisible = () => {
       const audio = audioRef.current;
       if (document.visibilityState !== 'visible' || !audio || !wantsPlay.current || !audio.paused || !audio.src) return;
+      if (pipState.active) return;
       resume();
     };
     document.addEventListener('visibilitychange', onVisible);

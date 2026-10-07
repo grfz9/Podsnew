@@ -1912,3 +1912,42 @@ kbd { padding: 2px 6px; border-radius: 6px; border: 1px solid var(--border); bac
   .btn--small { min-height: 40px; }
   .tab { min-height: 44px; }
 }
+
+/* Vidéo : bouton image dans l'image, à côté du plein écran */
+.local-video__pip { position: absolute; right: 56px; bottom: 8px; background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(8px); }
+.local-video--fullscreen .local-video__pip { top: 16px; right: 64px; bottom: auto; transition: opacity 0.3s; }
+.local-video--idle .local-video__pip { opacity: 0; pointer-events: none; }
+
+/* ---------- « Moi » compact, Podsal+ en avant ---------- */
+.me-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.me-head__main { min-width: 0; flex: 1; }
+.me-head__main .page__title, .me-head__main .profile-head { margin-bottom: 0; }
+.me-head__settings { flex: none; background: var(--bg-elevated); }
+.me-premium { display: flex; align-items: center; gap: 14px; margin: 4px 0 18px; padding: 16px; border-radius: 18px; background: linear-gradient(135deg, rgba(226, 196, 133, 0.28), rgba(226, 196, 133, 0.07)); border: 1px solid rgba(226, 196, 133, 0.4); color: var(--text); }
+.me-premium:active { transform: scale(0.99); }
+.me-premium__icon { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(135deg, #e2c485, #b8924a); color: #1a1406; }
+.me-premium__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.me-premium__text strong { font-size: 17px; }
+.me-premium__text span { font-size: 13px; color: var(--text-muted); }
+.me-premium--active .me-premium__text strong { color: #e2c485; }
+.me-list { display: flex; flex-direction: column; margin: 6px 0 22px; border-radius: var(--radius-lg); background: var(--bg-elevated); overflow: hidden; }
+.me-list__row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--border); color: var(--text); font-weight: 600; }
+.me-list__row:last-child { border-bottom: 0; }
+.me-list__row > svg:first-child { color: var(--text-muted); }
+.me-list__row > span { flex: 1; }
+.me-list__row:active { background: var(--bg-hover); }
+.me-profile { margin-top: 8px; }
+
+/* ---------- Téléphone : barre d'état et bas de page ---------- */
+@media (max-width: 800px) {
+  /* L'appli installée affiche son contenu sous la barre d'état (heure, batterie) : on laisse la place. */
+  .page { padding-top: calc(20px + env(safe-area-inset-top)); }
+  .mobile-back + .route-view > .page { padding-top: 12px; }
+  /* Le mini-lecteur flotte au-dessus de la barre du bas : assez de marge pour voir la fin des pages. */
+  .app--with-player .main { padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + var(--player-h) + 44px); }
+}
+.me-login { display: flex; align-items: center; gap: 14px; width: 100%; margin: 0 0 14px; padding: 14px 16px; border-radius: 18px; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text); text-align: left; }
+.me-login--open { display: block; }
+.me-login__avatar { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: rgba(108, 196, 180, 0.15); color: var(--accent); }
+.me-login__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.me-login__text span { font-size: 13px; color: var(--text-muted); }
