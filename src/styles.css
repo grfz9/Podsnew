@@ -1951,3 +1951,49 @@ kbd { padding: 2px 6px; border-radius: 6px; border: 1px solid var(--border); bac
 .me-login__avatar { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: rgba(108, 196, 180, 0.15); color: var(--accent); }
 .me-login__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .me-login__text span { font-size: 13px; color: var(--text-muted); }
+
+/* ---------- Accueil : accès rapide regroupé, mise en page plus aérée ---------- */
+.quick-access { display: grid; gap: 10px; margin-bottom: 24px; }
+.quick-access .shortcuts { margin-bottom: 0; }
+.quran-duo {
+  display: grid; grid-template-columns: 1fr 1fr; padding: 4px; gap: 4px; border-radius: 16px;
+  background: linear-gradient(135deg, rgba(226, 196, 133, 0.2), rgba(201, 168, 106, 0.08)); border: 1px solid rgba(226, 196, 133, 0.3);
+}
+.quran-duo__btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; border-radius: 12px;
+  font-weight: 800; font-size: 15px; color: #e2c485; transition: background 0.2s, transform 0.15s var(--ease);
+}
+.quran-duo__btn:first-child { background: rgba(226, 196, 133, 0.16); }
+.quran-duo__btn:hover { background: rgba(226, 196, 133, 0.28); }
+.quran-duo__btn:active { transform: scale(0.96); }
+.shortcuts--compact { grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px; }
+.shortcuts--compact .shortcut { flex-direction: column; justify-content: center; gap: 6px; padding: 10px 4px; min-height: 76px; text-align: center; font-size: 12px; }
+.shortcuts--compact .shortcut__icon { width: 34px; height: 34px; }
+.shortcuts--compact .shortcut__label { max-width: 100%; white-space: nowrap; }
+.shortcuts--compact .shortcut__count { position: absolute; top: 6px; right: 6px; padding: 1px 6px; font-size: 10px; }
+
+@media (max-width: 800px) {
+  .home-head { margin-bottom: 14px; }
+  .home-head__title { font-size: 22px; margin-bottom: 2px; }
+  .home-head__date { font-size: 13px; }
+  .mobile-brand, .home-head__me { margin-bottom: 8px; }
+  .home > .resume-hero, .home > .prayer-card, .home > .daily-verse, .home > .plan-card, .home > .section, .home > .quick-access { margin-bottom: 18px; }
+  .home > .resume-hero { padding: 10px; }
+  .resume-hero__art { width: 62px; height: 62px; border-radius: 12px; }
+  .resume-hero__art .artwork { border-radius: 12px; }
+  .resume-hero__play { width: 42px; height: 42px; }
+  .home .prayer-card { flex-wrap: nowrap; flex-direction: column; align-items: stretch; gap: 10px; padding: 12px 14px; }
+  .home .prayer-card--setup { flex-direction: row; align-items: center; }
+  .home .prayer-card__next { min-width: 0; }
+  .home .prayer-card__next strong { font-size: 19px; }
+  .home .prayer-card__progress { margin-top: 6px; }
+  .home .prayer-card__list { flex-wrap: nowrap; gap: 2px; justify-content: space-between; }
+  .home .prayer-card__item { flex: 1; min-width: 0; padding: 4px 0; font-size: 11px; }
+  .home .prayer-card__item strong { font-size: 12px; }
+  .daily-verse { padding: 14px 16px; }
+  .daily-verse__arabic { font-size: 23px; line-height: 1.9; margin: 6px 0 4px; }
+  .daily-verse__translation { margin-bottom: 10px; line-height: 1.55; font-size: 14px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .daily-verse__source { font-size: 11px; line-height: 1.4; }
+  .plan-card { padding: 12px 14px; }
+  .home .section__title, .home .section-title { font-size: 18px; }
+}
