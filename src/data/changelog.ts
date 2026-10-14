@@ -12,6 +12,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-15',
+    date: '15 octobre 2026',
+    title: 'Un accueil plus aéré',
+    items: [
+      'Coran : « Écouter » et « Lire » réunis dans un seul bloc doré, accessible d’un pouce.',
+      'Accès rapide en une ligne (Podcasts, Favoris, Téléchargés, Fichiers), sans défilement caché.',
+      'Carte de prière, verset du jour et reprise de lecture plus compacts pour voir plus de contenu d’un coup.',
+    ],
+  },
+  {
     id: '2026-10-07',
     date: '7 octobre 2026',
     title: 'Image dans l’image et « Moi » plus simple',

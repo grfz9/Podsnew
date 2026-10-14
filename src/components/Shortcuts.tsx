@@ -15,10 +15,10 @@ export interface Shortcut {
 }
 
 /**
- * Raccourcis vers les fonctions de l'appli : grille de tuiles (`grid`) ou rangée défilante (`row`).
+ * Raccourcis vers les fonctions de l'appli : grille de tuiles (`grid`), rangée défilante (`row`) ou petites tuiles tenant sur une ligne (`compact`).
  * Sur téléphone, ils remplacent les onglets et les menus cachés : tout est visible d'un coup d'œil.
  */
-export function Shortcuts({ items, layout = 'grid', label }: { items: Shortcut[]; layout?: 'grid' | 'row'; label: string }) {
+export function Shortcuts({ items, layout = 'grid', label }: { items: Shortcut[]; layout?: 'grid' | 'row' | 'compact'; label: string }) {
   return (
     <nav className={`shortcuts shortcuts--${layout}`} aria-label={label}>
       {items.map(({ to, label: text, icon: Icon, color, count, active }, i) => (
