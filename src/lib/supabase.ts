@@ -13,6 +13,55 @@ export const supabase: SupabaseClient | null = url && key ? createClient(url, ke
 
 export const backendEnabled = supabase !== null;
 
+/** Nom du serveur configuré (ex. « abcd.supabase.co »), pour les messages d'aide. */
+export const backendHost: string | null = (() => {
+  try {
+    return url ? new URL(url).host : null;
+  } catch {
+    return url ?? null;
+  }
+})();
+
+/** Erreur réseau du navigateur (serveur introuvable, hors-ligne, requête bloquée). */
+export function isNetworkError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err ?? '');
+  const status = (err as { status?: number } | null)?.status;
+  return (
+    /failed to fetch|networkerror|load failed|network request failed|fetch failed|err_name_not_resolved|err_internet_disconnected/i.test(message) ||
+    (status === 0 && /fetch/i.test(message))
+  );
+}
+
+/** Message compréhensible à la place de « Failed to fetch ». */
+export function friendlyError(err: unknown): string {
+  if (isNetworkError(err)) {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      return 'Vous êtes hors-ligne. Vérifiez votre connexion internet puis réessayez.';
+    }
+    return `Impossible de joindre le serveur des comptes${backendHost ? ` (${backendHost})` : ''}. Vérifiez votre connexion ; si elle fonctionne, le serveur est en pause ou son adresse est incorrecte.`;
+  }
+  return err instanceof Error ? err.message : String(err);
+}
+
+export type BackendHealth = 'ok' | 'offline' | 'unreachable' | 'bad-key' | 'error';
+
+/** Vérifie que le serveur des comptes répond (adresse et clé publique). */
+export async function checkBackend(timeoutMs = 8000): Promise<BackendHealth> {
+  if (!url || !key) return 'error';
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'offline';
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${url.replace(/\/$/, '')}/auth/v1/health`, { headers: { apikey: key }, signal: controller.signal });
+    if (res.ok) return 'ok';
+    return res.status === 401 || res.status === 403 ? 'bad-key' : 'error';
+  } catch {
+    return 'unreachable';
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export function requireBackend(): SupabaseClient {
   if (!supabase) throw new Error("Les comptes ne sont pas activés sur cette installation de Podsal.");
   return supabase;
@@ -23,6 +72,7 @@ export async function callFunction<T>(name: string, body: Record<string, unknown
   const client = requireBackend();
   const { data, error } = await client.functions.invoke<T>(name, { body });
   if (error) {
+    if (isNetworkError(error) || error.name === 'FunctionsFetchError') throw new Error(friendlyError(new Error('Failed to fetch')));
     let message = 'Le service est momentanément indisponible. Réessayez plus tard.';
     try {
       const details = await (error as { context?: Response }).context?.json();

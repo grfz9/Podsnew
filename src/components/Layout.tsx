@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType } from 'react-router';
-import { BookOpen, BookOpenText, ChevronLeft, Clock, Headphones, FolderOpen, House, Library, Mic, Moon, Search, Settings, Sparkle, User, Users, WifiOff } from 'lucide-react';
+import { BookOpen, BookOpenText, ChevronLeft, ChevronRight, Clock, ListMusic, Plus, Headphones, FolderOpen, House, Library, Mic, Moon, Search, Settings, Sparkle, User, Users, WifiOff } from 'lucide-react';
 import { ramadanInfo } from '../lib/khatma';
 import { formatClock, nextPrayer, PRAYER_NAMES } from '../lib/prayer';
 import { useModeration } from '../store/moderation';
@@ -10,6 +10,7 @@ import { CommandPalette, ShortcutsHelp } from './CommandPalette';
 import { Toaster } from './Toaster';
 import { PlaylistDialogProvider } from './Playlists';
 import { AppMark, Wordmark } from './Wordmark';
+import { MeButton } from './MeButton';
 import { resolveBackground, sidebarBackground } from '../data/wallpapers';
 import { useCustomImages } from '../store/customImages';
 import { usePremium } from '../store/premium';
@@ -21,6 +22,7 @@ import { BackgroundTasks, useOnline } from './Background';
 import { FullPlayer, PlayerBar } from './Player';
 import { podcastPath } from '../lib/paths';
 import { EXPAND_PLAYER_EVENT } from './playLocal';
+import type { Podcast } from '../types';
 import { Onboarding, SHOW_ONBOARDING_EVENT } from './Onboarding';
 
 const SIDEBAR_NAV = [
@@ -29,15 +31,14 @@ const SIDEBAR_NAV = [
   { to: '/coran', label: 'Coran', icon: BookOpen, also: '/lire' },
   { to: '/islam', label: 'Podcasts islamiques', icon: Mic },
   { to: '/priere', label: 'Prière', icon: Clock },
-  { to: '/library', label: 'Bibliothèque', icon: Library },
   { to: '/fichiers', label: 'Mes fichiers', icon: FolderOpen },
 ];
 
 /** Événement envoyé par la barre de recherche du menu à la page Rechercher. */
 export const SEARCH_INPUT_EVENT = 'podsal:search-input';
 
-/** Pages principales (barre du bas) : pas de bouton retour. Le lecteur a déjà son lien « Sourates ». */
-const ROOT_PATHS = ['/', '/coran', '/lire', '/priere', '/search', '/account'];
+/** Pages principales (barre du bas) : pas de bouton retour. « Moi » s'ouvre depuis la pastille du compte, avec un retour. Le lecteur a déjà son lien « Sourates ». */
+const ROOT_PATHS = ['/', '/coran', '/lire', '/priere', '/search', '/library'];
 
 /** Téléphone : bouton Retour en haut des pages secondaires (l'appli installée n'a pas celui du navigateur). */
 function MobileBackBar() {
@@ -53,8 +54,8 @@ function MobileBackBar() {
   );
 }
 
-/** Barre de recherche toujours visible en haut du menu (comme Spotify). */
-function SidebarSearch() {
+/** Champ de recherche de la barre du haut (ordinateur) : il pilote la page Rechercher. */
+function TopSearch() {
   const navigate = useNavigate();
   const location = useLocation();
   const [value, setValue] = useState(() => new URLSearchParams(location.search).get('q') ?? '');
@@ -68,18 +69,114 @@ function SidebarSearch() {
     if (!onSearch) navigate(`/search?q=${encodeURIComponent(v)}`);
   };
   return (
-    <>
-      <form className="sidebar-search" role="search" onSubmit={(e) => (e.preventDefault(), change(value))}>
-        <Search size={18} />
-        <input type="search" value={value} onChange={(e) => change(e.target.value)} placeholder="Rechercher" aria-label="Rechercher dans Podsal" />
-        <button type="button" className="sidebar-search__kbd" onClick={() => window.dispatchEvent(new Event('podsal:palette'))} title="Palette de commandes">
-          Ctrl K
+    <form className="top-search" role="search" onSubmit={(e) => (e.preventDefault(), change(value))}>
+      <Search size={20} />
+      <input type="search" value={value} onChange={(e) => change(e.target.value)} placeholder="Que souhaitez-vous écouter ?" aria-label="Rechercher dans Podsal" />
+      <button type="button" className="top-search__kbd" onClick={() => window.dispatchEvent(new Event('podsal:palette'))} title="Palette de commandes">
+        Ctrl K
+      </button>
+    </form>
+  );
+}
+
+/**
+ * Barre du haut sur ordinateur, comme Spotify : précédent / suivant, accueil, recherche au centre,
+ * Podsal+, amis et pastille du compte à droite.
+ */
+function DesktopTopBar({ premium }: { premium: boolean }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  // react-router note la position dans l'historique : pas de « précédent » sur la première page ouverte.
+  const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+  return (
+    <header className="top-bar">
+      <div className="top-bar__nav">
+        <button className="top-bar__round" onClick={() => navigate(-1)} disabled={idx === 0} aria-label="Page précédente" title="Précédent">
+          <ChevronLeft size={20} />
         </button>
-      </form>
-      <NavLink to="/search" className="nav-link sidebar-search__icon" title="Rechercher">
-        <Search size={22} />
-      </NavLink>
-    </>
+        <button className="top-bar__round" onClick={() => navigate(1)} aria-label="Page suivante" title="Suivant">
+          <ChevronRight size={20} />
+        </button>
+      </div>
+      <div className="top-bar__center">
+        <NavLink to="/" end className="top-bar__home" aria-label="Accueil" title="Accueil">
+          <House size={22} />
+        </NavLink>
+        <TopSearch key={location.pathname === '/search' ? 'search' : 'other'} />
+      </div>
+      <div className="top-bar__right">
+        {!premium && (
+          <Link to="/premium" className="top-bar__premium">
+            <Sparkle size={15} /> <span>Découvrir Podsal+</span>
+          </Link>
+        )}
+        <NavLink to="/friends" className="top-bar__round" aria-label="Amis" title="Amis">
+          <Users size={18} />
+        </NavLink>
+        <MeButton className="top-bar__me" />
+      </div>
+    </header>
+  );
+}
+
+/** « Bibliothèque » du menu de gauche, comme Spotify : filtres, bouton +, podcasts suivis et playlists. */
+function SidebarLibrary({ subscriptions }: { subscriptions: Podcast[] }) {
+  const { playlists } = useLibrary();
+  const [filter, setFilter] = useState<'all' | 'podcasts' | 'playlists'>('all');
+  const showPodcasts = filter !== 'playlists';
+  const showPlaylists = filter !== 'podcasts';
+  const empty = !subscriptions.length && !playlists.length;
+  return (
+    <div className="sidebar__subs sidebar-lib">
+      <div className="sidebar-lib__head">
+        <Link to="/library" className="sidebar-lib__title" title="Bibliothèque">
+          <Library size={22} />
+          <span>Bibliothèque</span>
+        </Link>
+        <Link to="/library?tab=playlists&new=1" className="icon-btn sidebar-lib__add" aria-label="Créer une playlist" title="Créer une playlist">
+          <Plus size={18} />
+        </Link>
+      </div>
+      {!empty && (
+        <div className="sidebar-lib__chips" role="group" aria-label="Filtrer la bibliothèque">
+          {(
+            [
+              ['podcasts', 'Podcasts'],
+              ['playlists', 'Playlists'],
+            ] as const
+          ).map(([id, label]) => (
+            <button key={id} className={`sidebar-lib__chip ${filter === id ? 'active' : ''}`} aria-pressed={filter === id} onClick={() => setFilter((f) => (f === id ? 'all' : id))}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+      {empty && <p className="small muted">Abonnez-vous à des podcasts ou créez une playlist pour les retrouver ici.</p>}
+      {showPodcasts &&
+        subscriptions.map((p) => (
+          <NavLink key={p.id} to={podcastPath(p.id)} className="sub-link" title={p.title}>
+            <Artwork alt={p.title} size={44} podcastId={p.id} genre={p.genre} genreIds={p.genreIds} />
+            <span>
+              <span className="sub-link__title">{p.title}</span>
+              <span className="sub-link__author">Podcast · {p.author}</span>
+            </span>
+          </NavLink>
+        ))}
+      {showPlaylists &&
+        playlists.map((pl) => (
+          <NavLink key={pl.id} to={`/playlist/${pl.id}`} className="sub-link" title={pl.name}>
+            <span className="sub-link__playlist" aria-hidden>
+              <ListMusic size={18} />
+            </span>
+            <span>
+              <span className="sub-link__title">{pl.name}</span>
+              <span className="sub-link__author">
+                Playlist · {pl.items.length} élément{pl.items.length > 1 ? 's' : ''}
+              </span>
+            </span>
+          </NavLink>
+        ))}
+    </div>
   );
 }
 
@@ -142,10 +239,15 @@ function BottomNav() {
           </div>
         </div>
       )}
+      {/* Comme Spotify : Accueil, Rechercher et Bibliothèque, avec le Coran et la Prière au centre. */}
       <nav className="bottom-nav">
         <NavLink to="/" end className="bottom-nav__link">
           <House size={22} />
           <span>Accueil</span>
+        </NavLink>
+        <NavLink to="/search" className="bottom-nav__link">
+          <Search size={22} />
+          <span>Rechercher</span>
         </NavLink>
         <button className={`bottom-nav__link ${inQuran ? 'active' : ''}`} onClick={() => setChoosing((c) => !c)} aria-expanded={choosing}>
           <BookOpen size={22} />
@@ -155,13 +257,9 @@ function BottomNav() {
           <Clock size={22} />
           <span className="bottom-nav__countdown">{countdown ? `${countdown.name} ${countdown.left}` : 'Prière'}</span>
         </NavLink>
-        <NavLink to="/search" className="bottom-nav__link">
-          <Search size={22} />
-          <span>Rechercher</span>
-        </NavLink>
-        <NavLink to="/account" className="bottom-nav__link">
-          <User size={22} />
-          <span>Moi</span>
+        <NavLink to="/library" className="bottom-nav__link">
+          <Library size={22} />
+          <span>Bibliothèque</span>
         </NavLink>
       </nav>
     </>
@@ -336,7 +434,6 @@ export function Layout() {
             </span>
             <Wordmark className="brand__wordmark" title="" />
           </Link>
-          <SidebarSearch />
           <nav className="sidebar__nav">
             {SIDEBAR_NAV.map(({ to, label, icon: Icon, end, also }) => (
               <div key={to} className="nav-group">
@@ -370,20 +467,9 @@ export function Layout() {
               </NavLink>
             )}
           </nav>
+          {/* Sans abonnement, l'invitation est dans la barre du haut (ordinateur) ; la carte du menu ne sert plus qu'aux abonnés et sur tablette. */}
           <PremiumCard active={isPremium} />
-          <div className="sidebar__subs">
-            <div className="sidebar__heading">Vos abonnements</div>
-            {subscriptions.length === 0 && <p className="small muted">Abonnez-vous à des podcasts pour les retrouver ici.</p>}
-            {subscriptions.map((p) => (
-              <NavLink key={p.id} to={podcastPath(p.id)} className="sub-link" title={p.title}>
-                <Artwork alt={p.title} size={40} podcastId={p.id} genre={p.genre} genreIds={p.genreIds} />
-                <span>
-                  <span className="sub-link__title">{p.title}</span>
-                  <span className="sub-link__author">{p.author}</span>
-                </span>
-              </NavLink>
-            ))}
-          </div>
+          <SidebarLibrary subscriptions={subscriptions} />
           <AccountLink />
         </aside>
 
@@ -393,6 +479,7 @@ export function Layout() {
               <WifiOff size={16} /> Hors-ligne : les épisodes téléchargés restent disponibles dans la Bibliothèque.
             </div>
           )}
+          <DesktopTopBar premium={isPremium} />
           <DesktopUpdateBanner />
           <MobileBackBar />
           <div className="route-view" key={location.pathname}>

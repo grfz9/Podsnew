@@ -1,6 +1,9 @@
 import type { CSSProperties } from 'react';
 import { Link } from 'react-router';
-import { BookOpen, BookOpenText, Download, FolderOpen, Heart, Mic, User } from 'lucide-react';
+import { BookOpen, BookOpenText, Download, FolderOpen, Heart, ListMusic, Mic } from 'lucide-react';
+import { MeButton } from '../components/MeButton';
+import { podcastPath } from '../lib/paths';
+import { LOCAL_PODCAST_ID } from '../lib/localFiles';
 import { getReciters, quranPodcastId } from '../api/quran';
 import { knownReciterRank } from '../data/reciters';
 import { ALL_INTERESTS, type Interest } from '../store/library';
@@ -154,6 +157,52 @@ function QuranRow() {
   );
 }
 
+interface RecentItem {
+  key: string;
+  to: string;
+  title: string;
+  podcastId?: string;
+  genre?: string;
+}
+
+/**
+ * « Récents » : grille compacte de deux colonnes en haut de l'accueil, comme Spotify.
+ * Les derniers podcasts et récitateurs écoutés, puis les playlists : un toucher pour y revenir.
+ */
+function RecentGrid() {
+  const { history, playlists } = useLibrary();
+  const { allowsEpisode } = useModeration();
+  const items: RecentItem[] = [];
+  const seen = new Set<string>();
+  for (const e of history) {
+    if (items.length >= 6) break;
+    if (seen.has(e.podcastId) || e.podcastId === LOCAL_PODCAST_ID || e.mediaKind || !allowsEpisode(e)) continue;
+    seen.add(e.podcastId);
+    items.push({ key: e.podcastId, to: podcastPath(e.podcastId), title: e.podcastTitle, podcastId: e.podcastId, genre: e.genre });
+  }
+  for (const p of playlists) {
+    if (items.length >= 8) break;
+    items.push({ key: `pl-${p.id}`, to: `/playlist/${p.id}`, title: p.name });
+  }
+  if (items.length < 2) return null;
+  return (
+    <nav className="recent-grid" aria-label="Récents">
+      {items.slice(0, items.length % 2 ? items.length - 1 : items.length).map((item, i) => (
+        <Link key={item.key} to={item.to} className="recent-grid__item" style={{ '--i': i } as CSSProperties}>
+          {item.podcastId ? (
+            <Artwork alt="" podcastId={item.podcastId} genre={item.genre} className="recent-grid__art" />
+          ) : (
+            <span className="recent-grid__art recent-grid__art--playlist" aria-hidden>
+              <ListMusic size={20} />
+            </span>
+          )}
+          <span className="recent-grid__title">{item.title}</span>
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 function greeting(date = new Date()): string {
   const h = date.getHours();
   if (h < 5) return 'Bonne nuit';
@@ -181,9 +230,7 @@ export function Home() {
             </span>
             <Wordmark className="mobile-brand__wordmark" title="" />
           </div>
-          <Link to="/account" className="home-head__me" aria-label={name ? `Mon espace (${name})` : 'Mon espace'}>
-            {name ? <span className="avatar avatar--small">{name.slice(0, 1).toUpperCase()}</span> : <User size={20} />}
-          </Link>
+          <MeButton className="home-head__me" />
         </div>
         <h1 className="page__title home-head__title">As-salāmu ʿalaykum</h1>
         <p className="home-head__date">
@@ -195,6 +242,7 @@ export function Home() {
         </p>
       </header>
 
+      <RecentGrid />
       {resume && <ResumeHero episode={resume} />}
       <PrayerCard />
       <RamadanTeaser />

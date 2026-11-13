@@ -1137,16 +1137,78 @@ a.playlist-card:hover { background: var(--bg-hover); }
 .shortcuts--row .shortcut__count { position: absolute; top: 10px; right: 10px; }
 .shortcuts--row .shortcut__label { white-space: normal; font-size: 13px; }
 
-/* Bibliothèque : onglets sur ordinateur, tuiles sur téléphone. */
-.library-shortcuts, .library-section-title { display: none; }
+/* Bibliothèque : onglets sur ordinateur ; sur téléphone, filtres défilants et liste compacte (comme Spotify). */
+.library-chips, .library-list, .me-button.library-head__me, .library-head__add { display: none; }
 @media (max-width: 800px) {
-  .library-tabs { display: none; }
-  .library-shortcuts { display: block; }
-  .library-shortcuts .shortcuts { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
-  .library-shortcuts .shortcut { padding: 10px; font-size: 13px; }
-  .library-shortcuts .shortcut__icon { width: 32px; height: 32px; border-radius: 10px; }
-  .library-section-title { display: block; font-size: 20px; font-weight: 800; margin: 4px 0 12px; animation: fade-in 0.3s ease; }
+  .library-tabs, .library-stats-link, .library-grid-desktop { display: none; }
+  .library-head { flex-wrap: nowrap; align-items: center; gap: 12px; }
+  .library-head .page__title { flex: 1; font-size: 24px; margin: 0; }
+  .library-head { margin-bottom: 14px; }
+  .me-button.library-head__me, .library-head__add { display: grid; }
+  .library-head__add { width: 40px; height: 40px; place-items: center; }
+  .library-chips {
+    display: flex; gap: 8px; margin: 0 -16px 16px; padding: 2px 16px 4px; overflow-x: auto; scrollbar-width: none;
+    scroll-padding: 0 16px; scroll-snap-type: x proximity;
+  }
+  .library-chips::-webkit-scrollbar { display: none; }
+  .library-chip {
+    display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; min-height: 34px; padding: 0 12px; border-radius: 8px;
+    background: var(--bg-elevated); border: 1px solid var(--line); font-size: 13px; font-weight: 600; white-space: nowrap;
+    scroll-snap-align: start; transition: background 0.2s, color 0.2s, transform 0.1s;
+  }
+  .library-chip:active { transform: scale(0.96); }
+  .library-chip--active { background: var(--accent); border-color: var(--accent); color: #062420; }
+  .library-chip__count { font-size: 11px; font-weight: 800; opacity: 0.7; }
+  .library-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 24px; }
+  .library-list__row {
+    display: flex; align-items: center; gap: 12px; padding: 6px; margin: 0 -6px; border-radius: 10px;
+    animation: rise 0.35s var(--ease) backwards; animation-delay: calc(var(--i, 0) * 20ms);
+  }
+  .library-list__row:active { background: var(--bg-hover); }
+  .library-list__row .artwork { border-radius: 6px; flex-shrink: 0; }
+  .library-list__text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .library-list__title, .library-list__meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .library-list__title { font-weight: 600; font-size: 15px; }
+  .library-list__meta { font-size: 13px; color: var(--text-muted); }
 }
+
+/* Pastille du compte (téléphone) : en haut de l'accueil, de la recherche et de la bibliothèque. */
+.me-button {
+  display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%;
+  background: var(--bg-elevated); border: 1px solid var(--line); color: var(--text-muted);
+}
+.me-button .avatar--small { width: 36px; height: 36px; font-size: 15px; }
+.me-button:active { transform: scale(0.92); }
+.mobile-page-head { display: none; }
+@media (max-width: 800px) {
+  .mobile-page-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .mobile-page-head .page__title { font-size: 24px; margin: 0; }
+}
+
+/* Récents : grille compacte de deux colonnes en haut de l'accueil (comme Spotify). */
+.recent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; margin-bottom: 20px; }
+.recent-grid__item {
+  display: flex; align-items: center; gap: 10px; min-width: 0; height: 56px; padding-right: 10px; overflow: hidden;
+  border-radius: 8px; background: color-mix(in srgb, var(--text) 8%, var(--bg-elevated)); font-weight: 700; font-size: 13px;
+  animation: rise 0.35s var(--ease) backwards; animation-delay: calc(var(--i, 0) * 25ms);
+  transition: background 0.2s, transform 0.1s;
+}
+.recent-grid__item:hover { background: color-mix(in srgb, var(--text) 14%, var(--bg-elevated)); }
+.recent-grid__item:active { transform: scale(0.97); }
+.recent-grid__art { width: 56px !important; height: 56px !important; flex-shrink: 0; border-radius: 0 !important; }
+.recent-grid__art--playlist { display: grid; place-items: center; background: linear-gradient(135deg, #2f4f4f, #1a3030); color: #e2c485; }
+.recent-grid__title { min-width: 0; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+@media (max-width: 800px) { .recent-grid { grid-template-columns: 1fr 1fr; } }
+
+/* Serveur des comptes injoignable : explication claire à la place de « Failed to fetch ». */
+.backend-status {
+  display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: start; padding: 12px 14px; margin-bottom: 14px;
+  border-radius: 12px; background: rgba(241, 94, 108, 0.1); border: 1px solid rgba(241, 94, 108, 0.35); color: var(--text);
+}
+.backend-status > svg { color: var(--danger); margin-top: 2px; }
+.backend-status p { margin: 4px 0 0; color: var(--text-muted); }
+.backend-status code { font-size: 12px; color: var(--text); word-break: break-all; }
+.backend-status .btn { grid-column: 2; justify-self: start; margin-top: 4px; padding-left: 0; }
 .account-login-title { margin-top: 8px; }
 
 /* ---------- Accueil ---------- */
@@ -1154,6 +1216,7 @@ a.playlist-card:hover { background: var(--bg-hover); }
 .home-head__me { display: none; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--bg-elevated); border: 1px solid var(--line); color: var(--text-muted); margin-bottom: 18px; }
 .home-head__me .avatar--small { width: 38px; height: 38px; font-size: 16px; }
 @media (max-width: 800px) { .home-head__me { display: grid; } }
+.home-head__me.me-button { width: 38px; height: 38px; }
 
 .resume-hero {
   position: relative; display: flex; align-items: center; gap: 16px; padding: 14px; margin-bottom: 18px; overflow: hidden;
@@ -1996,4 +2059,88 @@ kbd { padding: 2px 6px; border-radius: 6px; border: 1px solid var(--border); bac
   .daily-verse__source { font-size: 11px; line-height: 1.4; }
   .plan-card { padding: 12px 14px; }
   .home .section__title, .home .section-title { font-size: 18px; }
+}
+
+/* ======================================================================
+ * Ordinateur, comme Spotify : panneaux arrondis sur fond noir,
+ * barre du haut (précédent / suivant, accueil, recherche, compte), bibliothèque à gauche.
+ * ====================================================================== */
+.top-bar { display: none; }
+@media (min-width: 801px) {
+  body { background: #000; }
+  .app { background: #000; gap: 8px; padding: 8px 8px 0; }
+  .app:not(.app--with-player) { padding-bottom: 8px; }
+  .sidebar, .main { border-radius: 10px; border: 0; }
+  .sidebar { border-right: 0; }
+  .main { position: relative; }
+  .player-bar { margin: 0 -8px; border-top: 0; background: #000; }
+
+  .top-bar {
+    position: sticky; top: 0; z-index: 30; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px;
+    padding: 10px 16px; background: color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  }
+  .top-bar__nav, .top-bar__right, .top-bar__center { display: flex; align-items: center; gap: 8px; }
+  .top-bar__center { justify-content: center; }
+  .top-bar__round {
+    display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: rgba(0, 0, 0, 0.55); color: var(--text);
+    transition: background 0.15s, transform 0.1s;
+  }
+  .top-bar__round:hover:not(:disabled) { background: var(--bg-hover); }
+  .top-bar__round:active:not(:disabled) { transform: scale(0.94); }
+  .top-bar__round:disabled { opacity: 0.35; }
+  .top-bar__round.active { color: var(--accent); }
+  .top-bar__home {
+    display: grid; place-items: center; flex: none; width: 46px; height: 46px; border-radius: 50%; background: var(--bg-hover); color: var(--text-muted);
+    transition: color 0.15s, transform 0.1s;
+  }
+  .top-bar__home:hover, .top-bar__home.active { color: var(--text); }
+  .top-bar__home:active { transform: scale(0.95); }
+  .top-search {
+    display: flex; align-items: center; gap: 10px; width: min(480px, 100%); height: 46px; padding: 0 14px; border-radius: 23px;
+    background: var(--bg-hover); border: 1px solid transparent; color: var(--text-muted); transition: border-color 0.15s, background 0.15s;
+  }
+  .top-search:hover { background: color-mix(in srgb, var(--text) 10%, var(--bg-elevated)); }
+  .top-search:focus-within { border-color: var(--text); color: var(--text); }
+  .top-search input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font-size: 15px; outline: none; }
+  .top-search__kbd { flex: none; padding: 2px 6px; border-radius: 6px; border: 1px solid var(--border); font-size: 10px; font-weight: 700; color: var(--text-muted); }
+  .top-search__kbd:hover { color: var(--text); }
+  .top-bar__premium {
+    display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 8px; background: var(--text); color: #0d1111;
+    font-size: 13px; font-weight: 800; white-space: nowrap; transition: transform 0.1s, background 0.15s;
+  }
+  .top-bar__premium:hover { background: #fff; transform: scale(1.03); }
+  .top-bar__me { width: 34px; height: 34px; background: rgba(0, 0, 0, 0.55); border: 0; }
+  .top-bar__me .avatar--small { width: 28px; height: 28px; font-size: 13px; }
+  .top-bar ~ .route-view > .page { padding-top: 8px; }
+  .search-page__box { display: none; }
+
+  /* Bibliothèque du menu de gauche */
+  .sidebar-lib { border-top: 0; margin-top: 4px; padding-top: 4px; border-radius: 8px; }
+  .sidebar-lib__head { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 10px 12px; }
+  .sidebar-lib__title { display: inline-flex; align-items: center; gap: 12px; font-weight: 700; color: var(--text-muted); transition: color 0.15s; }
+  .sidebar-lib__title:hover { color: var(--text); }
+  .sidebar-lib__add { width: 32px; height: 32px; border-radius: 50%; color: var(--text-muted); }
+  .sidebar-lib__add:hover { color: var(--text); background: var(--bg-hover); }
+  .sidebar-lib__chips { display: flex; gap: 8px; padding: 0 8px 10px; flex-wrap: wrap; }
+  .sidebar-lib__chip {
+    height: 30px; padding: 0 12px; border-radius: 8px; background: var(--bg-hover); font-size: 13px; font-weight: 600; color: var(--text);
+    transition: background 0.15s;
+  }
+  .sidebar-lib__chip:hover { background: color-mix(in srgb, var(--text) 14%, var(--bg-elevated)); }
+  .sidebar-lib__chip.active { background: var(--accent); color: #062420; }
+  .sidebar-lib > p { padding: 0 12px; }
+  .sub-link__playlist {
+    display: grid !important; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 4px;
+    background: linear-gradient(135deg, #2f4f4f, #1a3030); color: #e2c485;
+  }
+}
+@media (min-width: 1101px) {
+  /* L'invitation à Podsal+ est dans la barre du haut : la carte du menu ne reste que pour les abonnés. */
+  .premium-card:not(.premium-card--active) { display: none; }
+}
+@media (min-width: 801px) and (max-width: 1100px) {
+  .top-bar__premium { display: none; }
+  .sidebar-lib__head { justify-content: center; padding: 6px 0 10px; }
+  .sidebar-lib__title span, .sidebar-lib__add, .sidebar-lib__chips, .sidebar-lib > p, .sub-link > span:not(.sub-link__playlist) { display: none; }
+  .sub-link { justify-content: center; padding: 6px 0; }
 }

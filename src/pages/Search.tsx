@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { MeButton } from '../components/MeButton';
 import { Link, useSearchParams } from 'react-router';
 import { BookOpen, BookOpenText, Clock, FileText, Mic, Search as SearchIcon, X } from 'lucide-react';
 import { searchAllPodcasts } from '../api/catalog';
@@ -173,6 +174,10 @@ export function SearchPage() {
 
   return (
     <div className="page">
+      <div className="mobile-page-head">
+        <MeButton />
+        <h1 className="page__title">Rechercher</h1>
+      </div>
       <div className="search-box search-page__box">
         <SearchIcon size={20} />
         <input
@@ -181,7 +186,8 @@ export function SearchPage() {
           onChange={(e) => setInput(e.target.value)}
           placeholder={tab === 'transcripts' ? 'Un sujet, une personne, une citation…' : 'Récitateurs, podcasts islamiques, épisodes…'}
           aria-label="Rechercher"
-          autoFocus
+          // Sur téléphone, le clavier ne s'ouvre qu'au toucher du champ (on peut d'abord parcourir les rubriques).
+          autoFocus={!window.matchMedia?.('(pointer: coarse)').matches || !!input}
         />
         {input && (
           <button className="icon-btn" onClick={() => setInput('')} aria-label="Effacer">
