@@ -2060,3 +2060,87 @@ kbd { padding: 2px 6px; border-radius: 6px; border: 1px solid var(--border); bac
   .plan-card { padding: 12px 14px; }
   .home .section__title, .home .section-title { font-size: 18px; }
 }
+
+/* ======================================================================
+ * Ordinateur, comme Spotify : panneaux arrondis sur fond noir,
+ * barre du haut (précédent / suivant, accueil, recherche, compte), bibliothèque à gauche.
+ * ====================================================================== */
+.top-bar { display: none; }
+@media (min-width: 801px) {
+  body { background: #000; }
+  .app { background: #000; gap: 8px; padding: 8px 8px 0; }
+  .app:not(.app--with-player) { padding-bottom: 8px; }
+  .sidebar, .main { border-radius: 10px; border: 0; }
+  .sidebar { border-right: 0; }
+  .main { position: relative; }
+  .player-bar { margin: 0 -8px; border-top: 0; background: #000; }
+
+  .top-bar {
+    position: sticky; top: 0; z-index: 30; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px;
+    padding: 10px 16px; background: color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  }
+  .top-bar__nav, .top-bar__right, .top-bar__center { display: flex; align-items: center; gap: 8px; }
+  .top-bar__center { justify-content: center; }
+  .top-bar__round {
+    display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: rgba(0, 0, 0, 0.55); color: var(--text);
+    transition: background 0.15s, transform 0.1s;
+  }
+  .top-bar__round:hover:not(:disabled) { background: var(--bg-hover); }
+  .top-bar__round:active:not(:disabled) { transform: scale(0.94); }
+  .top-bar__round:disabled { opacity: 0.35; }
+  .top-bar__round.active { color: var(--accent); }
+  .top-bar__home {
+    display: grid; place-items: center; flex: none; width: 46px; height: 46px; border-radius: 50%; background: var(--bg-hover); color: var(--text-muted);
+    transition: color 0.15s, transform 0.1s;
+  }
+  .top-bar__home:hover, .top-bar__home.active { color: var(--text); }
+  .top-bar__home:active { transform: scale(0.95); }
+  .top-search {
+    display: flex; align-items: center; gap: 10px; width: min(480px, 100%); height: 46px; padding: 0 14px; border-radius: 23px;
+    background: var(--bg-hover); border: 1px solid transparent; color: var(--text-muted); transition: border-color 0.15s, background 0.15s;
+  }
+  .top-search:hover { background: color-mix(in srgb, var(--text) 10%, var(--bg-elevated)); }
+  .top-search:focus-within { border-color: var(--text); color: var(--text); }
+  .top-search input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font-size: 15px; outline: none; }
+  .top-search__kbd { flex: none; padding: 2px 6px; border-radius: 6px; border: 1px solid var(--border); font-size: 10px; font-weight: 700; color: var(--text-muted); }
+  .top-search__kbd:hover { color: var(--text); }
+  .top-bar__premium {
+    display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 8px; background: var(--text); color: #0d1111;
+    font-size: 13px; font-weight: 800; white-space: nowrap; transition: transform 0.1s, background 0.15s;
+  }
+  .top-bar__premium:hover { background: #fff; transform: scale(1.03); }
+  .top-bar__me { width: 34px; height: 34px; background: rgba(0, 0, 0, 0.55); border: 0; }
+  .top-bar__me .avatar--small { width: 28px; height: 28px; font-size: 13px; }
+  .top-bar ~ .route-view > .page { padding-top: 8px; }
+  .search-page__box { display: none; }
+
+  /* Bibliothèque du menu de gauche */
+  .sidebar-lib { border-top: 0; margin-top: 4px; padding-top: 4px; border-radius: 8px; }
+  .sidebar-lib__head { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 10px 12px; }
+  .sidebar-lib__title { display: inline-flex; align-items: center; gap: 12px; font-weight: 700; color: var(--text-muted); transition: color 0.15s; }
+  .sidebar-lib__title:hover { color: var(--text); }
+  .sidebar-lib__add { width: 32px; height: 32px; border-radius: 50%; color: var(--text-muted); }
+  .sidebar-lib__add:hover { color: var(--text); background: var(--bg-hover); }
+  .sidebar-lib__chips { display: flex; gap: 8px; padding: 0 8px 10px; flex-wrap: wrap; }
+  .sidebar-lib__chip {
+    height: 30px; padding: 0 12px; border-radius: 8px; background: var(--bg-hover); font-size: 13px; font-weight: 600; color: var(--text);
+    transition: background 0.15s;
+  }
+  .sidebar-lib__chip:hover { background: color-mix(in srgb, var(--text) 14%, var(--bg-elevated)); }
+  .sidebar-lib__chip.active { background: var(--accent); color: #062420; }
+  .sidebar-lib > p { padding: 0 12px; }
+  .sub-link__playlist {
+    display: grid !important; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 4px;
+    background: linear-gradient(135deg, #2f4f4f, #1a3030); color: #e2c485;
+  }
+}
+@media (min-width: 1101px) {
+  /* L'invitation à Podsal+ est dans la barre du haut : la carte du menu ne reste que pour les abonnés. */
+  .premium-card:not(.premium-card--active) { display: none; }
+}
+@media (min-width: 801px) and (max-width: 1100px) {
+  .top-bar__premium { display: none; }
+  .sidebar-lib__head { justify-content: center; padding: 6px 0 10px; }
+  .sidebar-lib__title span, .sidebar-lib__add, .sidebar-lib__chips, .sidebar-lib > p, .sub-link > span:not(.sub-link__playlist) { display: none; }
+  .sub-link { justify-content: center; padding: 6px 0; }
+}
