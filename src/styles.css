@@ -98,7 +98,7 @@ mark { background: rgba(108, 196, 180, 0.3); color: var(--text); border-radius: 
 .sub-link .artwork { border-radius: 4px; flex-shrink: 0; }
 
 .main { overflow-y: auto; min-height: 0; background: var(--bg); }
-.page { padding: 24px 32px 48px; max-width: 1400px; margin: 0 auto; }
+.page { padding: 24px 32px 48px; max-width: 1800px; margin: 0 auto; }
 .page--flush { padding: 0 0 48px; }
 .page__title { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 20px; }
 .page__header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
