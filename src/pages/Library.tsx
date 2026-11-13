@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { Bell, ChartColumn, Clock, Download, FileDown, FolderOpen, Heart, History, Library as LibraryIcon, ListMusic, Play, Podcast, Scissors, Trash } from 'lucide-react';
+import { Bell, ChartColumn, Plus, Clock, Download, FileDown, FolderOpen, Heart, History, Library as LibraryIcon, ListMusic, Play, Podcast, Scissors, Trash } from 'lucide-react';
 import { PlaylistGrid } from '../components/Playlists';
 import { COUNTRIES } from '../api/genres';
 import { lookupPodcasts } from '../api/itunes';
@@ -9,7 +9,11 @@ import { PodcastGrid } from '../components/PodcastCard';
 import { clipPath } from '../components/EpisodeExtras';
 import { Artwork, EmptyState, Tabs, formatBytes, shareLink } from '../components/common';
 import { LocalFilesPanel } from './LocalFiles';
-import { Shortcuts, type Shortcut } from '../components/Shortcuts';
+import type { Shortcut } from '../components/Shortcuts';
+import { MeButton } from '../components/MeButton';
+import { podcastPath } from '../lib/paths';
+import type { Podcast as PodcastType } from '../types';
+import type { CSSProperties } from 'react';
 import { useLocalFiles } from '../store/localFiles';
 import { PremiumTeaser } from '../components/Premium';
 import { FREE_DOWNLOADS, usePremium } from '../store/premium';
@@ -33,7 +37,7 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id'];
 
-function Playlists() {
+function Playlists({ autoFocus = false }: { autoFocus?: boolean }) {
   const library = useLibrary();
   const [name, setName] = useState('');
   return (
@@ -49,7 +53,7 @@ function Playlists() {
       >
         <label>
           Nouvelle playlist
-          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="Ex. Tafsir du soir" />
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="Ex. Tafsir du soir" autoFocus={autoFocus} />
         </label>
         <button className="btn btn--primary btn--small" type="submit" disabled={!name.trim()}>
           Créer
@@ -232,6 +236,37 @@ function Settings() {
   );
 }
 
+/** Téléphone : abonnements en liste compacte (pochette, titre, auteur), comme la bibliothèque de Spotify. */
+function SubscriptionList({ podcasts }: { podcasts: PodcastType[] }) {
+  return (
+    <div className="library-list">
+      {podcasts.map((p, i) => (
+        <Link key={p.id} to={podcastPath(p.id)} className="library-list__row" style={{ '--i': Math.min(i, 12) } as CSSProperties}>
+          <Artwork alt="" size={56} podcastId={p.id} genre={p.genre} genreIds={p.genreIds} />
+          <span className="library-list__text">
+            <span className="library-list__title">{p.title}</span>
+            <span className="library-list__meta">Podcast · {p.author}</span>
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+/** Filtres de la bibliothèque sur téléphone : une rangée défilante au lieu d'une grille de tuiles. */
+function LibraryChips({ items }: { items: Shortcut[] }) {
+  return (
+    <nav className="library-chips" aria-label="Rubriques de la bibliothèque">
+      {items.map(({ to, label, count, active }) => (
+        <Link key={to} to={to} replace={to.includes('?tab=')} className={`library-chip ${active ? 'library-chip--active' : ''}`} aria-current={active ? 'page' : undefined}>
+          {label}
+          {count !== undefined && count > 0 && <span className="library-chip__count">{count > 99 ? '99+' : count}</span>}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 export function LibraryPage() {
   const library = useLibrary();
   const { filterPodcasts } = useModeration();
@@ -241,7 +276,7 @@ export function LibraryPage() {
   const [params, setParams] = useSearchParams();
   const tab = (TABS.find((t) => t.id === params.get('tab'))?.id ?? 'subscriptions') as TabId;
 
-  // Sur téléphone, toutes les rubriques sont visibles d'un coup d'œil (tuiles) au lieu d'onglets qui défilent.
+  // Sur téléphone : une rangée de filtres (comme Spotify) au lieu des onglets.
   const shortcuts: Shortcut[] = (
     [
       { id: 'subscriptions', icon: Podcast, color: '#6cc4b4', count: subscriptions.length },
@@ -262,30 +297,36 @@ export function LibraryPage() {
 
   return (
     <div className="page">
-      <div className="page__header">
+      <div className="page__header library-head">
+        <MeButton className="library-head__me" />
         <h1 className="page__title">Bibliothèque</h1>
         <Link to="/stats" className="btn btn--outline btn--small library-stats-link">
           <ChartColumn size={14} /> Statistiques d'écoute
+        </Link>
+        <Link to="/library?tab=playlists&new=1" replace className="icon-btn library-head__add" aria-label="Créer une playlist" title="Créer une playlist">
+          <Plus size={24} />
         </Link>
       </div>
       <div className="library-tabs">
         <Tabs tabs={[...TABS]} value={tab} onChange={(id) => setParams({ tab: id }, { replace: true })} />
       </div>
-      <div className="library-shortcuts">
-        <Shortcuts items={shortcuts} label="Rubriques de la bibliothèque" />
-      </div>
-      <h2 className="library-section-title">{TABS.find((t) => t.id === tab)!.label}</h2>
+      <LibraryChips items={shortcuts} />
 
       {tab === 'subscriptions' &&
         (subscriptions.length ? (
-          <PodcastGrid podcasts={subscriptions} />
+          <>
+            <div className="library-grid-desktop">
+              <PodcastGrid podcasts={subscriptions} />
+            </div>
+            <SubscriptionList podcasts={subscriptions} />
+          </>
         ) : (
           <EmptyState icon={<LibraryIcon size={32} />} title="Aucun abonnement">
             Abonnez-vous à des <Link to="/islam" className="link">podcasts islamiques</Link> pour retrouver ici leurs nouveaux épisodes.
           </EmptyState>
         ))}
 
-      {tab === 'playlists' && <Playlists />}
+      {tab === 'playlists' && <Playlists key={params.get('new') ?? ''} autoFocus={params.get('new') === '1'} />}
 
       {tab === 'downloads' && <Downloads />}
 

@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Link } from 'react-router';
-import { ChartColumn, ChevronRight, LogIn, Library as LibraryIcon, Settings, Cloud, Crown, FolderOpen, Image, ListMusic, ListOrdered, LogOut, Mail, Mic, ShieldCheck, Smartphone, Sparkle, Users } from 'lucide-react';
+import { ChartColumn, ChevronRight, RefreshCw, TriangleAlert, LogIn, Library as LibraryIcon, Settings, Cloud, Crown, FolderOpen, Image, ListMusic, ListOrdered, LogOut, Mail, Mic, ShieldCheck, Smartphone, Sparkle, Users } from 'lucide-react';
 import { Shortcuts, type Shortcut } from '../components/Shortcuts';
 import { normalizePhone } from '../utils/phone';
 import { usePremium } from '../store/premium';
@@ -9,6 +9,7 @@ import { useModeration } from '../store/moderation';
 import { isUsernameAvailable } from '../api/social';
 import { EmptyState, Tabs } from '../components/common';
 import { useAuth } from '../store/auth';
+import { backendHost, checkBackend, friendlyError, type BackendHealth } from '../lib/supabase';
 import { isStandalone } from '../lib/install';
 
 const USERNAME = /^[a-z0-9_]{3,24}$/;
@@ -30,6 +31,55 @@ function AppleLogo() {
     <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden>
       <path d="M16.37 12.64c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.48.83-.72 0-1.83-.81-3-.79-1.55.02-2.97.9-3.77 2.28-1.61 2.79-.41 6.92 1.16 9.18.77 1.11 1.68 2.35 2.88 2.31 1.16-.05 1.59-.75 2.99-.75 1.39 0 1.79.75 3.01.72 1.24-.02 2.03-1.13 2.79-2.24.88-1.29 1.24-2.53 1.26-2.6-.03-.01-2.42-.93-2.44-3.68zM14.08 5.9c.64-.77 1.07-1.85.95-2.92-.92.04-2.03.61-2.69 1.38-.59.68-1.11 1.77-.97 2.82 1.02.08 2.07-.52 2.71-1.28z" />
     </svg>
+  );
+}
+
+const HEALTH_TEXT: Record<Exclude<BackendHealth, 'ok'>, { title: string; hint: string }> = {
+  offline: { title: 'Vous êtes hors-ligne', hint: 'La connexion à votre compte reviendra dès que l’appareil sera connecté à internet.' },
+  unreachable: {
+    title: 'Le serveur des comptes est injoignable',
+    hint: 'Son adresse ne répond pas : le projet Supabase est peut-être en pause, supprimé, ou l’adresse configurée est incorrecte. Votre bibliothèque reste disponible sur cet appareil.',
+  },
+  'bad-key': {
+    title: 'La clé du serveur des comptes est refusée',
+    hint: 'Le serveur répond, mais la clé publique configurée ne correspond pas à ce projet.',
+  },
+  error: { title: 'Le serveur des comptes ne répond pas correctement', hint: 'Réessayez dans quelques instants.' },
+};
+
+/** Vérifie le serveur avant même la saisie : un problème est expliqué clairement au lieu de « Failed to fetch ». */
+function BackendStatus() {
+  const [health, setHealth] = useState<BackendHealth | 'checking'>('checking');
+  const check = useCallback(() => {
+    setHealth('checking');
+    void checkBackend().then(setHealth);
+  }, []);
+  useEffect(() => {
+    check();
+    window.addEventListener('online', check);
+    return () => window.removeEventListener('online', check);
+  }, [check]);
+  if (health === 'checking' || health === 'ok') return null;
+  const { title, hint } = HEALTH_TEXT[health];
+  return (
+    <div className="backend-status" role="alert">
+      <TriangleAlert size={20} aria-hidden />
+      <div>
+        <strong>{title}</strong>
+        <p className="small">
+          {hint}
+          {backendHost && health !== 'offline' && (
+            <>
+              {' '}
+              Serveur : <code>{backendHost}</code>
+            </>
+          )}
+        </p>
+      </div>
+      <button type="button" className="btn btn--ghost btn--small" onClick={check}>
+        <RefreshCw size={14} /> Réessayer
+      </button>
+    </div>
   );
 }
 
@@ -63,7 +113,7 @@ function AuthForms() {
     try {
       await fn();
     } catch (err) {
-      setError((err as Error).message);
+      setError(friendlyError(err));
     } finally {
       setBusy(false);
     }
@@ -110,6 +160,7 @@ function AuthForms() {
 
   return (
     <div className="auth-card">
+      <BackendStatus />
       <Tabs
         tabs={[
           { id: 'signin', label: 'Se connecter' },
@@ -243,7 +294,7 @@ function ChooseUsername() {
             try {
               await auth.setUsername(name);
             } catch (err) {
-              setError((err as Error).message);
+              setError(friendlyError(err));
             } finally {
               setBusy(false);
             }

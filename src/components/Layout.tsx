@@ -36,8 +36,8 @@ const SIDEBAR_NAV = [
 /** Événement envoyé par la barre de recherche du menu à la page Rechercher. */
 export const SEARCH_INPUT_EVENT = 'podsal:search-input';
 
-/** Pages principales (barre du bas) : pas de bouton retour. Le lecteur a déjà son lien « Sourates ». */
-const ROOT_PATHS = ['/', '/coran', '/lire', '/priere', '/search', '/account'];
+/** Pages principales (barre du bas) : pas de bouton retour. « Moi » s'ouvre depuis la pastille du compte, avec un retour. Le lecteur a déjà son lien « Sourates ». */
+const ROOT_PATHS = ['/', '/coran', '/lire', '/priere', '/search', '/library'];
 
 /** Téléphone : bouton Retour en haut des pages secondaires (l'appli installée n'a pas celui du navigateur). */
 function MobileBackBar() {
@@ -142,10 +142,15 @@ function BottomNav() {
           </div>
         </div>
       )}
+      {/* Comme Spotify : Accueil, Rechercher et Bibliothèque, avec le Coran et la Prière au centre. */}
       <nav className="bottom-nav">
         <NavLink to="/" end className="bottom-nav__link">
           <House size={22} />
           <span>Accueil</span>
+        </NavLink>
+        <NavLink to="/search" className="bottom-nav__link">
+          <Search size={22} />
+          <span>Rechercher</span>
         </NavLink>
         <button className={`bottom-nav__link ${inQuran ? 'active' : ''}`} onClick={() => setChoosing((c) => !c)} aria-expanded={choosing}>
           <BookOpen size={22} />
@@ -155,13 +160,9 @@ function BottomNav() {
           <Clock size={22} />
           <span className="bottom-nav__countdown">{countdown ? `${countdown.name} ${countdown.left}` : 'Prière'}</span>
         </NavLink>
-        <NavLink to="/search" className="bottom-nav__link">
-          <Search size={22} />
-          <span>Rechercher</span>
-        </NavLink>
-        <NavLink to="/account" className="bottom-nav__link">
-          <User size={22} />
-          <span>Moi</span>
+        <NavLink to="/library" className="bottom-nav__link">
+          <Library size={22} />
+          <span>Bibliothèque</span>
         </NavLink>
       </nav>
     </>
