@@ -12,11 +12,11 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    id: '2026-11-13',
+    id: '2026-11-13b',
     date: '13 novembre 2026',
     title: 'Une appli plus simple, inspirée de Spotify',
     items: [
-      'Ordinateur : barre du haut avec précédent / suivant, accueil, grande recherche et votre compte ; menu et contenu en panneaux arrondis.',
+      'Ordinateur : les rubriques passent en haut de l’écran. Coran, Podcasts, Prière et Bibliothèque s’ouvrent en menus (ex. Coran → Écouter, Lire, Chercher un mot).',
       'Menu de gauche : votre Bibliothèque (podcasts suivis et playlists) avec filtres et bouton + pour créer une playlist.',
       'Téléphone : la Bibliothèque rejoint la barre du bas ; « Moi » s’ouvre depuis la pastille ronde en haut de l’écran.',
       'Accueil : vos derniers podcasts, récitateurs et playlists en accès direct, en haut de la page.',

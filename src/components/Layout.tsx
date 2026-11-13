@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType } from 'react-router';
-import { BookOpen, BookOpenText, ChevronLeft, ChevronRight, Clock, ListMusic, Plus, Headphones, FolderOpen, House, Library, Mic, Moon, Search, Settings, Sparkle, User, Users, WifiOff } from 'lucide-react';
+import { BookOpen, BookOpenText, ChevronLeft, ChevronRight, Clock, ListMusic, Plus, Headphones, House, Library, Search, Settings, Sparkle, User, Users, WifiOff } from 'lucide-react';
 import { ramadanInfo } from '../lib/khatma';
-import { formatClock, nextPrayer, PRAYER_NAMES } from '../lib/prayer';
 import { useModeration } from '../store/moderation';
 import { DesktopUpdateBanner } from './DesktopUpdate';
 import { WhatsNew } from './WhatsNew';
@@ -24,15 +23,9 @@ import { podcastPath } from '../lib/paths';
 import { EXPAND_PLAYER_EVENT } from './playLocal';
 import type { Podcast } from '../types';
 import { Onboarding, SHOW_ONBOARDING_EVENT } from './Onboarding';
+import { TopNav } from './TopNav';
+import { usePrayerCountdown } from '../lib/usePrayerCountdown';
 
-const SIDEBAR_NAV = [
-  { to: '/', label: 'Accueil', icon: House, end: true },
-  // « Coran » regroupe l'écoute (/coran) et la lecture (/lire).
-  { to: '/coran', label: 'Coran', icon: BookOpen, also: '/lire' },
-  { to: '/islam', label: 'Podcasts islamiques', icon: Mic },
-  { to: '/priere', label: 'Prière', icon: Clock },
-  { to: '/fichiers', label: 'Mes fichiers', icon: FolderOpen },
-];
 
 /** Événement envoyé par la barre de recherche du menu à la page Rechercher. */
 export const SEARCH_INPUT_EVENT = 'podsal:search-input';
@@ -80,10 +73,11 @@ function TopSearch() {
 }
 
 /**
- * Barre du haut sur ordinateur, comme Spotify : précédent / suivant, accueil, recherche au centre,
+ * Barre du haut sur ordinateur : précédent / suivant, rubriques en menus déroulants (Coran, Podcasts, Prière,
+ * Bibliothèque), recherche,
  * Podsal+, amis et pastille du compte à droite.
  */
-function DesktopTopBar({ premium }: { premium: boolean }) {
+function DesktopTopBar({ premium, ramadanSoon }: { premium: boolean; ramadanSoon: boolean }) {
   const navigate = useNavigate();
   const location = useLocation();
   // react-router note la position dans l'historique : pas de « précédent » sur la première page ouverte.
@@ -98,10 +92,8 @@ function DesktopTopBar({ premium }: { premium: boolean }) {
           <ChevronRight size={20} />
         </button>
       </div>
+      <TopNav ramadanSoon={ramadanSoon} />
       <div className="top-bar__center">
-        <NavLink to="/" end className="top-bar__home" aria-label="Accueil" title="Accueil">
-          <House size={22} />
-        </NavLink>
         <TopSearch key={location.pathname === '/search' ? 'search' : 'other'} />
       </div>
       <div className="top-bar__right">
@@ -177,35 +169,6 @@ function SidebarLibrary({ subscriptions }: { subscriptions: Podcast[] }) {
           </NavLink>
         ))}
     </div>
-  );
-}
-
-/** Compte à rebours jusqu'à la prochaine prière, à côté de « Prière » (seconde par seconde). */
-/** Prochaine prière et temps restant, mis à jour chaque seconde (null sans ville réglée). */
-function usePrayerCountdown() {
-  const { settings } = useLibrary();
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  const next = nextPrayer(settings.prayer, now);
-  if (!next) return null;
-  const total = Math.max(0, Math.floor((next.time.getTime() - now.getTime()) / 1000));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  const left = h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
-  return { name: PRAYER_NAMES[next.key], at: formatClock(next.time), left, soon: total < 15 * 60 };
-}
-
-function PrayerCountdown() {
-  const c = usePrayerCountdown();
-  if (!c) return null;
-  return (
-    <span className={`nav-countdown ${c.soon ? 'nav-countdown--soon' : ''}`} title={`${c.name} à ${c.at}`}>
-      <span>{c.name}</span> <strong>{c.left}</strong>
-    </span>
   );
 }
 
@@ -434,39 +397,6 @@ export function Layout() {
             </span>
             <Wordmark className="brand__wordmark" title="" />
           </Link>
-          <nav className="sidebar__nav">
-            {SIDEBAR_NAV.map(({ to, label, icon: Icon, end, also }) => (
-              <div key={to} className="nav-group">
-                <NavLink
-                  to={to}
-                  end={end}
-                  className={({ isActive }) => `nav-link ${isActive || (also && location.pathname.startsWith(also)) ? 'active' : ''}`}
-                  title={label}
-                >
-                  <Icon size={22} />
-                  <span className="nav-link__label">{label}</span>
-                  {to === '/priere' && <PrayerCountdown />}
-                </NavLink>
-                {to === '/coran' && (
-                  // Choisir d'écouter ou de lire avant même d'ouvrir la rubrique.
-                  <div className="nav-choice" role="group" aria-label="Coran">
-                    <NavLink to="/coran" className="nav-choice__btn" title="Écouter le Coran">
-                      <Headphones size={15} /> Écouter
-                    </NavLink>
-                    <NavLink to="/lire" className="nav-choice__btn" title="Lire le Coran">
-                      <BookOpenText size={15} /> Lire
-                    </NavLink>
-                  </div>
-                )}
-              </div>
-            ))}
-            {ramadanSoon && (
-              <NavLink to="/ramadan" className="nav-link" title="Ramadan">
-                <Moon size={22} />
-                <span className="nav-link__label">Ramadan</span>
-              </NavLink>
-            )}
-          </nav>
           {/* Sans abonnement, l'invitation est dans la barre du haut (ordinateur) ; la carte du menu ne sert plus qu'aux abonnés et sur tablette. */}
           <PremiumCard active={isPremium} />
           <SidebarLibrary subscriptions={subscriptions} />
@@ -479,7 +409,7 @@ export function Layout() {
               <WifiOff size={16} /> Hors-ligne : les épisodes téléchargés restent disponibles dans la Bibliothèque.
             </div>
           )}
-          <DesktopTopBar premium={isPremium} />
+          <DesktopTopBar premium={isPremium} ramadanSoon={ramadanSoon} />
           <DesktopUpdateBanner />
           <MobileBackBar />
           <div className="route-view" key={location.pathname}>
