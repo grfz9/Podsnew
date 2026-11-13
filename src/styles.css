@@ -2018,22 +2018,27 @@ kbd { padding: 2px 6px; border-radius: 6px; border: 1px solid var(--border); bac
 /* ---------- Accueil : accès rapide regroupé, mise en page plus aérée ---------- */
 .quick-access { display: grid; gap: 10px; margin-bottom: 24px; }
 .quick-access .shortcuts { margin-bottom: 0; }
-.quran-duo {
-  display: grid; grid-template-columns: 1fr 1fr; padding: 4px; gap: 4px; border-radius: 16px;
-  background: linear-gradient(135deg, rgba(226, 196, 133, 0.2), rgba(201, 168, 106, 0.08)); border: 1px solid rgba(226, 196, 133, 0.3);
+/* Accès rapide de l'accueil : fond neutre, seule l'icône porte la couleur (plus calme que des tuiles teintées). */
+.shortcuts--compact { grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: 8px; }
+.shortcuts--compact .shortcut {
+  flex-direction: column; justify-content: center; gap: 6px; padding: 10px 4px; min-height: 74px; text-align: center; font-size: 12px; font-weight: 600;
+  background: var(--bg-elevated); border-color: var(--line); border-radius: 10px;
 }
-.quran-duo__btn {
-  display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; border-radius: 12px;
-  font-weight: 800; font-size: 15px; color: #e2c485; transition: background 0.2s, transform 0.15s var(--ease);
-}
-.quran-duo__btn:first-child { background: rgba(226, 196, 133, 0.16); }
-.quran-duo__btn:hover { background: rgba(226, 196, 133, 0.28); }
-.quran-duo__btn:active { transform: scale(0.96); }
-.shortcuts--compact { grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px; }
-.shortcuts--compact .shortcut { flex-direction: column; justify-content: center; gap: 6px; padding: 10px 4px; min-height: 76px; text-align: center; font-size: 12px; }
-.shortcuts--compact .shortcut__icon { width: 34px; height: 34px; }
-.shortcuts--compact .shortcut__label { max-width: 100%; white-space: nowrap; }
+.shortcuts--compact .shortcut:hover { background: var(--bg-hover); transform: none; }
+.shortcuts--compact .shortcut:hover .shortcut__icon { transform: none; }
+.shortcuts--compact .shortcut__icon { width: 34px; height: 34px; border-radius: 50%; background: color-mix(in srgb, var(--tint) 16%, transparent); }
+.shortcuts--compact .shortcut__label { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .shortcuts--compact .shortcut__count { position: absolute; top: 6px; right: 6px; padding: 1px 6px; font-size: 10px; }
+@media (max-width: 800px) {
+  .shortcuts--compact { gap: 6px; }
+  .shortcuts--compact .shortcut { padding: 10px 1px; font-size: 11px; letter-spacing: -0.01em; }
+}
+@media (min-width: 801px) {
+  /* Ordinateur : rangée horizontale (icône, nom, compteur), comme les raccourcis de Spotify. */
+  .shortcuts--compact { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+  .shortcuts--compact .shortcut { flex-direction: row; justify-content: flex-start; gap: 12px; min-height: 56px; padding: 0 14px 0 10px; font-size: 14px; text-align: left; }
+  .shortcuts--compact .shortcut__count { position: static; margin-left: auto; font-size: 11px; }
+}
 
 @media (max-width: 800px) {
   .home-head { margin-bottom: 14px; }
