@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { Link } from 'react-router';
-import { BookOpen, BookOpenText, Download, FolderOpen, Heart, ListMusic, Mic } from 'lucide-react';
+import { BookOpen, Download, FolderOpen, Heart, ListMusic, Mic } from 'lucide-react';
 import { MeButton } from '../components/MeButton';
 import { podcastPath } from '../lib/paths';
 import { LOCAL_PODCAST_ID } from '../lib/localFiles';
@@ -104,30 +104,23 @@ function DailyMix({ fromSubscriptions, discoveryPodcasts }: { fromSubscriptions?
   return <MixCard mix={mix} subscribedCount={mix.filter((e) => library.isSubscribed(e.podcastId)).length} />;
 }
 
-/** Raccourcis de l'accueil : ce qu'on cherche le plus souvent, à portée de pouce. */
+/**
+ * Raccourcis de l'accueil : une seule rangée sobre, à portée de pouce.
+ * Le Coran (écoute et lecture) a son entrée ici ; le choix Écouter / Lire se fait sur sa page ou dans le menu du haut.
+ */
 function QuickAccess({ interests }: { interests: Interest[] }) {
   const library = useLibrary();
   const { files } = useLocalFiles();
   const { downloads } = useDownloads();
-  // La prière a sa carte juste au-dessus et son onglet en bas : pas de doublon ici.
   const items: Shortcut[] = [
+    ...(interests.includes('quran') ? [{ to: '/coran', label: 'Coran', icon: BookOpen, color: '#e2c485' }] : []),
     ...(interests.includes('islamic') ? [{ to: '/islam', label: 'Podcasts', icon: Mic, color: '#6cc4b4' }] : []),
     { to: '/library?tab=saved', label: 'Favoris', icon: Heart, color: '#ed93b1', count: library.savedEpisodes.length },
-    { to: '/library?tab=downloads', label: 'Téléchargés', icon: Download, color: '#85b7eb', count: downloads.length },
+    { to: '/library?tab=downloads', label: 'Hors ligne', icon: Download, color: '#85b7eb', count: downloads.length },
     { to: '/fichiers', label: 'Fichiers', icon: FolderOpen, color: '#f0997b', count: files.length },
   ];
   return (
     <div className="quick-access">
-      {interests.includes('quran') && (
-        <nav className="quran-duo" aria-label="Coran">
-          <Link to="/coran" className="quran-duo__btn">
-            <BookOpen size={20} /> Écouter
-          </Link>
-          <Link to="/lire" className="quran-duo__btn">
-            <BookOpenText size={20} /> Lire
-          </Link>
-        </nav>
-      )}
       <Shortcuts items={items} layout="compact" label="Accès rapide" />
     </div>
   );
