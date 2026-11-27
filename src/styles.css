@@ -2201,3 +2201,6 @@ kbd { padding: 2px 6px; border-radius: 6px; border: 1px solid var(--border); bac
   .top-nav__btn { padding: 0 8px; gap: 4px; }
 }
 @media (prefers-reduced-motion: reduce) { .top-nav__menu { animation: none; } }
+
+/* Source de la traduction affichée sous le sélecteur du lecteur. */
+.verses__source { margin: 0 0 8px; line-height: 1.4; }

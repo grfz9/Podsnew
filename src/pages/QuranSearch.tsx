@@ -102,7 +102,7 @@ export function QuranSearchPage() {
       )}
 
       <p className="small muted quran-search__source">
-        <Info size={13} /> Recherche dans la traduction de Muhammad Hamidullah et dans le texte arabe sans voyelles (alquran.cloud, Tanzil). Le
+        <Info size={13} /> Recherche dans la traduction de Muhammad Hamidullah (QuranEnc.com) et dans le texte arabe sans voyelles (alquran.cloud, Tanzil). Le
         texte reste sur l’appareil après la première recherche : elle fonctionne ensuite hors-ligne.
       </p>
     </div>

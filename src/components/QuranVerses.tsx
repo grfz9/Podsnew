@@ -79,6 +79,10 @@ export function QuranVerses({ episode }: { episode: Episode }) {
         </button>
       </div>
 
+      {settings.translation !== 'none' && (
+        <p className="verses__source small muted">{TRANSLATIONS.find((t) => t.id === settings.translation)?.source}</p>
+      )}
+
       <div className="verses__scroll" ref={box} onTouchMove={onUserScroll} onWheel={onUserScroll}>
         {text.loading && !text.data ? (
           <Spinner label="Chargement des versets…" />
